@@ -26,7 +26,7 @@
       <div class="search-area">
         <div class="search-wrapper">
           <input type="text" id="searchInput" class="search-input" placeholder="m16tool 아이디 입력..." autocomplete="off">
-          <button type="button" id="btnSearch" class="btn-search">
+          <button type="button" id="btnSearch" onclick="if(typeof loadProfileFromInput==='function') loadProfileFromInput();" class="btn-search">
             조회
           </button>
         </div>
@@ -36,6 +36,11 @@
         </div>
       </div>
     </header>
+
+    <!-- Season Complete Banner -->
+    <div id="valSeasonCompleteBanner" style="display:none; background: linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; color: #34d399; font-weight: 800; font-size: 15px; text-align: center; box-shadow: 0 0 15px rgba(16,185,129,0.3);">
+      ✅ <span id="valSeasonCompleteLabel">v36 시즌포인트 완료</span>
+    </div>
 
     <!-- Loading / Status Notice Bar -->
     <div id="apiStatusNotice" class="simulator-panel" style="margin-bottom: 20px; display: flex;">
@@ -57,6 +62,7 @@
             <span class="stat-icon">⭐</span>
           </div>
           <div class="stat-value" id="valSeasonPoint">0 SP</div>
+          <div id="valSeasonCardBadge" style="margin-top:4px; font-size:11px; color:#34d399; font-weight:700; display:none;">✅ 시즌 완료</div>
         </div>
 
         <!-- 2. 명예포인트 -->
