@@ -97,88 +97,53 @@ function handleSaveIdState(userId) {
  * m16tool.xyz 실시간 연동 및 프로필 데이터 바인딩
  */
 async function loadProfile(userId) {
-  showApiNotice(`'${userId}' 유저 로그를 조회 중입니다...`);
+  if (!userId || !userId.trim()) {
+    showApiNotice("아이디를 입력한 후 조회해 주세요.", false, 3000);
+    return;
+  }
 
+  const cleanId = userId.trim();
+  const targetKey = (typeof resolveUserId === 'function') ? resolveUserId(cleanId) : cleanId.toLowerCase();
+  const dbProfile = PLAYERS_DATABASE[cleanId] || PLAYERS_DATABASE[targetKey] || PLAYERS_DATABASE[cleanId.toLowerCase()];
+
+  // 1단계: DB 프로필이 존재하는 유저라면 0.001초 만에 화면 즉각 렌더링!
+  if (dbProfile) {
+    const safeLastSave = dbProfile.lastSave || {
+      saveDate: "기록 없음",
+      characterName: "조회 정보 없음",
+      characterLevel: 0,
+      petName: "없음",
+      gold: 0, imperialCoin: 0, darkStone: 0,
+      str: 0, agi: 0, int: 0,
+      heroItems: [], petItems: [], warehouseItems: []
+    };
+
+    currentProfile = {
+      ...dbProfile,
+      userId: cleanId,
+      ownedSwords: new Set(dbProfile.ownedSwords || []),
+      warehouseData: { ...dbProfile.warehouseData },
+      petData: { ...dbProfile.petData },
+      ownedCodes: new Set(dbProfile.ownedCodes || []),
+      saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? dbProfile.saveSlots : [safeLastSave],
+      selectedSlotIndex: 0,
+      lastSave: { ...safeLastSave }
+    };
+
+    try { updateProfileStatsUI(); } catch (e) {}
+    try { renderSeasonsMatrix(); } catch (e) {}
+    try { renderOtherTabsData(); } catch (e) {}
+    showApiNotice(`'${cleanId}' 유저 로그를 조회 중입니다...`);
+  } else {
+    showApiNotice(`'${cleanId}' m16tool 유저 로그를 라이브 조회 중입니다...`);
+  }
+
+  // 2단계: 백그라운드 라이브 연동 (m16tool 라이브 파싱)
   try {
-    const m16Data = await fetchM16ToolUserLog(userId);
+    const m16Data = await fetchM16ToolUserLog(cleanId);
 
     if (m16Data && m16Data.found) {
       const safeLastSave = m16Data.lastSave || {
-        saveDate: "기록 없음",
-        characterName: "조회 정보 없음",
-        characterLevel: 0,
-        petName: "없음",
-        gold: 0,
-        imperialCoin: 0,
-        darkStone: 0,
-        str: 0, agi: 0, int: 0,
-        heroItems: [], petItems: [], warehouseItems: []
-      };
-
-      currentProfile = {
-        userId: userId,
-        seasonPoint: m16Data.seasonPoint || 0,
-        honorPoint: m16Data.honorPoint || 0,
-        isSeasonCompleted: m16Data.isSeasonCompleted,
-        seasonVersionLabel: m16Data.seasonVersionLabel,
-        rankingPoint: m16Data.rankingPoint || 0,
-        rankStanding: m16Data.rankStanding || "일반 유저",
-        titleCode: m16Data.titleCode || "TT_TYPE1",
-        swordCode: m16Data.swordCode || "BLSwrod0",
-        swordLevel: m16Data.swordLevel || 1,
-        ownedSwords: new Set(m16Data.ownedSwords || []),
-        wingId: m16Data.wingId || 1,
-        wingLevel: m16Data.wingLevel || 1,
-        warehouseData: { ...m16Data.warehouseData },
-        sacredPower: m16Data.sacredPower || "0",
-        petData: { ...m16Data.petData },
-        ownedCodes: new Set(m16Data.ownedCodes || []),
-        saveSlots: (m16Data.saveSlots && m16Data.saveSlots.length > 0) ? m16Data.saveSlots : [safeLastSave],
-        selectedSlotIndex: 0,
-        lastSave: { ...safeLastSave }
-      };
-
-      showApiNotice(`[OK] '${userId}' 유저 조회 성공! (세이브 슬롯 ${currentProfile.saveSlots.length}개 탐지, 선택 쾐릭터: ${safeLastSave.characterName || "미확인"})`, false, 4000);
-    } else {
-      // 사전등록 로컬 프로필 체크
-      const targetKey = (typeof resolveUserId === 'function') ? resolveUserId(userId) : userId.toLowerCase();
-      const dbProfile = PLAYERS_DATABASE[userId] || PLAYERS_DATABASE[targetKey] || PLAYERS_DATABASE[userId.toLowerCase()];
-
-      if (dbProfile) {
-        const safeLastSave = dbProfile.lastSave || {
-          saveDate: "기록 없음",
-          characterName: "조회 정보 없음",
-          characterLevel: 0,
-          petName: "없음",
-          gold: 0, imperialCoin: 0, darkStone: 0,
-          str: 0, agi: 0, int: 0,
-          heroItems: [], petItems: [], warehouseItems: []
-        };
-
-        currentProfile = {
-          ...dbProfile,
-          userId: userId,
-          ownedSwords: new Set(dbProfile.ownedSwords || []),
-          warehouseData: { ...dbProfile.warehouseData },
-          petData: { ...dbProfile.petData },
-          ownedCodes: new Set(dbProfile.ownedCodes || []),
-          saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? dbProfile.saveSlots : [safeLastSave],
-          selectedSlotIndex: 0,
-          lastSave: { ...safeLastSave }
-        };
-        showApiNotice(`'${userId}' 프로필 데이터로 로드되었습니다.`, false, 3000);
-      } else {
-        currentProfile = createEmptyProfile(userId);
-        showApiNotice(`'${userId}' 유저의 m16tool 검색 결과가 없습니다. 아이디를 확인해 주세요.`, false, 5000);
-      }
-    }
-  } catch (err) {
-    console.warn("m16tool Fetch Warning, fallback check:", err);
-    const targetKey = (typeof resolveUserId === 'function') ? resolveUserId(userId) : userId.toLowerCase();
-    const dbProfile = PLAYERS_DATABASE[userId] || PLAYERS_DATABASE[targetKey] || PLAYERS_DATABASE[userId.toLowerCase()];
-
-    if (dbProfile) {
-      const safeLastSave = dbProfile.lastSave || {
         saveDate: "기록 없음",
         characterName: "조회 정보 없음",
         characterLevel: 0,
@@ -189,22 +154,52 @@ async function loadProfile(userId) {
       };
 
       currentProfile = {
-        ...dbProfile,
-        userId: userId,
-        ownedSwords: new Set(dbProfile.ownedSwords || []),
-        warehouseData: { ...dbProfile.warehouseData },
-        petData: { ...dbProfile.petData },
-        ownedCodes: new Set(dbProfile.ownedCodes || []),
-        saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? dbProfile.saveSlots : [safeLastSave],
+        userId: cleanId,
+        seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (currentProfile.seasonPoint || 0),
+        honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (currentProfile.honorPoint || 0),
+        isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : currentProfile.isSeasonCompleted,
+        seasonVersionLabel: m16Data.seasonVersionLabel || currentProfile.seasonVersionLabel || "v36",
+        rankingPoint: (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : (currentProfile.rankingPoint || 0),
+        rankStanding: m16Data.rankStanding || currentProfile.rankStanding || "일반 유저",
+        titleCode: m16Data.titleCode || currentProfile.titleCode || "TT_TYPE1",
+        swordCode: m16Data.swordCode || currentProfile.swordCode || "BLSwrod0",
+        swordLevel: m16Data.swordLevel || currentProfile.swordLevel || 1,
+        ownedSwords: new Set([...(currentProfile.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
+        wingId: m16Data.wingId || currentProfile.wingId || 1,
+        wingLevel: m16Data.wingLevel || currentProfile.wingLevel || 1,
+        warehouseData: { ...currentProfile.warehouseData, ...m16Data.warehouseData },
+        sacredPower: m16Data.sacredPower || currentProfile.sacredPower || "0",
+        petData: { ...currentProfile.petData, ...m16Data.petData },
+        ownedCodes: new Set([...(currentProfile.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
+        saveSlots: (m16Data.saveSlots && m16Data.saveSlots.length > 0) ? m16Data.saveSlots : (currentProfile.saveSlots || [safeLastSave]),
         selectedSlotIndex: 0,
         lastSave: { ...safeLastSave }
       };
-      showApiNotice(`'${userId}' 프로필 데이터로 로드되었습니다.`, false, 3000);
+
+      try { updateProfileStatsUI(); } catch (e) {}
+      try { renderSeasonsMatrix(); } catch (e) {}
+      try { renderOtherTabsData(); } catch (e) {}
+      showApiNotice(`[OK] '${cleanId}' m16tool 최신 동적 로그 갱신 성공! (슬롯 ${currentProfile.saveSlots.length}개 탐지)`, false, 4000);
+    } else if (!dbProfile) {
+      currentProfile = createEmptyProfile(cleanId);
+      try { updateProfileStatsUI(); } catch (e) {}
+      try { renderSeasonsMatrix(); } catch (e) {}
+      try { renderOtherTabsData(); } catch (e) {}
+      showApiNotice(`'${cleanId}' 유저의 m16tool 검색 결과가 없습니다. 아이디를 확인해 주세요.`, false, 5000);
     } else {
-      currentProfile = createEmptyProfile(userId);
-      showApiNotice(`'${userId}' 유저의 m16tool 검색 결과가 없습니다. 아이디를 확인해 주세요.`, false, 5000);
+      showApiNotice(`[OK] '${cleanId}' 프로필 데이터 조회가 완료되었습니다.`, false, 3000);
+    }
+  } catch (err) {
+    console.warn("m16tool Fetch Warning:", err);
+    if (!dbProfile) {
+      currentProfile = createEmptyProfile(cleanId);
+      try { updateProfileStatsUI(); } catch (e) {}
+      try { renderSeasonsMatrix(); } catch (e) {}
+      try { renderOtherTabsData(); } catch (e) {}
+      showApiNotice(`'${cleanId}' 유저 조회 중 통신 지연이 발생했습니다.`, false, 4000);
     }
   }
+}
 
   try {
     updateProfileStatsUI();
@@ -606,24 +601,47 @@ function calculateRankStanding(rp, honorPoint, dbRank) {
  */
 async function fetchM16ToolUserLog(nicName) {
   const targetUrl = `https://m16tool.xyz/Game/DSR/UserLog/RPGDetail?nicName=${encodeURIComponent(nicName)}&character=info1`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+  const proxyList = [
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    targetUrl
+  ];
+
+  let htmlText = null;
+
+  for (const proxyUrl of proxyList) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(proxyUrl, { 
+        method: "GET",
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const txt = await res.text();
+        if (txt && txt.length > 300 && !txt.includes("해당 유저의 검색된 사항이 없습니다") && !txt.includes("검색 결과가 없습니다")) {
+          htmlText = txt;
+          break;
+        }
+      }
+    } catch (e) {
+      console.warn(`Proxy fetch timeout/error for ${proxyUrl}`);
+    }
+  }
+
+  if (!htmlText) return null;
 
   try {
-    const res = await fetch(proxyUrl, { method: "GET" });
-    if (!res.ok) return null;
-    const htmlText = await res.text();
-
-    if (htmlText.includes("해당 유저의 검색된 사항이 없습니다") || htmlText.includes("검색 결과가 없습니다")) {
-      return { found: false };
-    }
-
     // HTML 파싱
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, "text/html");
     const bodyContent = doc.body ? doc.body.textContent : htmlText;
 
-    // m16tool 세이브 키가 전혀 없는 페이지 체크
-    if (!bodyContent.includes("iPOINT") && !bodyContent.includes("Code1_2")) {
+    // m16tool 세이브 키가 전혀 없는 페이지 체크 (Code1, iPOINT, SDATA, character 포함 시 정상 유저)
+    if (!htmlText.includes("Code1") && !htmlText.includes("iPOINT") && !htmlText.includes("SDATA") && !htmlText.includes("character")) {
       return { found: false };
     }
 
