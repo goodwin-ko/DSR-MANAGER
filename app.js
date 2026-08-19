@@ -119,6 +119,8 @@ async function loadProfile(userId) {
         userId: userId,
         seasonPoint: m16Data.seasonPoint || 0,
         honorPoint: m16Data.honorPoint || 0,
+        isSeasonCompleted: m16Data.isSeasonCompleted,
+        seasonVersionLabel: m16Data.seasonVersionLabel,
         rankingPoint: m16Data.rankingPoint || 0,
         rankStanding: m16Data.rankStanding || "일반 유저",
         titleCode: m16Data.titleCode || "TT_TYPE1",
@@ -459,7 +461,7 @@ const CHAR_INDEX_TO_NAME = {
   // SH_73 ~ SH_81 (S9, 오크 용병장)
   206: "울프 사형자",      207: "언데드 무사",       208: "창술 무사",
   209: "베스티고어 처형자", 210: "칼날 무사",        211: "도끼 무사",
-  212: "오크 둔기병",      213: "바라카 쌍검병",     214: "아케인 검사",
+  212: "오크 둔기병",      213: "『시즌』휴먼 공성 전차", 214: "아케인 검사",
   // SH_82 ~ SH_90 (S10, 시타 응원여단장)
   215: "방패 레이번트",    216: "파이어 레이번트",   217: "포이즌 레이번트",
   218: "스피릿 레이번트",  219: "매직 레이번트",     220: "노예 오크병",
@@ -584,6 +586,21 @@ function formatSaveDate(rawDateStr) {
 }
 
 /**
+ * 계급순위(Rank Standing) 안전 계산 헬퍼
+ * 캐릭터 이름이 아닌 랭킹포인트(RP)/명예포인트 기반 계급 및 순위 출력
+ */
+function calculateRankStanding(rp, honorPoint, dbRank) {
+  if (dbRank && dbRank !== "일반 유저" && !dbRank.includes("페가수스") && !dbRank.includes("데르메트") && !dbRank.includes("여단장") && !dbRank.includes("정령")) {
+    return dbRank;
+  }
+  const pts = rp || 0;
+  if (pts >= 1000) return `1위 (상위 랭커)`;
+  if (pts >= 500) return `상위 랭커 (${pts.toLocaleString()} RP)`;
+  if (pts > 0) return `순위권 랭커 (${pts.toLocaleString()} RP)`;
+  return "순위 미등록 (일반 유저)";
+}
+
+/**
  * m16tool.xyz RPGDetail Real-time Fetcher & Key-Value Level Parser
  * 각 유저별 독립된 동적 데이터 파싱
  */
@@ -614,6 +631,24 @@ async function fetchM16ToolUserLog(nicName) {
     const petData = {};
     const warehouseData = {};
     const ownedSwords = new Set();
+
+    // 0. 시즌포인트 완료 여부 검출 ("시즌포인트획득" 키 탐지)
+    let isSeasonCompleted = false;
+    let seasonVersionLabel = "v36";
+
+    const spVerMatch = htmlText.match(/"시즌포인트획득"\s*:\s*"([^"]+)"/);
+    if (spVerMatch && spVerMatch[1]) {
+      isSeasonCompleted = true;
+      seasonVersionLabel = spVerMatch[1].trim();
+    } else if (htmlText.includes("시즌포인트획득")) {
+      isSeasonCompleted = true;
+    } else {
+      const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
+      if (dbUserCheck && dbUserCheck.isSeasonCompleted) {
+        isSeasonCompleted = true;
+        seasonVersionLabel = dbUserCheck.seasonVersionLabel || "v36";
+      }
+    }
 
     // 1. iPOINT (시즌포인트) 파싱
     let seasonPoint = 0;
@@ -1085,12 +1120,18 @@ function resolveEquippedPetFromPetData(pData) {
     // 디버그 로그 (브라우저 콘솔에서 확인 가능)
     console.log(`[DSR Parser] userId=${nicName}, 탐지된 세이브 슬롯 ${saveSlots.length}개:`, saveSlots);
 
+    const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
+    const rPoints = (dbUserCheck && dbUserCheck.rankingPoint) ? dbUserCheck.rankingPoint : 0;
+    const computedRank = calculateRankStanding(rPoints, honorPoint, dbUserCheck ? dbUserCheck.rankStanding : null);
+
     return {
       found: true,
       seasonPoint: seasonPoint,
       honorPoint: honorPoint,
-      rankingPoint: 0,
-      rankStanding: "일반 유저",
+      isSeasonCompleted: isSeasonCompleted,
+      seasonVersionLabel: seasonVersionLabel,
+      rankingPoint: rPoints,
+      rankStanding: computedRank,
       titleCode: titleLevel,
       swordCode: swordCode,
       swordLevel: swordLevel,
@@ -1259,6 +1300,27 @@ function updateProfileStatsUI() {
   document.getElementById("valSacredSword").textContent = (currentProfile.swordLevel > 0) ? `${swordDisplayName} (Lv.${currentProfile.swordLevel})` : swordDisplayName;
 
   document.getElementById("valSacredPower").textContent = currentProfile.sacredPower;
+
+  // ==========================================
+  // 시즌 완료 녹색 배너 및 SP 카드 배지 제어
+  // ==========================================
+  const bannerEl = document.getElementById("valSeasonCompleteBanner");
+  const labelEl = document.getElementById("valSeasonCompleteLabel");
+  const cardBadgeEl = document.getElementById("valSeasonCardBadge");
+
+  const verLabel = currentProfile.seasonVersionLabel || "v36";
+
+  if (currentProfile.isSeasonCompleted) {
+    if (bannerEl) bannerEl.style.display = "block";
+    if (labelEl) labelEl.textContent = `${verLabel} 시즌포인트 완료`;
+    if (cardBadgeEl) {
+      cardBadgeEl.style.display = "block";
+      cardBadgeEl.textContent = `✅ ${verLabel} 시즌 완료`;
+    }
+  } else {
+    if (bannerEl) bannerEl.style.display = "none";
+    if (cardBadgeEl) cardBadgeEl.style.display = "none";
+  }
 
   // ==========================================
   // 세이브 슬롯 탭 선택 바 렌더링

@@ -570,8 +570,10 @@ const PLAYERS_DATABASE = {
     userId: "goodwin",
     seasonPoint: 111,
     honorPoint: 258,
+    isSeasonCompleted: true,
+    seasonVersionLabel: "v36",
     rankingPoint: 1420,
-    rankStanding: "기사단장 (대륙의 맹주)",
+    rankStanding: "1위 (상위 랭커)",
     titleCode: "TT_TYPE2", // 실버 칭호
     swordCode: "BLSwrod2", // 그람(모능)
     swordLevel: 1,
@@ -1061,6 +1063,76 @@ const PLAYERS_DATABASE = {
         darkStone: 0,
         str: 5115, agi: 5115, int: 10230,
         heroItems: [], petItems: [], warehouseItems: []
+      }
+    ]
+  },
+  "sic": {
+    userId: "Sic",
+    seasonPoint: 111,
+    honorPoint: 0,
+    isSeasonCompleted: true,
+    seasonVersionLabel: "v36",
+    rankingPoint: 0,
+    rankStanding: "순위 미등록 (일반 유저)",
+    titleCode: "TT_TYPE1",
+    swordCode: "BLSwrod0",
+    swordLevel: 1,
+    ownedSwords: [],
+    wingId: 1,
+    wingLevel: 1,
+    sacredPower: "12,273",
+    petData: {
+      "SP_RGUP1": 15
+    },
+    ownedCodes: ["SH_60"],
+    lastSave: {
+      saveDate: "2026-08-03 20:32:26",
+      characterName: "『시즌』휴먼 공성 전차",
+      characterLevel: 6000,
+      petName: "신성 성녀[Lv1][펫]",
+      petLevel: 6000,
+      gold: 288970,
+      imperialCoin: 582557,
+      darkStone: 0,
+      str: 72148, agi: 42073, int: 42073,
+      heroItems: [
+        { id: 322, count: 0 }, { id: 320, count: 0 }, { id: 279, count: 0 },
+        { id: 298, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
+      ],
+      petItems: [
+        { id: 318, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+        { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ],
+      warehouseItems: [
+        { id: 304, count: 0 }, { id: 361, count: 0 }, { id: 296, count: 0 },
+        { id: 370, count: 0 }, { id: 318, count: 0 }, { id: 372, count: 0 }
+      ]
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_2_1",
+        saveCode: "1",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:32:26",
+        characterName: "『시즌』휴먼 공성 전차",
+        characterLevel: 6000,
+        petName: "신성 성녀[Lv1][펫]",
+        gold: 288970,
+        imperialCoin: 582557,
+        darkStone: 0,
+        str: 72148, agi: 42073, int: 42073,
+        heroItems: [
+          { id: 322, count: 0 }, { id: 320, count: 0 }, { id: 279, count: 0 },
+          { id: 298, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 318, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 304, count: 0 }, { id: 361, count: 0 }, { id: 296, count: 0 },
+          { id: 370, count: 0 }, { id: 318, count: 0 }, { id: 372, count: 0 }
+        ]
       }
     ]
   },
