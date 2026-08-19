@@ -403,10 +403,18 @@ function checkPetOwnership(petCode, customPetData = null) {
 // 캐릭터 인덱스 → 이름 맵핑 (Code1_2_1의 3번째 값, SH_N → index N+133)
 // 검증: SH_31(페가수스 나이트)=164 ✅, 매의눈 여단장=177 ✅, 시타 응원여단장=170 ✅
 const CHAR_INDEX_TO_NAME = {
-  // 단장 및 여단장 인덱스 (Horus m16tool 데이터 실측)
-  // wldnjsdl33 & hjp0672 & u0u & gowin2 인덱스
+  // 단장 및 여단장/고유 슬롯 캐릭터 인덱스 (사용자 실측 데이터 100% 매핑)
+  24: "젤리 큐브",
+  67: "아크리치",                     // CharIdx=67 ✅ 사용자 실측 "아크리치" (Level 1016)
   125: "[1차 전생] 늑대 장군",       // wldnjsdl33 CharIdx=125 ✅
+  128: "슬픈광대 조커",
+  129: "스컬 로드",
+  130: "드워프 빅해머",
+  131: "오우거 투사",
+  132: "죄수 호송마차",
+  133: "엘프 아쳐",
   224: "『시즌』드래곤 프리스트",     // goodwin CharIdx=224 ✅
+  227: "드래곤 메이지",              // CharIdx=227 ✅ 0o0 드래곤 슬롯
   246: "총사령관 데르메트",           // hjp0672 CharIdx=246 ✅
   121: "[1차 전생] 그랜드 정령술사", // u0u CharIdx=121 ✅
   247: "[2차 전생] 정령들의 주인",   // gowin2 CharIdx=247 ✅
@@ -951,11 +959,8 @@ function resolveEquippedPetFromPetData(pData) {
           slotSeen.add(slotKey);
           validSlotCount++;
           
-          let sCodeNum = slotKey.replace(/^Code1_\d+_/, "");
-          if (!sCodeNum || sCodeNum.includes("") || sCodeNum.includes("?") || sCodeNum.trim() === "") {
-            sCodeNum = `${validSlotCount}`;
-          }
-          
+          let sCodeNum = slotKey.replace(/^Code1_\d+_/, "").replace(/^Code1_/, "").trim();
+
           const sGold = parseInt(valParts[0], 10) || 0;
           const sCoin = parseInt(valParts[1], 10) || 0;
           const sCharIdx = parseInt(valParts[2], 10) || 0;
@@ -963,7 +968,36 @@ function resolveEquippedPetFromPetData(pData) {
           const sAgi = parseInt(valParts[5], 10) || 0;
           const sInt = parseInt(valParts[6], 10) || 0;
 
-          let sCharName = CHAR_INDEX_TO_NAME[sCharIdx] || (lastCharName !== "조회 정보 없음" ? lastCharName : `캐릭터 #${sCharIdx}`);
+          // 사전등록 DB(PLAYERS_DATABASE) 슬롯 매핑을 통해 원본 저장 이름/숫자 (젤리, 드래곤, 토, 01, 1 등) 100% 보존
+          const dbUserForSlot = PLAYERS_DATABASE[nicName.toLowerCase()];
+          if (dbUserForSlot && dbUserForSlot.saveSlots) {
+            const dbMatch = dbUserForSlot.saveSlots.find(s => 
+              s.gold === sGold && s.imperialCoin === sCoin && s.str === sStr
+            ) || dbUserForSlot.saveSlots.find(s => s.slotKey === slotKey);
+            if (dbMatch && dbMatch.saveCode) {
+              sCodeNum = dbMatch.saveCode;
+            }
+          }
+
+          if (!sCodeNum || sCodeNum.includes("?") || sCodeNum.trim() === "") {
+            sCodeNum = `${validSlotCount}`;
+          }
+
+          let sCharName = CHAR_INDEX_TO_NAME[sCharIdx];
+          if (!sCharName) {
+            const dbUserForSlot = PLAYERS_DATABASE[nicName.toLowerCase()];
+            if (dbUserForSlot && dbUserForSlot.saveSlots) {
+              const dbMatch = dbUserForSlot.saveSlots.find(s => 
+                s.gold === sGold && s.imperialCoin === sCoin && s.str === sStr
+              ) || dbUserForSlot.saveSlots.find(s => s.slotKey === slotKey || s.saveCode === sCodeNum);
+              if (dbMatch && dbMatch.characterName) {
+                sCharName = dbMatch.characterName;
+              }
+            }
+          }
+          if (!sCharName) {
+            sCharName = `캐릭터 #${sCharIdx}`;
+          }
 
 
           // 6칸 아이템 추출
@@ -1031,6 +1065,7 @@ function resolveEquippedPetFromPetData(pData) {
     if (saveSlots.length === 0) {
       saveSlots.push({
         slotKey: "Code1_2_1",
+        saveCode: "1",
         characterName: lastCharName,
         characterLevel: lastCharLevel,
         petName: lastPetName,

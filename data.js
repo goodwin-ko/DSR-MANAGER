@@ -1027,23 +1027,40 @@ const PLAYERS_DATABASE = {
         characterLevel: 6000,
         petName: "백스플 개구리[펫]",
         gold: 1000000,
-        imperialCoin: 9,
+        imperialCoin: 1310,
         darkStone: 0,
-        str: 42153,
-        agi: 42073,
-        int: 72068,
-        heroItems: [
-          { id: 223, count: 0 }, { id: 224, count: 0 }, { id: 220, count: 0 },
-          { id: 219, count: 0 }, { id: 279, count: 0 }, { id: 215, count: 0 }
-        ],
-        petItems: [
-          { id: 190, count: 0 }, { id: 31, count: 0 }, { id: 93, count: 0 },
-          { id: 43, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 223, count: 0 }, { id: 190, count: 0 }, { id: 218, count: 0 },
-          { id: 217, count: 0 }, { id: 215, count: 0 }, { id: 216, count: 0 }
-        ]
+        str: 42153, agi: 42073, int: 72068,
+        heroItems: [{ id: 223, count: 0 }, { id: 224, count: 0 }, { id: 220, count: 0 }, { id: 219, count: 0 }],
+        petItems: [{ id: 190, count: 0 }, { id: 31, count: 0 }],
+        warehouseItems: [{ id: 223, count: 0 }, { id: 190, count: 0 }]
+      },
+      {
+        slotKey: "Code1_2_드래곤",
+        saveCode: "드래곤",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:35:12",
+        characterName: "드래곤 메이지",
+        characterLevel: 6000,
+        petName: "백스플 개구리[펫]",
+        gold: 0,
+        imperialCoin: 1307,
+        darkStone: 0,
+        str: 42073, agi: 42073, int: 72148,
+        heroItems: [], petItems: [], warehouseItems: []
+      },
+      {
+        slotKey: "Code1_2_리치",
+        saveCode: "리치",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:36:00",
+        characterName: "아크리치",
+        characterLevel: 1016,
+        petName: "백스플 개구리[펫]",
+        gold: 1000000,
+        imperialCoin: 936,
+        darkStone: 0,
+        str: 5115, agi: 5115, int: 10230,
+        heroItems: [], petItems: [], warehouseItems: []
       }
     ]
   },
