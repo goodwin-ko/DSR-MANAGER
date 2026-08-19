@@ -1136,6 +1136,80 @@ const PLAYERS_DATABASE = {
       }
     ]
   },
+  "ssiiss": {
+    userId: "ssiiss",
+    seasonPoint: 111,
+    honorPoint: 0,
+    isSeasonCompleted: true,
+    seasonVersionLabel: "v36",
+    rankingPoint: 0,
+    rankStanding: "순위 미등록 (일반 유저)",
+    titleCode: "TT_TYPE1",
+    swordCode: "BLSwrod0",
+    swordLevel: 1,
+    ownedSwords: [],
+    wingId: 1,
+    wingLevel: 1,
+    sacredPower: "0",
+    petData: {},
+    ownedCodes: [],
+    lastSave: {
+      saveDate: "2026-08-03 20:30:00",
+      characterName: "드레이니 삼형제(퍼플)",
+      characterLevel: 6000,
+      petName: "백스플 개구리[펫]",
+      petLevel: 6000,
+      gold: 1000000,
+      imperialCoin: 3428,
+      darkStone: 0,
+      str: 72148, agi: 42073, int: 42073,
+      heroItems: [], petItems: [], warehouseItems: []
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_2_go",
+        saveCode: "go",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:30:00",
+        characterName: "드레이니 삼형제(퍼플)",
+        characterLevel: 6000,
+        petName: "백스플 개구리[펫]",
+        gold: 1000000,
+        imperialCoin: 3428,
+        darkStone: 0,
+        str: 72148, agi: 42073, int: 42073,
+        heroItems: [], petItems: [], warehouseItems: []
+      },
+      {
+        slotKey: "Code1_1_9",
+        saveCode: "9",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:28:00",
+        characterName: "언고어 스피어맨",
+        characterLevel: 6000,
+        petName: "백스플 개구리[펫]",
+        gold: 1000000,
+        imperialCoin: 2240,
+        darkStone: 0,
+        str: 42073, agi: 42073, int: 72148,
+        heroItems: [], petItems: [], warehouseItems: []
+      },
+      {
+        slotKey: "Code1_2_1",
+        saveCode: "1",
+        mapVersion: "v36.00",
+        saveDate: "2026-08-03 20:25:00",
+        characterName: "특수 캐릭터",
+        characterLevel: 6000,
+        petName: "백스플 개구리[펫]",
+        gold: 1000000,
+        imperialCoin: 733,
+        darkStone: 0,
+        str: 42073, agi: 42073, int: 72148,
+        heroItems: [], petItems: [], warehouseItems: []
+      }
+    ]
+  },
   "gowin2": {
     userId: "gowin2",
     seasonPoint: 85,

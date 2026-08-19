@@ -625,8 +625,8 @@ async function fetchM16ToolUserLog(nicName) {
     const doc = parser.parseFromString(htmlText, "text/html");
     const bodyContent = doc.body ? doc.body.textContent : htmlText;
 
-    // m16tool 세이브 키가 전혀 없는 페이지 체크 (Code1, iPOINT, SDATA, character 포함 시 정상 유저)
-    if (!htmlText.includes("Code1") && !htmlText.includes("iPOINT") && !htmlText.includes("SDATA") && !htmlText.includes("character")) {
+    // m16tool 세이브 키가 전혀 없는 페이지 체크 (Code1, BoxPoint, iPOINT, SDATA 포함 시 정상 유저)
+    if (!htmlText.includes("Code1") && !htmlText.includes("BoxPoint") && !htmlText.includes("iPOINT") && !htmlText.includes("SDATA")) {
       return { found: false };
     }
 
