@@ -1,0 +1,1244 @@
+/* ==========================================================================
+   대륙 RPG 매니저 (Continent RPG Manager) - Custom Stylesheet
+   Design Theme: Dark Fantasy / Cyber Neon & Glassmorphism
+   ========================================================================== */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;600;800&display=swap');
+
+:root {
+  --bg-primary: #0a0c14;
+  --bg-secondary: #121624;
+  --bg-card: rgba(22, 28, 45, 0.75);
+  --bg-card-hover: rgba(30, 39, 64, 0.85);
+
+  --accent-gold: #ffd700;
+  --accent-gold-glow: rgba(255, 215, 0, 0.4);
+  --accent-gold-gradient: linear-gradient(135deg, #ffe066 0%, #f39c12 100%);
+
+  --accent-emerald: #10b981;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.35);
+  --accent-emerald-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
+
+  --accent-locked: #475569;
+  --accent-purple: #a855f7;
+  --accent-cyan: #06b6d4;
+
+  --text-main: #f8fafc;
+  --text-sub: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --border-gold: rgba(255, 215, 0, 0.5);
+  --border-emerald: rgba(16, 185, 129, 0.5);
+
+  --font-family-base: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font-family-title: 'Cinzel', 'Pretendard', serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 20% 15%, rgba(168, 85, 247, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 60%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: var(--font-family-base);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.app-container {
+  max-width: 1780px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ==========================================================================
+   Header & Navbar Section
+   ========================================================================== */
+.header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent-gold-gradient);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 0 20px var(--accent-gold-glow);
+}
+
+.brand-title h1 {
+  font-family: var(--font-family-title);
+  font-size: 24px;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 0%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-title p {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+/* Search Box Area */
+.search-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(10, 12, 20, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 6px 6px 6px 16px;
+  transition: all 0.3s ease;
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.25);
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 600;
+  width: 220px;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-search {
+  background: var(--accent-gold-gradient);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  color: #000;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-search:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px var(--accent-gold-glow);
+}
+
+/* Save ID Checkbox Wrapper */
+.save-id-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-sub);
+  user-select: none;
+}
+
+.save-id-check {
+  accent-color: var(--accent-gold);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.save-id-wrapper label {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Player Overview Section (Header Stats - 7 Cards)
+   ========================================================================== */
+.player-overview {
+  margin-bottom: 20px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1400px) {
+  .overview-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-card.highlight-sp::before { background: var(--accent-gold-gradient); }
+.stat-card.highlight-honor::before { background: linear-gradient(90deg, #a855f7, #ec4899); }
+.stat-card.highlight-rank::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-icon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.stat-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.stat-card.highlight-sp .stat-value {
+  color: var(--accent-gold);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* ==========================================================================
+   Last Save Summary Panel (최근 저장 캐릭터/펫/금/제국주화/다크스톤)
+   ========================================================================== */
+.last-save-panel {
+  background: linear-gradient(135deg, rgba(18, 24, 40, 0.9) 0%, rgba(10, 14, 24, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.05);
+}
+
+.last-save-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.last-save-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.last-save-title .save-tag {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid var(--border-gold);
+  color: var(--accent-gold);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.save-time {
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+
+.last-save-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1400px) {
+  .last-save-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .last-save-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.save-item {
+  background: rgba(10, 12, 20, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.25s ease;
+}
+
+.save-item:hover {
+  border-color: rgba(255, 215, 0, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.save-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-glass);
+}
+
+.save-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.save-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.save-value {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+/* Save Item Highlights */
+.save-item.highlight-gold .save-value {
+  color: #ffe066;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.save-item.highlight-coin .save-value {
+  color: #f59e0b;
+}
+
+.save-item.highlight-stone .save-value {
+  color: #38bdf8;
+}
+
+/* ==========================================================================
+   Navigation Tabs
+   ========================================================================== */
+.main-nav {
+  display: flex;
+  gap: 10px;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 8px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: var(--text-sub);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.nav-tab:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+  background: var(--accent-gold-gradient);
+  color: #0a0c14;
+  box-shadow: 0 4px 20px var(--accent-gold-glow);
+}
+
+.nav-tab .tab-badge {
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   Simulator / Controls Panel
+   ========================================================================== */
+.simulator-panel {
+  background: rgba(18, 22, 36, 0.85);
+  border: 1px dashed var(--accent-cyan);
+  border-radius: 14px;
+  padding: 16px 24px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+}
+
+.sim-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  max-width: 700px;
+}
+
+.sim-sp-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.sp-slider {
+  flex: 1;
+  accent-color: var(--accent-gold);
+  height: 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sp-display {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--accent-gold);
+  min-width: 60px;
+}
+
+.btn-toggle-all {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-all:hover {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+/* ==========================================================================
+   Character Seasons Matrix (S1 ~ S5 Row 1, S6 ~ S10 Row 2)
+   ========================================================================== */
+.seasons-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.season-row-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.season-row-title .row-badge {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--accent-gold);
+  border: 1px solid var(--border-gold);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* 5 Column Season Grid */
+.season-grid-5col {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+/* 6 Column Pet Single Row Grid */
+.pet-grid-6col {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1600px) {
+  .pet-grid-6col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .pet-grid-6col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pet-grid-6col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Season Card */
+.season-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.season-card:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Season Card Header */
+.season-header {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-glass);
+  position: relative;
+}
+
+.season-badge-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent-gold);
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.commander-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.commander-name-area {
+  flex: 1;
+}
+
+.commander-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  text-transform: uppercase;
+}
+
+.commander-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.commander-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.commander-status-badge.unlocked {
+  background: var(--accent-gold-gradient);
+  color: #000;
+  box-shadow: 0 0 10px var(--accent-gold-glow);
+}
+
+.commander-status-badge.locked {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid var(--border-glass);
+}
+
+/* Season Characters / Pets List */
+.season-char-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+/* Item Card */
+.char-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(10, 12, 20, 0.5);
+  border: 1px solid var(--border-glass);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.char-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.char-code {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.char-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.char-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+/* Status 1: OWNED */
+.char-item.status-owned {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(30, 24, 5, 0.6) 100%);
+  border: 1px solid var(--border-gold);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+}
+
+.char-item.status-owned .char-name {
+  color: #ffe066;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
+.char-item.status-owned .char-code {
+  color: var(--accent-gold);
+}
+
+.char-tag-badge.badge-owned {
+  background: var(--accent-gold-gradient);
+  color: #000;
+  font-weight: 800;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Status 3: LOCKED */
+.char-item.status-locked {
+  background: rgba(15, 20, 30, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  opacity: 0.7;
+}
+
+.char-item.status-locked .char-name {
+  color: var(--text-muted);
+}
+
+.char-tag-badge.badge-locked {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.char-toggle-check {
+  cursor: pointer;
+  accent-color: var(--accent-gold);
+  width: 14px;
+  height: 14px;
+}
+
+/* ==========================================================================
+   Durendal Special Sword Card
+   ========================================================================== */
+.durendal-special-card {
+  grid-column: span 2;
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.5) 0%, rgba(15, 23, 42, 0.95) 50%, rgba(180, 83, 9, 0.4) 100%);
+  border: 2px solid var(--accent-gold);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 0 35px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(168, 85, 247, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 992px) {
+  .durendal-special-card {
+    grid-column: span 1;
+  }
+}
+
+.durendal-special-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent 45%, rgba(255, 215, 0, 0.1) 50%, transparent 55%);
+  animation: shine 6s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translate(-30%, -30%) rotate(0deg); }
+  100% { transform: translate(30%, 30%) rotate(360deg); }
+}
+
+.durendal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.durendal-badge-mythic {
+  background: var(--accent-gold-gradient);
+  color: #000;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 0 15px var(--accent-gold-glow);
+}
+
+.durendal-title-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.durendal-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 0 10px var(--accent-gold));
+}
+
+.durendal-name {
+  font-family: var(--font-family-title);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent-gold);
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.durendal-sub {
+  font-size: 13px;
+  color: #d8b4fe;
+  margin-top: 2px;
+}
+
+.durendal-req-box {
+  background: rgba(10, 12, 20, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.req-swords-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+}
+
+.req-swords-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .req-swords-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.req-sword-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.req-sword-item.owned {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+/* ==========================================================================
+   Other Tabs Views & Warehouse Card Styling
+   ========================================================================== */
+.tab-view {
+  display: none;
+}
+
+.tab-view.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.content-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.generic-item-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.generic-item-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-gold);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* 창고 전용 미소유(비활성화) 회색 스타일 vs 소유 스타일 */
+.generic-item-card.warehouse-unowned {
+  background: rgba(15, 20, 32, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  opacity: 0.4;
+  filter: grayscale(80%);
+}
+
+.generic-item-card.warehouse-unowned .item-icon-box {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.generic-item-card.warehouse-unowned .item-title {
+  color: var(--text-muted);
+}
+
+.generic-item-card.warehouse-unowned .item-sub {
+  color: var(--text-muted) !important;
+}
+
+.generic-item-card.warehouse-unowned:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* 소유한 창고 카드 뚜렷하고 선명하게 강조 */
+.generic-item-card.warehouse-owned {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid var(--accent-emerald);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.25);
+  opacity: 1;
+}
+
+.generic-item-card.warehouse-owned .item-title {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* 소유 Max 창고 카드 황금빛 럭셔리 강조 */
+.generic-item-card.warehouse-max {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(30, 24, 5, 0.9) 100%);
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.35);
+  opacity: 1;
+}
+
+.generic-item-card.warehouse-max .item-title {
+  color: #ffe066;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.item-icon-box {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border: 1px solid var(--border-glass);
+}
+
+.item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.item-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.item-sub {
+  font-size: 12px;
+  color: var(--accent-gold);
+  margin-bottom: 6px;
+}
+
+.item-desc {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+.legend-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 12px;
+  padding: 10px 18px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.color-dot.dot-owned { background: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold); }
+.color-dot.dot-locked { background: var(--accent-locked); }
+
+/* ==========================================================================
+   Inventory 6-Slot Grid & Card Section
+   ========================================================================== */
+.inventory-section {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .inventory-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inventory-block {
+  background: rgba(10, 12, 22, 0.7);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.inventory-block-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.inventory-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.item-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.slot-card {
+  background: rgba(22, 28, 45, 0.8);
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.slot-card.filled {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: rgba(30, 41, 59, 0.75);
+}
+
+.slot-card.filled:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15);
+}
+
+.slot-card.empty {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.slot-num {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.slot-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.slot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.slot-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.slot-code {
+  font-size: 10.5px;
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+/* Save Slot Bar & Buttons */
+.slot-select-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 12, 22, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.slot-bar-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  white-space: nowrap;
+}
+
+.slot-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-slot {
+  background: rgba(22, 28, 45, 0.7);
+  border: 1px solid var(--border-glass);
+  color: var(--text-sub);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-slot:hover {
+  border-color: var(--accent-gold);
+  color: var(--text-main);
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.btn-slot.active {
+  background: var(--accent-gold-gradient);
+  color: #090d16 !important;
+  font-weight: 800;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px var(--accent-gold-glow);
+}
+
+.btn-slot.active span {
+  color: #090d16 !important;
+  text-shadow: none !important;
+}
+

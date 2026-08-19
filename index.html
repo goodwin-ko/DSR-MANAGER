@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대륙 RPG 매니저 | Continent RPG Manager</title>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ==========================================
+         1. HEADER BANNER & SEARCH BAR
+         ========================================== -->
+    <header class="header-banner">
+      <div class="brand-title">
+        <div class="brand-icon">⚔️</div>
+        <div>
+          <h1>대륙 RPG 매니저</h1>
+          <p>Continent RPG Season & Account Manager</p>
+        </div>
+      </div>
+
+      <div class="search-area">
+        <div class="search-wrapper">
+          <input type="text" id="searchInput" class="search-input" placeholder="m16tool 아이디 입력..." autocomplete="off">
+          <button type="button" id="btnSearch" class="btn-search">
+            조회
+          </button>
+        </div>
+        <div class="save-id-wrapper">
+          <input type="checkbox" id="chkSaveId" class="save-id-check">
+          <label for="chkSaveId">아이디 저장</label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Loading / Status Notice Bar -->
+    <div id="apiStatusNotice" class="simulator-panel" style="margin-bottom: 20px; display: flex;">
+      <div class="sim-title">
+        <span id="apiStatusSpinner">💡</span>
+        <span id="apiStatusText">m16tool 아이디를 입력한 후 '조회' 버튼을 눌러주세요.</span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         2. PLAYER OVERVIEW (7 STAT CARDS)
+         ========================================== -->
+    <section class="player-overview">
+      <div class="overview-grid">
+        <!-- 1. 시즌포인트 -->
+        <div class="stat-card highlight-sp">
+          <div class="stat-header">
+            <span class="stat-label">시즌포인트 (iPOINT)</span>
+            <span class="stat-icon">⭐</span>
+          </div>
+          <div class="stat-value" id="valSeasonPoint">0 SP</div>
+        </div>
+
+        <!-- 2. 명예포인트 -->
+        <div class="stat-card highlight-honor">
+          <div class="stat-header">
+            <span class="stat-label">명예포인트 (iRP)</span>
+            <span class="stat-icon">🎖️</span>
+          </div>
+          <div class="stat-value" id="valHonorPoint">0 P</div>
+        </div>
+
+        <!-- 3. 랭킹포인트 -->
+        <div class="stat-card highlight-rank">
+          <div class="stat-header">
+            <span class="stat-label">랭킹포인트</span>
+            <span class="stat-icon">🏆</span>
+          </div>
+          <div class="stat-value" id="valRankingPoint">0 RP</div>
+        </div>
+
+        <!-- 4. 계급순위 -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">계급순위</span>
+            <span class="stat-icon">👑</span>
+          </div>
+          <div class="stat-value" id="valRankStanding" style="font-size: 14px;">조회 대기중</div>
+        </div>
+
+        <!-- 5. 칭호 -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">칭호</span>
+            <span class="stat-icon">🏷️</span>
+          </div>
+          <div class="stat-value" id="valTitle" style="font-size: 14px; color: var(--text-muted);">미설정</div>
+        </div>
+
+        <!-- 6. 성검 (이름 + 레벨) -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">성검 (GodSwordKind)</span>
+            <span class="stat-icon">🗡️</span>
+          </div>
+          <div class="stat-value" id="valSacredSword" style="font-size: 13.5px; color: var(--text-muted);">미설정</div>
+        </div>
+
+        <!-- 7. 성력 -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">성력 (GodSwordPoint)</span>
+            <span class="stat-icon">✨</span>
+          </div>
+          <div class="stat-value" id="valSacredPower">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         2-2. LAST SAVE SUMMARY PANEL (마지막 저장 캐릭터/펫/재화)
+         ========================================== -->
+    <section class="last-save-panel">
+      <div class="last-save-header">
+        <div class="last-save-title">
+          <span>📜 최근 플레이 및 저장 정보</span>
+          <span class="save-tag">LAST LOG DATA</span>
+        </div>
+        <div class="save-time" id="valSaveDate">최근 저장: 기록 없음</div>
+      </div>
+
+      <!-- 세이브 슬롯 탭 선택 바 (다중 슬롯 보유시 활성화) -->
+      <div id="saveSlotBar" class="slot-select-bar" style="display: none;">
+        <span class="slot-bar-label">📂 세이브 슬롯 선택:</span>
+        <div id="saveSlotButtons" class="slot-btn-group"></div>
+      </div>
+
+      <div class="last-save-grid">
+        <!-- 1. 캐릭터 이름 및 레벨 -->
+        <div class="save-item">
+          <div class="save-icon">⚔️</div>
+          <div class="save-content">
+            <span class="save-label">마지막 저장 캐릭터</span>
+            <span class="save-value" id="valLastChar">조회 대기중</span>
+          </div>
+        </div>
+
+        <!-- 2. 장착 펫 -->
+        <div class="save-item">
+          <div class="save-icon">🐾</div>
+          <div class="save-content">
+            <span class="save-label">장착 펫</span>
+            <span class="save-value" id="valLastPet">없음</span>
+          </div>
+        </div>
+
+        <!-- 3. 보유 골드(금) -->
+        <div class="save-item highlight-gold">
+          <div class="save-icon">💰</div>
+          <div class="save-content">
+            <span class="save-label">보유 골드 (금)</span>
+            <span class="save-value" id="valGold">0 Gold</span>
+          </div>
+        </div>
+
+        <!-- 4. 제국 주화 -->
+        <div class="save-item highlight-coin">
+          <div class="save-icon">🪙</div>
+          <div class="save-content">
+            <span class="save-label">제국 주화</span>
+            <span class="save-value" id="valImperialCoin">0 주화</span>
+          </div>
+        </div>
+
+        <!-- 5. 다크스톤 -->
+        <div class="save-item highlight-stone">
+          <div class="save-icon">💎</div>
+          <div class="save-content">
+            <span class="save-label">다크스톤</span>
+            <span class="save-value" id="valDarkStone">0 개</span>
+          </div>
+        </div>
+
+        <!-- 6. 능력치 (STR / AGI / INT) -->
+        <div class="save-item stat-trio">
+          <div class="save-icon">📊</div>
+          <div class="save-content">
+            <span class="save-label">캐릭터 능력치 (Str / Agi / Int)</span>
+            <span class="save-value" id="valStatsTrio" style="font-size:13px; color:var(--text-muted);">
+              힘 0 / 민 0 / 지 0
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           2-3. INVENTORY SLOTS (영웅 6칸 / 펫 6칸 / 창고 6칸)
+           ========================================== -->
+      <div class="inventory-section">
+        <!-- 1. 영웅 아이템 6칸 -->
+        <div class="inventory-block">
+          <div class="inventory-block-title">
+            <span>⚔️ 영웅 아이템 (6칸)</span>
+            <span class="inventory-subtitle">Hero Inventory</span>
+          </div>
+          <div id="heroItemSlots" class="item-slots-grid"></div>
+        </div>
+
+        <!-- 2. 펫 아이템 6칸 -->
+        <div class="inventory-block">
+          <div class="inventory-block-title">
+            <span>🐾 펫 아이템 (6칸)</span>
+            <span class="inventory-subtitle">Pet Inventory</span>
+          </div>
+          <div id="petItemSlots" class="item-slots-grid"></div>
+        </div>
+
+        <!-- 3. 창고 아이템 6칸 -->
+        <div class="inventory-block">
+          <div class="inventory-block-title">
+            <span>📦 창고 아이템 (6칸)</span>
+            <span class="inventory-subtitle">Warehouse Inventory</span>
+          </div>
+          <div id="warehouseItemSlots" class="item-slots-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         3. MAIN NAVIGATION TABS
+         ========================================== -->
+    <nav class="main-nav">
+      <button type="button" class="nav-tab active" data-tab="characters">
+        <span>⚔️ 캐릭터</span>
+        <span class="tab-badge" id="badgeCharCount">90종</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="pets">
+        <span>🐾 펫 목록</span>
+        <span class="tab-badge">Lv1 ~ Lv5</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="warehouse">
+        <span>📦 창고</span>
+        <span class="tab-badge">16종 도감</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="swords">
+        <span>🗡️ 성검</span>
+        <span class="tab-badge">전승</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="wings">
+        <span>🪽 날개</span>
+        <span class="tab-badge">23종 도감</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="relics">
+        <span>🔮 유물</span>
+        <span class="tab-badge">각성</span>
+      </button>
+    </nav>
+
+    <!-- ==========================================
+         4. TAB CONTENT 1: CHARACTERS (S1 ~ S10)
+         ========================================== -->
+    <main id="tab-characters" class="tab-view active">
+
+      <!-- Color Legend Bar -->
+      <div class="legend-bar">
+        <span style="font-weight: 700; color: var(--text-main);">구분 안내:</span>
+        <div class="legend-item">
+          <span class="color-dot dot-owned"></span>
+          <span style="color: var(--accent-gold); font-weight: 700;">🌟 소유한 캐릭터</span>
+          <span style="color: var(--text-muted); font-size: 12px;">(m16tool 세이브 코드 보유)</span>
+        </div>
+        <div class="legend-item">
+          <span class="color-dot" style="background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald-glow);"></span>
+          <span style="color: var(--accent-emerald); font-weight: 700;">🟢 대여 가능 캐릭터</span>
+          <span style="color: var(--text-muted); font-size: 12px;">(시즌포인트 SP 조건 달성)</span>
+        </div>
+        <div class="legend-item">
+          <span class="color-dot dot-locked"></span>
+          <span style="color: var(--text-muted);">🔒 미해금 캐릭터</span>
+          <span style="color: var(--text-muted); font-size: 12px;">(SP 부족 및 미소유)</span>
+        </div>
+      </div>
+
+      <!-- Seasons Matrix (Row 1: S1~S5, Row 2: S6~S10) -->
+      <div class="seasons-matrix">
+        <div>
+          <div class="season-row-title">
+            <span class="row-badge">Part 1</span>
+            <span>캐릭터 시즌 1 ~ 시즌 5</span>
+          </div>
+          <div id="gridRow1" class="season-grid-5col" style="margin-top: 14px;"></div>
+        </div>
+
+        <div>
+          <div class="season-row-title">
+            <span class="row-badge">Part 2</span>
+            <span>캐릭터 시즌 6 ~ 시즌 10</span>
+          </div>
+          <div id="gridRow2" class="season-grid-5col" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==========================================
+         5. TAB CONTENT 2: PETS (한 줄 6열 배치)
+         ========================================== -->
+    <section id="tab-pets" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 16px;">
+        <span class="row-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border-color: var(--border-emerald);">All Pet Levels</span>
+        <span>레벨별 펫 목록 (Lv1 ~ Lv5 & 초월/신화 펫)</span>
+      </div>
+      <div id="petGridSingleRow" class="pet-grid-6col"></div>
+    </section>
+
+    <!-- ==========================================
+         6. OTHER TABS VIEWS
+         ========================================== -->
+    <section id="tab-warehouse" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 20px;">
+        <span>📦 공식 창고 16종 도감 (9레벨 & 초월 조합 각성 트리)</span>
+      </div>
+      <div id="warehouseContainer" class="content-card-grid"></div>
+    </section>
+
+    <section id="tab-swords" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 20px;">
+        <span>🗡️ 전설의 성검 도감 (듀란달 4대 성검 전승 시스템)</span>
+      </div>
+      <div id="swordsContainer" class="content-card-grid"></div>
+    </section>
+
+    <section id="tab-wings" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 20px;">
+        <span>🪽 신성한 날개 장비 (23종 9레벨 진화 트리)</span>
+      </div>
+      <div id="wingsContainer" class="content-card-grid"></div>
+    </section>
+
+    <section id="tab-relics" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 20px;">
+        <span>🔮 고대 유물 각성</span>
+      </div>
+      <div id="relicsContainer" class="content-card-grid"></div>
+    </section>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
