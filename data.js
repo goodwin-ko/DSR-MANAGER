@@ -1155,15 +1155,23 @@ const PLAYERS_DATABASE = {
     ownedCodes: [],
     lastSave: {
       saveDate: "2026-08-03 20:30:00",
-      characterName: "드레이니 삼형제(퍼플)",
+      characterName: "『시즌』언고어 스피어맨",
       characterLevel: 6000,
-      petName: "백스플 개구리[펫]",
+      petName: "서리정령[Lv2][펫]",
       petLevel: 6000,
       gold: 1000000,
       imperialCoin: 3428,
       darkStone: 0,
       str: 72148, agi: 42073, int: 42073,
-      heroItems: [], petItems: [], warehouseItems: []
+      heroItems: [
+        { id: 318, count: 0 }, { id: 279, count: 0 }, { id: 320, count: 0 },
+        { id: 322, count: 0 }, { id: 0, count: 0 }, { id: 263, count: 0 }
+      ],
+      petItems: [
+        { id: 237, count: 0 }, { id: 0, count: 0 }, { id: 322, count: 0 },
+        { id: 320, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ],
+      warehouseItems: []
     },
     saveSlots: [
       {
@@ -1171,14 +1179,22 @@ const PLAYERS_DATABASE = {
         saveCode: "go",
         mapVersion: "v36.00",
         saveDate: "2026-08-03 20:30:00",
-        characterName: "드레이니 삼형제(퍼플)",
+        characterName: "『시즌』언고어 스피어맨",
         characterLevel: 6000,
-        petName: "백스플 개구리[펫]",
+        petName: "서리정령[Lv2][펫]",
         gold: 1000000,
         imperialCoin: 3428,
         darkStone: 0,
         str: 72148, agi: 42073, int: 42073,
-        heroItems: [], petItems: [], warehouseItems: []
+        heroItems: [
+          { id: 318, count: 0 }, { id: 279, count: 0 }, { id: 320, count: 0 },
+          { id: 322, count: 0 }, { id: 0, count: 0 }, { id: 263, count: 0 }
+        ],
+        petItems: [
+          { id: 237, count: 0 }, { id: 0, count: 0 }, { id: 322, count: 0 },
+          { id: 320, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: []
       },
       {
         slotKey: "Code1_1_9",
