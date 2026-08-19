@@ -201,23 +201,6 @@ async function loadProfile(userId) {
   }
 }
 
-  try {
-    updateProfileStatsUI();
-  } catch (err) {
-    console.error("UI update Error (updateProfileStatsUI):", err);
-  }
-  try {
-    renderSeasonsMatrix();
-  } catch (err) {
-    console.error("UI update Error (renderSeasonsMatrix):", err);
-  }
-  try {
-    renderOtherTabsData();
-  } catch (err) {
-    console.error("UI update Error (renderOtherTabsData):", err);
-  }
-}
-
 // 펫 코드 → 이름 맵핑 (m16tool 실제 세이브 코드 기반)
 const PET_CODE_TO_NAME = {
   "SP_1": "탱크맨",
