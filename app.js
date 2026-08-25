@@ -431,7 +431,7 @@ const CHAR_INDEX_TO_NAME = {
   // SH_55 ~ SH_63 (S7, 지하 마물군단장)
   188: "통남자",           189: "오크 관짝댄서",    190: "휴먼 공성 전차",
   191: "박스몬",           192: "랫맨 워리어",      193: "랫맨 저격수",
-  194: "휴먼 크로스보우맨", 195: "휴먼 마법사",     196: "언고어 스피어맨",
+  194: "휴먼 크로스보우맨", 195: "[2차 전생] 프로즌 리치", 196: "언고어 스피어맨",
   // SH_64 ~ SH_72 (S8, 몬스터군단장)
   197: "드래곤 프리스트",  198: "사우르스 워리어",  199: "드래곤 메이지",
   200: "그리폰 워리어",    201: "나가 슈터",         202: "화이트 그리폰",
@@ -1279,6 +1279,14 @@ function renderSaveSlotBar() {
  * 프로필 스탯 및 아이템 UI 업데이트 (선택된 세이브 슬롯 기반)
  */
 function updateProfileStatsUI() {
+  // 조회된 아이디 표시
+  const userIdBadge = document.getElementById("valSearchedUserId");
+  const userIdText = document.getElementById("valSearchedUserIdText");
+  if (userIdBadge && userIdText && currentProfile.userId && currentProfile.userId !== "조회 대기중") {
+    userIdText.textContent = currentProfile.userId;
+    userIdBadge.style.display = "block";
+  }
+
   document.getElementById("valSeasonPoint").textContent = `${currentProfile.seasonPoint.toLocaleString()} SP`;
   document.getElementById("valHonorPoint").textContent = `${currentProfile.honorPoint.toLocaleString()} P`;
   document.getElementById("valRankingPoint").textContent = `${currentProfile.rankingPoint.toLocaleString()} RP`;
@@ -1507,7 +1515,7 @@ function createSeasonCardElement(seasonData) {
   seasonData.characters.forEach(char => {
     if (currentProfile.ownedCodes.has(char.code)) {
       ownedCount++;
-    } else if (currentProfile.seasonPoint >= char.reqSp) {
+    } else if (currentProfile.seasonPoint > 0 && currentProfile.seasonPoint >= char.reqSp) {
       rentableCount++;
     }
   });
@@ -1537,7 +1545,7 @@ function createSeasonCardElement(seasonData) {
 
   seasonData.characters.forEach(char => {
     const isOwned = currentProfile.ownedCodes.has(char.code);
-    const isRentable = !isOwned && (currentProfile.seasonPoint >= char.reqSp);
+    const isRentable = !isOwned && currentProfile.seasonPoint > 0 && (currentProfile.seasonPoint >= char.reqSp);
 
     let statusClass = "status-locked";
     let badgeHtml = `<span class="char-tag-badge badge-locked">🔒 미해금 (SP ${char.reqSp})</span>`;
