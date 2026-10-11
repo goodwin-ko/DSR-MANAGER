@@ -16,6 +16,7 @@ function resolveUserId(id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  renderPatchNotesModal();
   initSearch();
   initSimulator();
   initTabs();
@@ -1662,7 +1663,45 @@ function initTabs() {
   });
 }
 
+function renderPatchNotesModal() {
+  const txtHeaderVersion = document.getElementById("txtHeaderVersion");
+  const txtModalPatchTitle = document.getElementById("txtModalPatchTitle");
+  const container = document.getElementById("modalPatchContentContainer");
+
+  if (typeof APP_VERSION !== "undefined") {
+    if (txtHeaderVersion) txtHeaderVersion.textContent = `${APP_VERSION} 패치노트 📋`;
+    if (txtModalPatchTitle) txtModalPatchTitle.textContent = `📋 시스템 패치노트 (${APP_VERSION})`;
+  }
+
+  if (container && typeof PATCH_HISTORY !== "undefined") {
+    container.innerHTML = PATCH_HISTORY.map((patch, pIdx) => `
+      <div class="patch-version-block" style="${pIdx > 0 ? 'margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1);' : ''}">
+        <div class="patch-version-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="patch-badge" style="${patch.badge === 'LATEST' ? 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);' : 'background: rgba(255,255,255,0.1); color: #94a3b8;'}">${patch.badge || 'UPDATE'}</span>
+            <strong style="font-size: 15px; color: #ffffff;">${patch.version}</strong>
+            <span style="font-size: 13px; color: #93c5fd; font-weight: 600;">- ${patch.title}</span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">${patch.date}</span>
+        </div>
+        <div class="patch-grid">
+          ${patch.items.map(item => `
+            <div class="patch-item">
+              <div class="patch-item-icon">${item.icon}</div>
+              <div class="patch-item-body">
+                <strong>${item.title}</strong>
+                <p>${item.desc}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
 function openPatchNotesModal() {
+  renderPatchNotesModal();
   const modal = document.getElementById("patchNotesModal");
   if (modal) {
     modal.style.display = "flex";
