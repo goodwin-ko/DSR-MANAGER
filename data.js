@@ -246,12 +246,12 @@ const WAREHOUSE_CATALOG = [
   { code: "NBLBox2", name: "분홍 여우", category: "초월 창고", maxLevel: 9, req: "타란튤라Lv9, 고슴도치Lv9, 알파카Lv9, 상어Lv9 소유시 사용 가능" },
   { code: "NBLBox3", name: "재규어", category: "초월 창고", maxLevel: 9, req: "개미Lv9, 거북이Lv9, 큰뿔사슴Lv9, 코끼리Lv9, 벤디트 개Lv9, 판다Lv9 소유시 사용 가능" },
   { code: "NBLBox4", name: "분홍 여우 성체", category: "최상위 초월 창고", maxLevel: 9, req: "분홍여우, 재규어 소유시 사용 가능" },
-  { code: "NBLBox_UP1", name: "고블린 왕자", category: "각성 창고", maxLevel: 9, req: "분홍 여우 성체 MAX (Lv9) 달성시 가능" },
-  { code: "NBLBox_UP2", name: "고블린 황제", category: "각성 창고", maxLevel: 9, req: "고블린 왕자 MAX (Lv9) 달성시 가능" },
-  { code: "NBLBox_UP3", name: "소울 구울", category: "각성 창고", maxLevel: 9, req: "고블린 황제 MAX (Lv9) 달성시 가능" },
-  { code: "NBLBox_UP4", name: "다이스 조커", category: "각성 창고", maxLevel: 9, req: "소울 구울 MAX (Lv9) 달성시 가능" },
-  { code: "NBLBox_UP5", name: "검은눈 고양이", category: "각성 창고", maxLevel: 9, req: "다이스 조커 MAX (Lv9) 달성시 가능" },
-  { code: "NBLBox_UP6", name: "루나 고양이", category: "최종 각성 창고", maxLevel: 9, req: "검은눈 고양이 MAX (Lv9) 달성시 가능" }
+  { code: "NBLBox_UP1", altCode: "BLBoxUP1", name: "고블린 왕자", category: "각성 창고", maxLevel: 9, req: "분홍 여우 성체 MAX (Lv9) 달성시 가능" },
+  { code: "NBLBox_UP2", altCode: "BLBoxUP2", name: "고블린 황제", category: "각성 창고", maxLevel: 9, req: "고블린 왕자 MAX (Lv9) 달성시 가능" },
+  { code: "NBLBox_UP3", altCode: "BLBoxUP3", name: "소울 구울", category: "각성 창고", maxLevel: 9, req: "고블린 황제 MAX (Lv9) 달성시 가능" },
+  { code: "NBLBox_UP4", altCode: "BLBoxUP4", name: "다이스 조커", category: "각성 창고", maxLevel: 9, req: "소울 구울 MAX (Lv9) 달성시 가능" },
+  { code: "NBLBox_UP5", altCode: "BLBoxUP5", name: "검은눈 고양이", category: "각성 창고", maxLevel: 9, req: "다이스 조커 MAX (Lv9) 달성시 가능" },
+  { code: "NBLBox_UP6", altCode: "BLBoxUP6", name: "루나 고양이", category: "최종 각성 창고", maxLevel: 9, req: "검은눈 고양이 MAX (Lv9) 달성시 가능" }
 ];
 
 // 6. 공식 레벨별 펫 묶음 데이터
@@ -376,6 +376,718 @@ const OTHER_TABS_DATA = {
   ]
 };
 
+// 7-1. 신대륙 전체 아이템 조합법 데이터베이스
+const NEW_CONTINENT_RECIPES = [
+  // 1. 공통
+  {
+    id: "rec_necklace_blue",
+    category: "공통",
+    categoryKey: "common",
+    name: "파란빛 목걸이[조합체]",
+    coin: 1,
+    gold: 0,
+    materials: ["파란빛 목걸이 조합서", "스피릿 목걸이 -레어-", "블러드 스톤[조합재료]"],
+    rank: "조합체",
+    icon: "📿"
+  },
+  {
+    id: "rec_necklace_shadow",
+    category: "공통",
+    categoryKey: "common",
+    name: "그림자 목걸이[조합체]",
+    coin: 3,
+    gold: 0,
+    materials: ["그림자 목걸이 조합서", "파란빛 목걸이[조합체]", "산적왕의 목걸이"],
+    rank: "조합체",
+    icon: "📿"
+  },
+  {
+    id: "rec_treasure_1",
+    category: "공통",
+    categoryKey: "common",
+    name: "신대륙의 첫번째 보물[조합체]",
+    coin: 4,
+    gold: 0,
+    materials: ["신대륙의 첫번째 보물 조합서", "그림자 목걸이[조합체]", "장곤충의 보석[조합재료]"],
+    rank: "조합체",
+    icon: "🏆"
+  },
+  {
+    id: "rec_treasure_2",
+    category: "공통",
+    categoryKey: "common",
+    name: "신대륙의 두번째 보물[조합체]",
+    coin: 4,
+    gold: 0,
+    materials: ["신대륙의 두번째 보물 조합서", "신대륙의 첫번째 보물[조합체]", "스컬 보석[조합재료]"],
+    rank: "조합체",
+    icon: "🏆"
+  },
+  {
+    id: "rec_treasure_3",
+    category: "공통",
+    categoryKey: "common",
+    name: "신대륙의 세번째 보물[조합체]",
+    coin: 10,
+    gold: 0,
+    materials: ["신대륙의 세번째 보물 조합서", "신대륙의 두번째 보물[조합체]", "로구밍의 다리[조합재료]", "얼음의 병[조합재료]"],
+    rank: "조합체",
+    icon: "🏆"
+  },
+  {
+    id: "rec_treasure_4",
+    category: "공통",
+    categoryKey: "common",
+    name: "신대륙의 네번째 보물[조합체]",
+    coin: 15,
+    gold: 0,
+    materials: ["신대륙의 네번째 보물 조합서", "신대륙의 세번째 보물[조합체]", "코브라의 독[조합재료]", "바실리스크의 보석[조합재료]"],
+    rank: "조합체",
+    icon: "🏆"
+  },
+  {
+    id: "rec_demon_armor",
+    category: "공통",
+    categoryKey: "common",
+    name: "-유니크급-데몬의 갑옷",
+    coin: 18,
+    gold: 0,
+    materials: ["데몬의 갑옷 조합서", "-유니크급-낚시꾼의 갑옷", "데몬의 파편[조합재료]"],
+    rank: "유니크급",
+    icon: "🛡️"
+  },
+  {
+    id: "rec_trophy_3",
+    category: "공통",
+    categoryKey: "common",
+    name: "3트로피3[조합체]",
+    coin: 17,
+    gold: 0,
+    materials: ["3트로피3 조합서", "-유니크급-데몬의 갑옷", "신대륙의 네번째 보물[조합체]"],
+    rank: "조합체",
+    icon: "🏆"
+  },
+  {
+    id: "rec_spirit_shield",
+    category: "공통",
+    categoryKey: "common",
+    name: "스피릿 방패[조합체]",
+    coin: 16,
+    gold: 0,
+    materials: ["스피릿 방패 조합서", "신대륙의 네번째 보물[조합체]", "은빛 반지[희귀급]", "데몬의 파편[조합재료]"],
+    rank: "조합체",
+    icon: "🛡️"
+  },
+
+  // 2. 무기 / 에픽
+  {
+    id: "rec_desto_scepter",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "데스토의 제왕홀[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["데스토의 제왕홀[봉인된 에픽]", "뮤턴트의 심장[???]", "해골 기름[???]"],
+    rank: "에픽",
+    icon: "🪄"
+  },
+  {
+    id: "rec_dagger_ancient",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "고대의 단검[노말]",
+    coin: 15,
+    gold: 0,
+    materials: ["고대의 단검[노말] 조합서", "고대의 단검[신대륙,초보용]", "산양의 가죽;;[조합재료]"],
+    rank: "노말",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_dagger_coast",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "해안의 단검",
+    coin: 20,
+    gold: 0,
+    materials: ["해안의 단검 조합서", "고대의 단검[노말]", "독뱀의 맹독[조합재료]", "변이된 나가 슈터의 칼[조합재료]"],
+    rank: "조합체",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_dagger_sky",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "천공의 단검",
+    coin: 40,
+    gold: 0,
+    materials: ["천공의 단검 조합서", "해안의 단검", "아종 그리폰의 깃털[조합재료]", "아종 그리폰킹의 발톱[조합재료]"],
+    rank: "조합체",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_dagger_diag",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "디아그의 단검",
+    coin: 55,
+    gold: 0,
+    materials: ["디아그의 단검 조합서", "천공의 단검", "강력한 령의 결정체[조합재료]", "봉인당한 신의 영혼[조합재료]"],
+    rank: "조합체",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_dagger_zandalar",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "진달라의 단검",
+    coin: 0,
+    gold: 0,
+    materials: ["디아그의 단검", "잔달라 드래곤의 목[조합재료]", "잔달라 드래곤의 심장[조합재료]"],
+    rank: "조합체",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_derick_saw",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "데릭의 톱날칼[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["데릭의 톱날칼[봉인된 에픽]", "미믹의 가지[???]", "블랙히드라 헤츨링의 날개[???]"],
+    rank: "에픽",
+    icon: "⚔️"
+  },
+
+  // 3. 갑옷
+  {
+    id: "rec_cow_treasure",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "저주받은 카우의 보물[???]",
+    coin: 6,
+    gold: 0,
+    materials: ["저주받은 카우의 보물 조합서", "정예기사의 영혼[조합재료]", "정예나이트의 영혼[조합재료]", "-유니크급-저주받은 카우갑옷"],
+    rank: "희귀",
+    icon: "🛡️"
+  },
+  {
+    id: "rec_cow_house",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "저주받은 카우의집 [조합체]",
+    coin: 20,
+    gold: 0,
+    materials: ["저주받은 카우의집 조합서", "저주받은 카우의 보물[???]", "3트로피3[조합체]", "보어 라이더의 심장"],
+    rank: "조합체",
+    icon: "🏰"
+  },
+  {
+    id: "rec_ancient_treasure",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "고대의보물[조합체]",
+    coin: 25,
+    gold: 0,
+    materials: ["고대의보물 조합서", "저주받은 카우의집 [조합체]", "3트로피3[조합체]", "신대륙의 네번째 보물[조합체]"],
+    rank: "조합체",
+    icon: "💎"
+  },
+  {
+    id: "rec_ancient_cloak",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "고대의망토[조합체]",
+    coin: 18,
+    gold: 0,
+    materials: ["고대의망토 조합서", "3트로피3[조합체]", "-유니크급-데몬의 갑옷", "스피릿 방패[조합체]"],
+    rank: "조합체",
+    icon: "🧣"
+  },
+  {
+    id: "rec_ancient_armor",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "고대의갑옷[조합체]",
+    coin: 0,
+    gold: 400000,
+    materials: ["고대의갑옷 조합서", "고대의망토[조합체]", "3트로피3[조합체]", "케이의 해골"],
+    rank: "조합체",
+    icon: "🛡️"
+  },
+  {
+    id: "rec_derick_bone_armor",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "데릭의 뼈갑옷[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["데릭의 뼈갑옷[봉인된 에픽]", "미믹의 가지[???]", "블랙히드라 헤츨링의 날개[???]"],
+    rank: "에픽",
+    icon: "🛡️"
+  },
+
+  // 4. 문장
+  {
+    id: "rec_emergency_weapon",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "긴급용 무기[조합체]",
+    coin: 0,
+    gold: 1000000,
+    materials: ["긴급용 무기 조합서", "신대륙인의 문장[반 신급]", "봉인 해제자 칭호[에픽]", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"],
+    rank: "조합체",
+    icon: "⚔️"
+  },
+  {
+    id: "rec_hopang_weapon",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "호빵의 무구[조합체]",
+    coin: 1,
+    gold: 0,
+    materials: ["호빵의 무구 조합서", "긴급용 무기[조합체]", "불타는 보구 -노말-", "달의 조각[조합재료]", "정예나이트의 영혼[조합재료]", "정예기사의 영혼[조합재료]"],
+    rank: "조합체",
+    icon: "🗡️"
+  },
+  {
+    id: "rec_cobold_insignia",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "코볼드 광산의 문장[반 신급]",
+    coin: 12,
+    gold: 0,
+    materials: ["코볼드 광산의 문장 조합서", "호빵의 무구[조합체]", "코볼트 일꾼의 곡괭이[조합재료]", "엘리트 코볼트의 가죽[조합재료]", "코볼트 감독관의 채찍[조합재료]"],
+    rank: "반 신급",
+    icon: "⛏️"
+  },
+  {
+    id: "rec_snow_spider",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "폭설 거미의 문장[반 신급]",
+    coin: 18,
+    gold: 0,
+    materials: ["폭설 거미의 문장 조합서", "코볼드 광산의 문장[반 신급]", "폭설거미의 다리[조합재료]", "폭설거미의 핵[조합재료]"],
+    rank: "반 신급",
+    icon: "❄️"
+  },
+  {
+    id: "rec_pinkgay_insignia",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "핑크게이의 문장[반 신급]",
+    coin: 18,
+    gold: 0,
+    materials: ["핑크게이의 문장 조합서", "폭설 거미의 문장[반 신급]", "처참한 좀비의 머리[조합재료]", "핑크게이의 팬티[조합재료]", "타락한 파워[반 신급]"],
+    rank: "반 신급",
+    icon: "🏅"
+  },
+
+  // 5. 악세
+  {
+    id: "rec_ancient_book",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "낡은 고대의 책[조합체]",
+    coin: 30,
+    gold: 0,
+    materials: ["낡은 고대의 책 조합서", "케이의 해골", "고대의갑옷[조합체]", "희망의빛[조합재료]", "어둠"],
+    rank: "조합체",
+    icon: "📖"
+  },
+  {
+    id: "rec_gaia_privilege",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "가이아의 특혜[조합체]",
+    coin: 33,
+    gold: 0,
+    materials: ["가이아의 특혜 조합서", "낡은 고대의 책[조합체]", "타락한 가이아의 가지[조합재료]"],
+    rank: "조합체",
+    icon: "🌿"
+  },
+  {
+    id: "rec_blue_gaia_privilege",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "푸른 가이아의 특혜[조합체]",
+    coin: 35,
+    gold: 0,
+    materials: ["푸른 가이아의 특혜 조합서", "가이아의 특혜[조합체]", "가이아의 수액[조합재료]", "봉인된 가이아의 심장[조합재료]"],
+    rank: "조합체",
+    icon: "🌿"
+  },
+  {
+    id: "rec_2d_insignia",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "2차원의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["푸른 가이아의 특혜[조합체]", "차원의 광전사 아뮬렛[조합재료]"],
+    rank: "반 신급",
+    icon: "🌀"
+  },
+  {
+    id: "rec_bright_light_insignia",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "강렬한 빛의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["2차원의 문장[반 신급]", "거대 개구리의 갑옷[조합재료]", "강렬한 빛[조합재료]"],
+    rank: "반 신급",
+    icon: "✨"
+  },
+  {
+    id: "rec_prophecy_insignia",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "예언의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["강렬한 빛의 문장[반 신급]", "계약된 종이[조합재료]", "전사의 비석[조합재료]"],
+    rank: "반 신급",
+    icon: "📜"
+  },
+
+  // 6. 인장 & 특수
+  {
+    id: "rec_seal_str",
+    category: "인장",
+    categoryKey: "seal",
+    name: "힘의 인장Lv2[에픽]",
+    coin: 5,
+    gold: 0,
+    materials: ["힘의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"],
+    rank: "에픽",
+    icon: "📌"
+  },
+  {
+    id: "rec_seal_agi",
+    category: "인장",
+    categoryKey: "seal",
+    name: "민첩의 인장Lv2[에픽]",
+    coin: 5,
+    gold: 0,
+    materials: ["민첩의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "민첩의 조각Lv2[???]", "보어 라이더의 심장"],
+    rank: "에픽",
+    icon: "📌"
+  },
+  {
+    id: "rec_seal_int",
+    category: "인장",
+    categoryKey: "seal",
+    name: "지능의 인장Lv2[에픽]",
+    coin: 5,
+    gold: 0,
+    materials: ["지능의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "지식의 조각Lv2[???]", "보어 라이더의 심장"],
+    rank: "에픽",
+    icon: "💎"
+  },
+  {
+    id: "rec_chieftain_necklace",
+    category: "인장",
+    categoryKey: "seal",
+    name: "치프틴 그람의 목걸이[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["그림자 목걸이[조합체]", "치프틴 그람의 지팡이[조합재료]"],
+    rank: "조합체",
+    icon: "📿"
+  },
+  {
+    id: "rec_nightmare_ring",
+    category: "인장",
+    categoryKey: "seal",
+    name: "나이트메어 반지[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["핑크게이의 문장[반 신급]", "악몽이 담긴 반지[조합재료]", "흉몽의 영혼[조합재료]", "드림워커의 영혼[조합재료]"],
+    rank: "반 신급",
+    icon: "💍"
+  }
+];
+
+// 7-2. 시즌포인트 핵심 조건 6대 아이템 상세 테크트리 및 총 소요 재화 명세
+const SEASON_POINT_REQUIREMENTS = [
+  {
+    id: "sp_chieftain",
+    name: "치프틴 그람의 목걸이[조합체]",
+    rank: "조합체",
+    icon: "📿",
+    totalCoin: 4,
+    totalGold: 0,
+    stepCount: 3,
+    summaryDesc: "파란빛 목걸이 ➔ 그림자 목걸이 ➔ 치프틴 그람의 목걸이",
+    steps: [
+      {
+        step: 1,
+        target: "파란빛 목걸이[조합체]",
+        coin: 1,
+        gold: 0,
+        materials: ["파란빛 목걸이 조합서", "스피릿 목걸이 -레어-", "블러드 스톤[조합재료]"]
+      },
+      {
+        step: 2,
+        target: "그림자 목걸이[조합체]",
+        coin: 3,
+        gold: 0,
+        materials: ["그림자 목걸이 조합서", "파란빛 목걸이[조합체]", "산적왕의 목걸이"]
+      },
+      {
+        step: 3,
+        target: "치프틴 그람의 목걸이[조합체]",
+        coin: 0,
+        gold: 0,
+        materials: ["그림자 목걸이[조합체]", "치프틴 그람의 지팡이[조합재료]"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "4개", type: "currency" },
+      { name: "스피릿 목걸이 -레어-", count: "1개", type: "equip" },
+      { name: "블러드 스톤[조합재료]", count: "1개", type: "mat" },
+      { name: "산적왕의 목걸이", count: "1개", type: "equip" },
+      { name: "치프틴 그람의 지팡이[조합재료]", count: "1개", type: "mat" },
+      { name: "파란빛 목걸이 조합서", count: "1개", type: "recipe" },
+      { name: "그림자 목걸이 조합서", count: "1개", type: "recipe" }
+    ]
+  },
+  {
+    id: "sp_pinkgay",
+    name: "핑크게이의 문장[반 신급]",
+    rank: "반 신급",
+    icon: "🏅",
+    totalCoin: 49,
+    totalGold: 1000000,
+    stepCount: 5,
+    summaryDesc: "긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이",
+    steps: [
+      {
+        step: 1,
+        target: "긴급용 무기[조합체]",
+        coin: 0,
+        gold: 1000000,
+        materials: ["긴급용 무기 조합서", "신대륙인의 문장[반 신급]", "봉인 해제자 칭호[에픽]", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"]
+      },
+      {
+        step: 2,
+        target: "호빵의 무구[조합체]",
+        coin: 1,
+        gold: 0,
+        materials: ["호빵의 무구 조합서", "긴급용 무기[조합체]", "불타는 보구 -노말-", "달의 조각[조합재료]", "정예나이트의 영혼[조합재료]", "정예기사의 영혼[조합재료]"]
+      },
+      {
+        step: 3,
+        target: "코볼드 광산의 문장[반 신급]",
+        coin: 12,
+        gold: 0,
+        materials: ["코볼드 광산의 문장 조합서", "호빵의 무구[조합체]", "코볼트 일꾼의 곡괭이[조합재료]", "엘리트 코볼트의 가죽[조합재료]", "코볼트 감독관의 채찍[조합재료]"]
+      },
+      {
+        step: 4,
+        target: "폭설 거미의 문장[반 신급]",
+        coin: 18,
+        gold: 0,
+        materials: ["폭설 거미의 문장 조합서", "코볼드 광산의 문장[반 신급]", "폭설거미의 다리[조합재료]", "폭설거미의 핵[조합재료]"]
+      },
+      {
+        step: 5,
+        target: "핑크게이의 문장[반 신급]",
+        coin: 18,
+        gold: 0,
+        materials: ["핑크게이의 문장 조합서", "폭설 거미의 문장[반 신급]", "처참한 좀비의 머리[조합재료]", "핑크게이의 팬티[조합재료]", "타락한 파워[반 신급]"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "49개", type: "currency" },
+      { name: "골드 (금)", count: "100만 Gold", type: "currency" },
+      { name: "신대륙인의 문장[반 신급]", count: "1개", type: "equip" },
+      { name: "봉인 해제자 칭호[에픽]", count: "1개", type: "title" },
+      { name: "이상한토끼의 뼈", count: "1개", type: "mat" },
+      { name: "이상한사슴의 뿔", count: "1개", type: "mat" },
+      { name: "꽃게의 큰맛살", count: "1개", type: "mat" },
+      { name: "불타는 보구 -노말-", count: "1개", type: "equip" },
+      { name: "달의 조각", count: "1개", type: "mat" },
+      { name: "정예나이트의 영혼", count: "1개", type: "mat" },
+      { name: "정예기사의 영혼", count: "1개", type: "mat" },
+      { name: "코볼트 일꾼의 곡괭이", count: "1개", type: "mat" },
+      { name: "엘리트 코볼트의 가죽", count: "1개", type: "mat" },
+      { name: "코볼트 감독관의 채찍", count: "1개", type: "mat" },
+      { name: "폭설거미의 다리", count: "1개", type: "mat" },
+      { name: "폭설거미의 핵", count: "1개", type: "mat" },
+      { name: "처참한 좀비의 머리", count: "1개", type: "mat" },
+      { name: "핑크게이의 팬티", count: "1개", type: "mat" },
+      { name: "타락한 파워[반 신급]", count: "1개", type: "equip" },
+      { name: "조합서 5종", count: "총 5장", type: "recipe" }
+    ]
+  },
+  {
+    id: "sp_blue_gaia",
+    name: "푸른 가이아의 특혜[조합체]",
+    rank: "조합체",
+    icon: "🌿",
+    totalCoin: 331,
+    totalGold: 400000,
+    stepCount: 8,
+    summaryDesc: "보물1~4(x3) ➔ 데몬갑옷(x3) ➔ 3트로피3(x2) + 스피릿방패 ➔ 고대갑옷 ➔ 고대책 ➔ 가이아 ➔ 푸른 가이아",
+    steps: [
+      {
+        step: 1,
+        target: "신대륙의 네번째 보물[조합체] (총 3개 제작)",
+        coin: 111,
+        gold: 0,
+        materials: ["1개당 37주화 소모 (1보물(4) ➔ 2보물(4) ➔ 3보물(10) ➔ 4보물(15))", "스피릿 목걸이, 블러드스톤, 산적왕목걸이, 장곤충, 스컬, 로구밍다리, 얼음병, 코브라독, 바실리스크보석"]
+      },
+      {
+        step: 2,
+        target: "-유니크급-데몬의 갑옷 (총 3개 제작)",
+        coin: 54,
+        gold: 0,
+        materials: ["1개당 18주화 소모 (데몬의 갑옷 조합서(18) + 낚시꾼의 갑옷 + 데몬의 파편)"]
+      },
+      {
+        step: 3,
+        target: "3트로피3[조합체] (총 2개 제작)",
+        coin: 34,
+        gold: 0,
+        materials: ["1개당 17주화 소모 (3트로피3 조합서(17) + 데몬의 갑옷 + 신대륙 4보물)"]
+      },
+      {
+        step: 4,
+        target: "스피릿 방패[조합체]",
+        coin: 16,
+        gold: 0,
+        materials: ["스피릿 방패 조합서(16) + 신대륙 4보물 + 은빛 반지[희귀급] + 데몬의 파편"]
+      },
+      {
+        step: 5,
+        target: "고대의망토[조합체]",
+        coin: 18,
+        gold: 0,
+        materials: ["고대의망토 조합서(18) + 3트로피3[조합체] + 데몬의 갑옷 + 스피릿 방패[조합체]"]
+      },
+      {
+        step: 6,
+        target: "고대의갑옷[조합체]",
+        coin: 0,
+        gold: 400000,
+        materials: ["고대의갑옷 조합서 + 고대의망토[조합체] + 3트로피3[조합체] + 케이의 해골"]
+      },
+      {
+        step: 7,
+        target: "낡은 고대의 책 ➔ 가이아의 특혜[조합체]",
+        coin: 63,
+        gold: 0,
+        materials: ["낡은 고대의 책(30): 케이의 해골, 고대의갑옷, 희망의빛, 어둠", "가이아의 특혜(33): 낡은 고대의 책, 타락한 가이아의 가지"]
+      },
+      {
+        step: 8,
+        target: "푸른 가이아의 특혜[조합체]",
+        coin: 35,
+        gold: 0,
+        materials: ["푸른 가이아의 특혜 조합서(35) + 가이아의 특혜[조합체] + 가이아의 수액 + 봉인된 가이아의 심장"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "331개", type: "currency" },
+      { name: "골드 (금)", count: "40만 Gold", type: "currency" },
+      { name: "신대륙 네번째 보물", count: "3개", type: "treasure" },
+      { name: "-유니크급-데몬의 갑옷", count: "3개", type: "armor" },
+      { name: "케이의 해골", count: "2개", type: "mat" },
+      { name: "은빛 반지[희귀급]", count: "1개", type: "equip" },
+      { name: "희망의빛 / 어둠", count: "각 1개", type: "mat" },
+      { name: "타락한 가이아의 가지", count: "1개", type: "mat" },
+      { name: "가이아의 수액", count: "1개", type: "mat" },
+      { name: "봉인된 가이아의 심장", count: "1개", type: "mat" },
+      { name: "각 단계 조합서 10종", count: "총 10장", type: "recipe" }
+    ]
+  },
+  {
+    id: "sp_seal_str",
+    name: "힘의 인장Lv2[에픽]",
+    rank: "에픽",
+    icon: "📌",
+    totalCoin: 5,
+    totalGold: 0,
+    stepCount: 1,
+    summaryDesc: "심연의 해적 인장 + 차가운 돼지고기 + 힘의 조각Lv2 + 보어 라이더 심장",
+    steps: [
+      {
+        step: 1,
+        target: "힘의 인장Lv2[에픽]",
+        coin: 5,
+        gold: 0,
+        materials: ["힘의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "5개", type: "currency" },
+      { name: "힘의 인장Lv2 조합서", count: "1개", type: "recipe" },
+      { name: "심연의 해적 인장[에픽]", count: "1개", type: "seal" },
+      { name: "차가운 돼지고기[조합재료]", count: "1개", type: "mat" },
+      { name: "힘의 조각Lv2[???]", count: "1개", type: "mat" },
+      { name: "보어 라이더의 심장", count: "1개", type: "mat" }
+    ]
+  },
+  {
+    id: "sp_nightmare",
+    name: "나이트메어 반지[반 신급]",
+    rank: "반 신급",
+    icon: "💍",
+    totalCoin: 49,
+    totalGold: 1000000,
+    stepCount: 2,
+    summaryDesc: "핑크게이의 문장 (49주화) + 악몽이 담긴 반지 + 흉몽의 영혼 + 드림워커의 영혼",
+    steps: [
+      {
+        step: 1,
+        target: "핑크게이의 문장[반 신급] (선행 테크)",
+        coin: 49,
+        gold: 1000000,
+        materials: ["긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이의 문장"]
+      },
+      {
+        step: 2,
+        target: "나이트메어 반지[반 신급]",
+        coin: 0,
+        gold: 0,
+        materials: ["핑크게이의 문장[반 신급]", "악몽이 담긴 반지[조합재료]", "흉몽의 영혼[조합재료]", "드림워커의 영혼[조합재료]"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화 (문장 포함)", count: "49개", type: "currency" },
+      { name: "골드 (문장 포함)", count: "100만 Gold", type: "currency" },
+      { name: "핑크게이의 문장[반 신급]", count: "1개", type: "insignia" },
+      { name: "악몽이 담긴 반지[조합재료]", count: "1개", type: "mat" },
+      { name: "흉몽의 영혼[조합재료]", count: "1개", type: "mat" },
+      { name: "드림워커의 영혼[조합재료]", count: "1개", type: "mat" }
+    ]
+  },
+  {
+    id: "sp_flag",
+    name: "시즌포인트 깃발[조합재료]",
+    rank: "조합재료",
+    icon: "🚩",
+    totalCoin: 0,
+    totalGold: 0,
+    stepCount: 1,
+    summaryDesc: "시즌포인트 획득을 인증하는 최종 특별 깃발 (인게임 퀘스트/드롭/교환)",
+    steps: [
+      {
+        step: 1,
+        target: "시즌포인트 깃발[조합재료]",
+        coin: 0,
+        gold: 0,
+        materials: ["인게임 시즌 전용 퀘스트 / 드롭 / 교환처에서 획득"]
+      }
+    ],
+    rawMaterials: [
+      { name: "시즌포인트 깃발[조합재료]", count: "1개", type: "flag" }
+    ]
+  }
+];
+
 // 8. DSR 아이템 코드 맵 (goodwin 실측 및 m16tool 세이브 아이템 ID 매핑)
 const DSR_ITEMS_MAP = {
   372: { name: "데릭의 톱날칼[에픽]", icon: "⚔️", rank: "에픽" },
@@ -392,7 +1104,18 @@ const DSR_ITEMS_MAP = {
   303: { name: "힘의 인장Lv2[에픽]", icon: "📌", rank: "에픽" },
   263: { name: "곰팡살팽의 쉴드[신급]", icon: "🛡️", rank: "신급" },
   248: { name: "부식의 나이프[신급]", icon: "🗡️", rank: "신급" },
-  299: { name: "호빵 반지[신급]", icon: "💍", rank: "신급" }
+  299: { name: "호빵 반지[신급]", icon: "💍", rank: "신급" },
+  324: { name: "[레전드급]저주받은구울의 손톱", icon: "💅", rank: "레전드급" },
+  322: { name: "데스토의 보조갑옷[에픽]", icon: "🛡️", rank: "에픽" },
+  246: { name: "블러드 나이프[신급]", icon: "🗡️", rank: "신급" },
+  9: { name: "치프틴 그람의 목걸이[조합체]", icon: "📿", rank: "조합체" },
+  374: { name: "스피드 스크롤", icon: "📜", rank: "일반" },
+  242: { name: "파란빛 목걸이[조합체]", icon: "📿", rank: "조합체" },
+  320: { name: "데스토의 제왕홀[에픽]", icon: "🪄", rank: "에픽" },
+  258: { name: "그림자 목걸이[조합체]", icon: "📿", rank: "조합체" },
+  259: { name: "신대륙의 첫번째 보물[조합체]", icon: "🏆", rank: "조합체" },
+  260: { name: "신대륙의 두번째 보물[조합체]", icon: "🏆", rank: "조합체" },
+  237: { name: "스피릿 목걸이-레어-", icon: "📿", rank: "레어" }
 };
 
 // 9. 사전등록 유저 로컬 DB (아이디별 100% 개별 독립 데이터 & 시간 수록)
@@ -586,49 +1309,86 @@ const PLAYERS_DATABASE = {
     sacredPower: "10,671",
     petData: {
       "SP_2": 1, "SP_4": 1, "SP_5": 1, "SP_6": 1, "SP_7": 1, "SP_8": 1, "SP_9": 1,
-      "SP2_3": 1, "SP2_4": 1, "SP2_5": 1, "SP2_6": 1, "SP2_7": 1, "SP2_8": 1, "SP2_9": 1
+      "SP2_3": 2, "SP2_4": 1, "SP2_5": 1, "SP2_6": 1, "SP2_7": 1, "SP2_8": 2, "SP2_9": 1
     },
     ownedCodes: [
       "SH_1", "SH_2"
     ],
     lastSave: {
-      saveDate: "2026-08-03 20:56:10",
+      saveDate: "2026-10-12 00:48:05",
       characterName: "『시즌』페가수스 나이트",
       characterLevel: 6000,
-      petName: "서리정령[Lv2][펫]",
+      petName: "빙결의 악몽[Lv3][펫]",
       petLevel: 6000,
-      gold: 733202,
-      imperialCoin: 117838,
+      gold: 918663,
+      imperialCoin: 1086,
       darkStone: 0,
       str: 42073,
       agi: 42073,
       int: 72148,
       heroItems: [
-        { id: 372, count: 0 }, // 1. 데릭의 톱날칼[에픽]
-        { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
-        { id: 298, count: 0 }, // 3. 견고한 벽[신급]
-        { id: 279, count: 0 }, // 4. 시즌 전생 칭호[에픽]
-        { id: 361, count: 0 }, // 5. 핑크게이의 문장[반 신급]
-        { id: 0, count: 0 }   // 6. 빈 슬롯
-      ],
-      petItems: [
-        { id: 372, count: 0 }, // 1. 데릭의 톱날칼[에픽]
-        { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
-        { id: 297, count: 0 }, // 3. 수령에 빠뜨린자[신급]
+        { id: 324, count: 0 }, // 1. [레전드급]저주받은구울의 손톱
+        { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
+        { id: 246, count: 0 }, // 3. 블러드 나이프[신급]
         { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
-        { id: 339, count: 0 }, // 5. 푸른 가이아의 특혜[조합체]
-        { id: 0, count: 0 }   // 6. 빈 슬롯
+        { id: 279, count: 0 }, // 5. 시즌 전생 칭호[에픽]
+        { id: 374, count: 0 }  // 6. 스피드 스크롤
       ],
       warehouseItems: [
-        { id: 304, count: 0 }, // 1. 지능의 인장Lv2[에픽]
-        { id: 318, count: 0 }, // 2. 천사의 날개[반 신급]
-        { id: 0, count: 0 },
-        { id: 0, count: 0 },
-        { id: 0, count: 0 },
-        { id: 0, count: 0 }
+        { id: 258, count: 0 }, // 1. 그림자 목걸이[조합체]
+        { id: 259, count: 0 }, // 2. 신대륙의 첫번째 보물[조합체]
+        { id: 260, count: 0 }, // 3. 신대륙의 두번째 보물[조합체]
+        { id: 259, count: 0 }, // 4. 신대륙의 첫번째 보물[조합체]
+        { id: 0, count: 0 },   // 5. 빈 슬롯
+        { id: 237, count: 0 }  // 6. 스피릿 목걸이-레어-
+      ],
+      petItems: [
+        { id: 320, count: 0 }, // 1. 데스토의 제왕홀[에픽]
+        { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
+        { id: 263, count: 0 }, // 3. 곰팡살팽의 쉴드[신급]
+        { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
+        { id: 0, count: 0 }, { id: 0, count: 0 }
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_1",
+        saveCode: "1",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-12 00:48:05",
+        characterName: "『시즌』페가수스 나이트",
+        characterLevel: 6000,
+        petName: "빙결의 악몽[Lv3][펫]",
+        gold: 918663,
+        imperialCoin: 1086,
+        darkStone: 0,
+        str: 42073,
+        agi: 42073,
+        int: 72148,
+        heroItems: [
+          { id: 324, count: 0 }, // 1. [레전드급]저주받은구울의 손톱
+          { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
+          { id: 246, count: 0 }, // 3. 블러드 나이프[신급]
+          { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
+          { id: 279, count: 0 }, // 5. 시즌 전생 칭호[에픽]
+          { id: 374, count: 0 }  // 6. 스피드 스크롤
+        ],
+        warehouseItems: [
+          { id: 258, count: 0 }, // 1. 그림자 목걸이[조합체]
+          { id: 259, count: 0 }, // 2. 신대륙의 첫번째 보물[조합체]
+          { id: 260, count: 0 }, // 3. 신대륙의 두번째 보물[조합체]
+          { id: 259, count: 0 }, // 4. 신대륙의 첫번째 보물[조합체]
+          { id: 0, count: 0 },   // 5. 빈 슬롯
+          { id: 237, count: 0 }  // 6. 스피릿 목걸이-레어-
+        ],
+        petItems: [
+          { id: 320, count: 0 }, // 1. 데스토의 제왕홀[에픽]
+          { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
+          { id: 263, count: 0 }, // 3. 곰팡살팽의 쉴드[신급]
+          { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
+          { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
@@ -1473,6 +2233,88 @@ const PLAYERS_DATABASE = {
         warehouseItems: [
           { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
           { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      }
+    ]
+  },
+  "mnm1823": {
+    userId: "mnm1823",
+    seasonPoint: 0,
+    honorPoint: 0,
+    isSeasonCompleted: true,
+    seasonVersionLabel: "v37",
+    seasonCompletedChar: "『시즌』사령관 암흑기사장",
+    rankingPoint: 0,
+    rankStanding: "순위 미등록 (일반 유저)",
+    titleCode: 1,
+    swordCode: "nBLSwrodUP1",
+    swordLevel: 9,
+    ownedSwords: ["BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1"],
+    wingId: 1,
+    wingLevel: 1,
+    sacredPower: "12,273",
+    petData: {
+      "SP_1": 1, "SP_2": 1, "SP_3": 1, "SP_4": 1, "SP_5": 1, "SP_6": 1, "SP_7": 1, "SP_8": 1, "SP_9": 1,
+      "SP2_2": 5, "SP2_4": 4, "SP2_5": 4, "SP2_6": 4, "SP2_7": 4, "SP2_8": 4, "SP2_9": 4,
+      "SP3_2U": 9, "SP3_2U2": 9, "SP3_2U3": 9, "SP3_2U4": 9
+    },
+    warehouseData: {
+      "BLBox2": 1, "BLBox3": 1, "BLBox4": 9, "BLBox5": 9, "BLBox6": 9, "BLBox7": 9, "BLBox8": 9, "BLBox9": 9, "BLBox10": 9, "BLBox11": 9,
+      "BLBoxUP1": 9, "BLBoxUP2": 9, "BLBoxUP3": 9, "BLBoxUP4": 9,
+      "NBLBox_UP1": 9, "NBLBox_UP2": 9, "NBLBox_UP3": 9, "NBLBox_UP4": 9
+    },
+    ownedCodes: [
+      "SH_1", "SH_2", "SH_3", "SH_4", "SH_5", "SH_6", "SH_7", "SH_8", "SH_9", "SH_10",
+      "SH_11", "SH_12", "SH_13", "SH_14", "SH_15", "SH_16", "SH_17", "SH_18", "SH_19", "SH_20",
+      "SH_21", "SH_22", "SH_23", "SH_24", "SH_25", "SH_26", "SH_27", "SH_28", "SH_29", "SH_30"
+    ],
+    lastSave: {
+      saveDate: "2026-10-11 22:00:00",
+      characterName: "『시즌』사령관 암흑기사장",
+      characterLevel: 6000,
+      petName: "블러드 위저드 탈렌[Lv8][펫]",
+      petLevel: 6000,
+      gold: 1000000,
+      imperialCoin: 430668,
+      darkStone: 0,
+      str: 216604, agi: 126299, int: 126299,
+      heroItems: [
+        { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 10 },
+        { id: 0, count: 80 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ],
+      petItems: [
+        { id: 367, count: 0 }, { id: 0, count: 61 }, { id: 0, count: 0 },
+        { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ],
+      warehouseItems: [
+        { id: 373, count: 0 }, { id: 361, count: 0 }, { id: 339, count: 0 },
+        { id: 303, count: 0 }, { id: 374, count: 0 }, { id: 0, count: 0 }
+      ]
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_37_시즌",
+        saveCode: "시즌",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-11 22:00:00",
+        characterName: "『시즌』사령관 암흑기사장",
+        characterLevel: 6000,
+        petName: "블러드 위저드 탈렌[Lv8][펫]",
+        gold: 1000000,
+        imperialCoin: 430668,
+        darkStone: 0,
+        str: 216604, agi: 126299, int: 126299,
+        heroItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 10 },
+          { id: 0, count: 80 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 367, count: 0 }, { id: 0, count: 61 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 373, count: 0 }, { id: 361, count: 0 }, { id: 339, count: 0 },
+          { id: 303, count: 0 }, { id: 374, count: 0 }, { id: 0, count: 0 }
         ]
       }
     ]

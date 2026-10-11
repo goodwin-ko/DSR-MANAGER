@@ -18,7 +18,12 @@
       <div class="brand-title">
         <div class="brand-icon">⚔️</div>
         <div>
-          <h1>대륙 RPG 매니저</h1>
+          <div class="title-with-badge">
+            <h1>대륙 RPG 매니저</h1>
+            <button type="button" class="btn-version-badge" onclick="openPatchNotesModal()" title="클릭하여 v37 패치노트 확인">
+              <span class="badge-dot"></span> v37.0.0 패치노트 📋
+            </button>
+          </div>
           <p>Continent RPG Season & Account Manager</p>
         </div>
       </div>
@@ -39,6 +44,82 @@
         </div>
       </div>
     </header>
+
+    <!-- Patch Notes Modal Dialog -->
+    <div id="patchNotesModal" class="modal-overlay" style="display: none;" onclick="handleModalOverlayClick(event)">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="patch-badge">UPDATE</span>
+            <span>📋 시스템 패치노트 (v37 대응 & m16tool 신규 로그 개편)</span>
+          </div>
+          <button type="button" class="btn-modal-close" onclick="closePatchNotesModal()" aria-label="닫기">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="patch-grid">
+            <div class="patch-item">
+              <div class="patch-item-icon">🚀</div>
+              <div class="patch-item-body">
+                <strong>v37 최신 시즌 세이브 슬롯 자동 필터링</strong>
+                <p><code>Code1_37_시즌</code> 등 새로운 시즌 슬롯을 감지하여 최신 버전 슬롯만 표시하며, 원본 저장코드명(<code>#시즌</code>)을 온전히 보존합니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">🎖️</div>
+              <div class="patch-item-body">
+                <strong>시즌포인트 획득 & 달성 캐릭터 상세 표시</strong>
+                <p><code>"시즌포인트획득": "v37"</code> 및 달성 캐릭터(<code>『시즌』사령관 암흑기사장</code> 등)를 판독하여 상단 배너와 배지에 달성 캐릭터명을 실시간 노출합니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">⚔️</div>
+              <div class="patch-item-body">
+                <strong>SH_1 ~ SH_90 캐릭터 소유(1=소유, 0=미소유) 100% 동기화</strong>
+                <p>개편된 로그의 90종 캐릭터 소유 코드(1/0)를 실시간 반영하여 시즌 1~10 캐릭터 도감 소유 현황을 완벽 동기화합니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">🐾</div>
+              <div class="patch-item-body">
+                <strong>펫 레벨 진화 & 업그레이드 체인 정밀 판정</strong>
+                <p>SP_1~9 소유 판정, SP2_1~9 레벨별 펫 변환, 9강 Max 달성 시 다음 단계 해금 및 고티어 업그레이드 펫(SP3 / RGUP) 우선 인식을 적용했습니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">📦</div>
+              <div class="patch-item-body">
+                <strong>창고(BLBox) & 성검(BLSwrod) 최신 로그 연동</strong>
+                <p>BLBox1~11 및 각성 창고(BLBoxUP1~6), 4대 성검 및 듀란달의 9강 레벨 수치와 소유 현황을 실시간 연동합니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">🔍</div>
+              <div class="patch-item-body">
+                <strong>조회 유저 아이디 실시간 표시</strong>
+                <p>검색 완료 시 헤더 우측에 현재 조회된 유저 아이디가 선명하게 표시됩니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">💎</div>
+              <div class="patch-item-body">
+                <strong>v37 최신 영웅/창고/펫 아이템 고유 ID 매핑 대거 추가</strong>
+                <p>그림자 목걸이(258), 신대륙의 첫번째 보물(259), 신대륙의 두번째 보물(260), 스피릿 목걸이-레어-(237), 데스토의 제왕홀(320), 스피드 스크롤(374), 파란빛 목걸이(242), 치프틴 그람의 목걸이(9) 등 신규 아이템을 실시간 등록했습니다.</p>
+              </div>
+            </div>
+            <div class="patch-item">
+              <div class="patch-item-icon">📜</div>
+              <div class="patch-item-body">
+                <strong>신대륙 조합법 도감 & 시즌포인트 6대 아이템 테크트리 탭 신설</strong>
+                <p>유물 탭 우측에 '조합법' 탭이 추가되었습니다! 상단에서 시즌포인트 6대 핵심 아이템의 단계별 제작 테크트리, 누적 주화/골드 소요량, 필요 재료 총량 및 인벤토리 보유 여부를 실시간 확인하고, 하단에서 신대륙 28종 전체 조합법을 카테고리별로 검색할 수 있습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-confirm" onclick="closePatchNotesModal()">확인 완료</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Season Complete Banner -->
     <div id="valSeasonCompleteBanner" style="display:none; background: linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; color: #34d399; font-weight: 800; font-size: 15px; text-align: center; box-shadow: 0 0 15px rgba(16,185,129,0.3);">
@@ -261,6 +342,10 @@
         <span>🔮 유물</span>
         <span class="tab-badge">각성</span>
       </button>
+      <button type="button" class="nav-tab" data-tab="recipes">
+        <span>📜 조합법</span>
+        <span class="tab-badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">신대륙</span>
+      </button>
     </nav>
 
     <!-- ==========================================
@@ -348,6 +433,59 @@
         <span>🔮 고대 유물 각성</span>
       </div>
       <div id="relicsContainer" class="content-card-grid"></div>
+    </section>
+
+    <!-- ==========================================
+         7. TAB CONTENT 7: RECIPES (신대륙 조합법 & 시즌포인트 테크트리)
+         ========================================== -->
+    <section id="tab-recipes" class="tab-view">
+      <!-- 7-1. 상단: 시즌포인트 조건 6대 핵심 아이템 & 재화 요약 -->
+      <div class="recipes-sp-overview">
+        <div class="sp-banner-title">
+          <div class="sp-badge-pill">⭐ SEASON POINT KEY ITEMS</div>
+          <h2>시즌포인트 획득 조건 6대 핵심 아이템 & 소요 재화 분석</h2>
+          <p>시즌포인트 인증에 요구되는 6개 핵심 아이템의 제작 테크트리, 필요 재료 및 누적 주화/골드 총량을 한눈에 확인하세요.</p>
+        </div>
+
+        <!-- 종합 소요량 집계 카드 -->
+        <div id="spSummaryTotals" class="sp-summary-totals-grid"></div>
+
+        <!-- 6대 아이템 테크트리 아코디언 카드 그리드 -->
+        <div class="season-row-title" style="margin: 24px 0 14px;">
+          <span class="row-badge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.3);">6대 필수 아이템</span>
+          <span>아이템별 제작 단계(테크트리) 및 필요 원자재 명세 (클릭하여 펼치기/접기)</span>
+        </div>
+        <div id="seasonPointCardsGrid" class="sp-cards-grid"></div>
+      </div>
+
+      <!-- 7-2. 하단: 신대륙 전체 아이템 조합 도감 -->
+      <div class="all-recipes-section" style="margin-top: 36px;">
+        <div class="all-recipes-header">
+          <div class="season-row-title" style="margin-bottom: 0;">
+            <span class="row-badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);">전체 도감</span>
+            <span>신대륙 조합법 전체 리스트 (<span id="txtRecipeCount">0</span>종)</span>
+          </div>
+          
+          <!-- 검색 및 카테고리 필터 바 -->
+          <div class="recipe-filter-bar">
+            <div class="recipe-search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="recipeSearchInput" placeholder="아이템명 또는 재료명 검색..." oninput="handleRecipeSearch(this.value)">
+            </div>
+            <div class="recipe-category-pills" id="recipeCategoryPills">
+              <button type="button" class="cat-pill active" onclick="filterRecipeCategory('all')">전체보기</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('common')">공통</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('weapon')">무기</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('armor')">갑옷</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('insignia')">문장</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('accessory')">악세</button>
+              <button type="button" class="cat-pill" onclick="filterRecipeCategory('seal')">인장</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="recipesListContainer" class="recipes-list-grid"></div>
+      </div>
     </section>
 
   </div>

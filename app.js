@@ -158,7 +158,8 @@ async function loadProfile(userId) {
         seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (currentProfile.seasonPoint || 0),
         honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (currentProfile.honorPoint || 0),
         isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : currentProfile.isSeasonCompleted,
-        seasonVersionLabel: m16Data.seasonVersionLabel || currentProfile.seasonVersionLabel || "v36",
+        seasonVersionLabel: m16Data.seasonVersionLabel || currentProfile.seasonVersionLabel || "v37",
+        seasonCompletedChar: m16Data.seasonCompletedChar || currentProfile.seasonCompletedChar || "",
         rankingPoint: (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : (currentProfile.rankingPoint || 0),
         rankStanding: m16Data.rankStanding || currentProfile.rankStanding || "일반 유저",
         titleCode: m16Data.titleCode || currentProfile.titleCode || "TT_TYPE1",
@@ -275,64 +276,64 @@ const PET_CODE_TO_NAME = {
  */
 const SP2_SERIES_MATRIX = {
   1: {
-    2: { code: "SP2_1", name: "중갑기사 로우" },
-    3: { code: "SP3_1", name: "데몬기사 조던" },
-    4: { code: "SP4_1", name: "대검기사 해곤" },
-    5: { code: "SP3_1U", name: "해골기사 조트" },
-    6: { code: "SP3_1U2", name: "사령기사 루인" },
-    7: { code: "SP3_1U3", name: "대군주 바로크" },
-    8: { code: "SP3_1U4", name: "족장 랜드호크" },
-    9: { code: "SP_RGUP1", name: "카오스 엘리멘탈" }
+    1: { code: "SP2_1", name: "중갑기사 로우" },
+    2: { code: "SP3_1", name: "데몬기사 조던" },
+    3: { code: "SP4_1", name: "대검기사 해곤" },
+    4: { code: "SP3_1U", name: "해골기사 조트" },
+    5: { code: "SP3_1U2", name: "사령기사 루인" },
+    6: { code: "SP3_1U3", name: "대군주 바로크" },
+    7: { code: "SP3_1U4", name: "족장 랜드호크" },
+    8: { code: "SP_RGUP1", name: "카오스 엘리멘탈" }
   },
   2: {
-    2: { code: "SP2_2", name: "고블린 블라스터" },
-    3: { code: "SP3_2", name: "대형 대포" },
-    4: { code: "SP4_2", name: "맘 투석기" },
-    5: { code: "SP3_2U", name: "옥크로 투석기" },
-    6: { code: "SP3_2U2", name: "블러드 엘프 마법기" },
-    7: { code: "SP3_2U3", name: "블러드 엘프 마법병기" },
-    8: { code: "SP3_2U4", name: "블러드 위저드 탈렌" },
-    9: { code: "SP_RGUP2", name: "카오스 랜턴" }
+    1: { code: "SP2_2", name: "고블린 블라스터" },
+    2: { code: "SP3_2", name: "대형 대포" },
+    3: { code: "SP4_2", name: "맘 투석기" },
+    4: { code: "SP3_2U", name: "옥크로 투석기" },
+    5: { code: "SP3_2U2", name: "블러드 엘프 마법기" },
+    6: { code: "SP3_2U3", name: "블러드 엘프 마법병기" },
+    7: { code: "SP3_2U4", name: "블러드 위저드 탈렌" },
+    8: { code: "SP_RGUP2", name: "카오스 랜턴" }
   },
   3: {
-    2: { code: "SP2_3", name: "서리정령" },
-    3: { code: "SP3_3", name: "빙결의 악몽" },
-    4: { code: "SP4_3", name: "빙결의 군주" },
-    5: { code: "SP3_3U", name: "빙결의 여군주" },
-    6: { code: "SP3_3U2", name: "서리군주 베인" },
-    7: { code: "SP3_3U3", name: "마인드 마스터" },
-    8: { code: "SP3_3U4", name: "혹한의 모그레인" },
-    9: { code: "SP_RGUP3", name: "스핑거 도그" }
+    1: { code: "SP2_3", name: "서리정령" },
+    2: { code: "SP3_3", name: "빙결의 악몽" },
+    3: { code: "SP4_3", name: "빙결의 군주" },
+    4: { code: "SP3_3U", name: "빙결의 여군주" },
+    5: { code: "SP3_3U2", name: "서리군주 베인" },
+    6: { code: "SP3_3U3", name: "마인드 마스터" },
+    7: { code: "SP3_3U4", name: "혹한의 모그레인" },
+    8: { code: "SP_RGUP3", name: "스핑거 도그" }
   },
   4: {
-    2: { code: "SP2_4", name: "이집트리치 인형" },
-    3: { code: "SP3_4", name: "리퍼 인형" },
-    4: { code: "SP4_4", name: "밴쉬 인형" }
+    1: { code: "SP2_4", name: "이집트리치 인형" },
+    2: { code: "SP3_4", name: "리퍼 인형" },
+    3: { code: "SP4_4", name: "밴쉬 인형" }
   },
   5: {
-    2: { code: "SP2_5", name: "템플나이트" },
-    3: { code: "SP3_5", name: "드라군나이트" },
-    4: { code: "SP4_5", name: "스완 나이트" }
+    1: { code: "SP2_5", name: "템플나이트" },
+    2: { code: "SP3_5", name: "드라군나이트" },
+    3: { code: "SP4_5", name: "스완 나이트" }
   },
   6: {
-    2: { code: "SP2_6", name: "워터보이" },
-    3: { code: "SP3_6", name: "리틀보이" },
-    4: { code: "SP4_6", name: "엘프보이" }
+    1: { code: "SP2_6", name: "워터보이" },
+    2: { code: "SP3_6", name: "리틀보이" },
+    3: { code: "SP4_6", name: "엘프보이" }
   },
   7: {
-    2: { code: "SP2_7", name: "드루이드Lv2" },
-    3: { code: "SP3_7", name: "드루이드" },
-    4: { code: "SP4_7", name: "드워프 드루이드" }
+    1: { code: "SP2_7", name: "드루이드Lv2" },
+    2: { code: "SP3_7", name: "드루이드" },
+    3: { code: "SP4_7", name: "드워프 드루이드" }
   },
   8: {
-    2: { code: "SP2_8", name: "엘프 성녀" },
-    3: { code: "SP3_8", name: "하이엘프 성녀" },
-    4: { code: "SP4_8", name: "고위 성녀" }
+    1: { code: "SP2_8", name: "엘프 성녀" },
+    2: { code: "SP3_8", name: "하이엘프 성녀" },
+    3: { code: "SP4_8", name: "고위 성녀" }
   },
   9: {
-    2: { code: "SP2_9", name: "투카르 치프틴" },
-    3: { code: "SP3_9", name: "사티로스 마스터" },
-    4: { code: "SP4_9", name: "밴디트 마스터" }
+    1: { code: "SP2_9", name: "투카르 치프틴" },
+    2: { code: "SP3_9", name: "사티로스 마스터" },
+    3: { code: "SP4_9", name: "밴디트 마스터" }
   }
 };
 
@@ -363,15 +364,15 @@ function checkPetOwnership(petCode, customPetData = null) {
     }
   }
 
-  // 2. 계열 1~9 누적 소유 체크
+  // 2. 계열 1~9 누적 소유 체크 (mainLevel = 2 이면 1단계[서리정령] & 2단계[빙결의 악몽] 모두 소유 인정!)
   for (let k = 1; k <= 9; k++) {
     const mainCode = `SP2_${k}`;
     const mainLevel = pData[mainCode] || 0;
     if (mainLevel > 0) {
-      for (let lvl = 2; lvl <= mainLevel; lvl++) {
+      for (let lvl = 1; lvl <= mainLevel; lvl++) {
         const item = SP2_SERIES_MATRIX[k]?.[lvl];
         if (item && item.code === petCode) {
-          return { owned: true, level: mainLevel };
+          return { owned: true, level: (lvl === mainLevel ? mainLevel : 1) };
         }
       }
     }
@@ -635,9 +636,10 @@ async function fetchM16ToolUserLog(nicName) {
     const warehouseData = {};
     const ownedSwords = new Set();
 
-    // 0. 시즌포인트 완료 여부 검출 ("시즌포인트획득" 키 탐지)
+    // 0. 시즌포인트 완료 여부 및 달성 캐릭터 검출 ("시즌포인트획득" 및 "캐릭터" 키 탐지)
     let isSeasonCompleted = false;
-    let seasonVersionLabel = "v36";
+    let seasonVersionLabel = "v37";
+    let seasonCompletedChar = "";
 
     const spVerMatch = htmlText.match(/"시즌포인트획득"\s*:\s*"([^"]+)"/);
     if (spVerMatch && spVerMatch[1]) {
@@ -649,8 +651,15 @@ async function fetchM16ToolUserLog(nicName) {
       const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
       if (dbUserCheck && dbUserCheck.isSeasonCompleted) {
         isSeasonCompleted = true;
-        seasonVersionLabel = dbUserCheck.seasonVersionLabel || "v36";
+        seasonVersionLabel = dbUserCheck.seasonVersionLabel || "v37";
+        seasonCompletedChar = dbUserCheck.seasonCompletedChar || "";
       }
+    }
+
+    // "캐릭터" 필드 파싱 (시즌포인트 달성 캐릭터 등)
+    const charFieldMatch = htmlText.match(/"캐릭터"\s*:\s*"([^"]+)"/);
+    if (charFieldMatch && charFieldMatch[1]) {
+      seasonCompletedChar = charFieldMatch[1].replace(/\|c[0-9a-fA-F]{8}|\|r/g, '').trim();
     }
 
     // 1. iPOINT (시즌포인트) 파싱
@@ -686,8 +695,8 @@ async function fetchM16ToolUserLog(nicName) {
       titleLevel = parseInt(ttMatch[1], 10) || 1;
     }
 
-    // 6. SH_ 캐릭터 코드 파싱 ("SH_1": 1 과 같이 값이 1 이상인 소유 캐릭터만 파싱!)
-    const shKVMatches = bodyContent.match(/"SH_(\d+)":\s*([1-9]\d*)/g);
+    // 6. SH_ / NSH_ 캐릭터 코드 파싱 ("SH_1": 1 과 같이 값이 1 이상인 소유 캐릭터만 파싱!)
+    const shKVMatches = htmlText.match(/"(SH_\d+|NSH_\d+)":\s*(\d+)/g);
     if (shKVMatches) {
       shKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -700,7 +709,7 @@ async function fetchM16ToolUserLog(nicName) {
     }
 
     // 7. SP_ / SP2_ / SP3_ / SP_RGUP / SP_LBOX 펫 코드 파싱 (코드 패턴 확장)
-    const petKVMatches = htmlText.match(/"(SP_\d+|SP2_\d+|SP3_\d+\w*|SP4_\d+|SP5_\d+|SP_RGUP\d+|SP_LBOX\d+)":\s*([1-9]\d*)/g);
+    const petKVMatches = htmlText.match(/"(SP_\d+|SP2_\d+|SP3_\d+U\d*|SP3_\d+|SP4_\d+|SP5_\d+|SP_RGUP\d+|SP_LBOX\d+)":\s*(\d+)/g);
     if (petKVMatches) {
       petKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -712,8 +721,8 @@ async function fetchM16ToolUserLog(nicName) {
       });
     }
 
-    // 8. 창고 코드 파싱
-    const boxKVMatches = bodyContent.match(/"(BLBox\d+|NBLBox\d+|NBLBox_UP\d+)":\s*([1-9]\d*)/g);
+    // 8. 창고 코드 파싱 (BLBox1~11, BLBoxUP1~6, NBLBox1~4, NBLBox_UP1~6 양방향 호환)
+    const boxKVMatches = htmlText.match(/"(BLBox\d+|BLBoxUP\d+|NBLBox\d+|NBLBox_UP\d+)":\s*(\d+)/g);
     if (boxKVMatches) {
       boxKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -721,13 +730,19 @@ async function fetchM16ToolUserLog(nicName) {
         const bLevel = parseInt(parts[1].trim(), 10);
         if (bLevel > 0) {
           warehouseData[bCode] = bLevel;
+          // BLBoxUP <-> NBLBox_UP 상호 매핑
+          if (bCode.startsWith("BLBoxUP")) {
+            warehouseData[bCode.replace("BLBoxUP", "NBLBox_UP")] = bLevel;
+          } else if (bCode.startsWith("NBLBox_UP")) {
+            warehouseData[bCode.replace("NBLBox_UP", "BLBoxUP")] = bLevel;
+          }
         }
       });
     }
 
-    // 9. 성검 소유 코드 파싱
+    // 9. 성검 소유 코드 파싱 (BLSwrod1~5, nBLSwrodUP1)
     let swordLevel = 1;
-    const swordKVMatches = bodyContent.match(/"(BLSwrod\d+|nBLSwrodUP1)":\s*([1-9]\d*)/g);
+    const swordKVMatches = htmlText.match(/"(BLSwrod\d+|nBLSwrodUP1)":\s*(\d+)/g);
     if (swordKVMatches) {
       swordKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -735,7 +750,7 @@ async function fetchM16ToolUserLog(nicName) {
         const sLevel = parseInt(parts[1].trim(), 10);
         if (sLevel > 0) {
           ownedSwords.add(sCode);
-          if (sCode === swordCode) {
+          if (sCode === swordCode || sCode === "nBLSwrodUP1") {
             swordLevel = sLevel;
           }
         }
@@ -880,7 +895,31 @@ async function fetchM16ToolUserLog(nicName) {
 function resolveEquippedPetFromPetData(pData) {
   if (!pData) return null;
 
-  // 1. SP2_1 ~ SP2_9 코드의 값(1, 2, 3...)에 따른 펫 계산
+  // 1. 단일 고티어 업그레이드 펫 코드 (SP_RGUP, SP3_1U 등 - 최우선 순위 판정)
+  const specialMap = [
+    { code: "SP_RGUP4", name: "카오스 라이언[Lv12][펫]" },
+    { code: "SP_RGUP3", name: "스핑거 도그[Lv11][펫]" },
+    { code: "SP_RGUP2", name: "카오스 랜턴[Lv10][펫]" },
+    { code: "SP_RGUP1", name: "카오스 엘리멘탈[Lv9][펫]" },
+    { code: "SP3_1U4", name: "족장 랜드호크[Lv8][펫]" },
+    { code: "SP3_2U4", name: "블러드 위저드 탈렌[Lv8][펫]" },
+    { code: "SP3_3U4", name: "혹한의 모그레인[Lv8][펫]" },
+    { code: "SP3_1U3", name: "대군주 바로크[Lv7][펫]" },
+    { code: "SP3_2U3", name: "블러드 엘프 마법병기[Lv7][펫]" },
+    { code: "SP3_3U3", name: "마인드 마스터[Lv7][펫]" },
+    { code: "SP3_1U2", name: "사령기사 루인[Lv6][펫]" },
+    { code: "SP3_2U2", name: "블러드 엘프 마법기[Lv6][펫]" },
+    { code: "SP3_3U2", name: "서리군주 베인[Lv6][펫]" },
+    { code: "SP3_1U", name: "해골기사 조트[Lv5][펫]" },
+    { code: "SP3_2U", name: "옥크로 투석기[Lv5][펫]" },
+    { code: "SP3_3U", name: "빙결의 여군주[Lv5][펫]" }
+  ];
+
+  for (const item of specialMap) {
+    if (pData[item.code] > 0) return item.name;
+  }
+
+  // 2. SP2_1 ~ SP2_9 코드의 값(1, 2, 3...)에 따른 계열별 펫 계산
   const sp2Matrix = {
     1: { 1: "중갑기사 로우[Lv2][펫]", 2: "데몬기사 조던[Lv3][펫]", 3: "대검기사 해곤[Lv4][펫]" },
     2: { 1: "고블린 블라스터[Lv2][펫]", 2: "대형 대포[Lv3][펫]", 3: "맘 투석기[Lv4][펫]" },
@@ -910,30 +949,6 @@ function resolveEquippedPetFromPetData(pData) {
   }
 
   if (bestPetName) return bestPetName;
-
-  // 2. 단일 업그레이드 펫 코드 (SP_RGUP, SP3_1U 등)
-  const specialMap = [
-    { code: "SP_RGUP4", name: "카오스 라이언[Lv12][펫]" },
-    { code: "SP_RGUP3", name: "스핑거 도그[Lv11][펫]" },
-    { code: "SP_RGUP2", name: "카오스 랜턴[Lv10][펫]" },
-    { code: "SP_RGUP1", name: "카오스 엘리멘탈[Lv9][펫]" },
-    { code: "SP3_1U4", name: "족장 랜드호크[Lv8][펫]" },
-    { code: "SP3_2U4", name: "블러드 위저드 탈렌[Lv8][펫]" },
-    { code: "SP3_3U4", name: "혹한의 모그레인[Lv8][펫]" },
-    { code: "SP3_1U3", name: "대군주 바로크[Lv7][펫]" },
-    { code: "SP3_2U3", name: "블러드 엘프 마법병기[Lv7][펫]" },
-    { code: "SP3_3U3", name: "마인드 마스터[Lv7][펫]" },
-    { code: "SP3_1U2", name: "사령기사 루인[Lv6][펫]" },
-    { code: "SP3_2U2", name: "블러드 엘프 마법기[Lv6][펫]" },
-    { code: "SP3_3U2", name: "서리군주 베인[Lv6][펫]" },
-    { code: "SP3_1U", name: "해골기사 조트[Lv5][펫]" },
-    { code: "SP3_2U", name: "옥크로 투석기[Lv5][펫]" },
-    { code: "SP3_3U", name: "빙결의 여군주[Lv5][펫]" }
-  ];
-
-  for (const item of specialMap) {
-    if (pData[item.code] > 0) return item.name;
-  }
 
   // 3. Lv1 기본 소환 펫 (SP_1 ~ SP_9)
   const lv1Map = {
@@ -978,8 +993,8 @@ function resolveEquippedPetFromPetData(pData) {
       if (sdParts[0]) darkStone = parseInt(sdParts[0], 10) || 0;
     }
 
-    // 10-7. m16tool HTML 내 세이브 슬롯 탐지 (Code1_2_1, Code1_2_2 등 모든 슬롯)
-    const saveSlots = [];
+    // 10-7. m16tool HTML 내 세이브 슬롯 탐지 및 최신 시즌 버전 필터링 (Code1_37_시즌 등)
+    const rawCandidateSlots = [];
     const slotMatches = htmlText.match(/"(Code1_[^"]+)"\s*:\s*"([^"]+)"/g);
     
     if (slotMatches) {
@@ -997,7 +1012,16 @@ function resolveEquippedPetFromPetData(pData) {
           slotSeen.add(slotKey);
           validSlotCount++;
           
-          let sCodeNum = slotKey.replace(/^Code1_\d+_/, "").replace(/^Code1_/, "").trim();
+          // slotKey에서 버전 번호 및 저장코드명 분리 (예: Code1_37_시즌 -> 버전 37, 저장코드 "시즌")
+          let slotVersion = 0;
+          let sCodeNum = "";
+          const verMatch = slotKey.match(/^Code1_(\d+)_(.+)$/);
+          if (verMatch) {
+            slotVersion = parseInt(verMatch[1], 10);
+            sCodeNum = verMatch[2].trim();
+          } else {
+            sCodeNum = slotKey.replace(/^Code1_/, "").trim();
+          }
 
           const sGold = parseInt(valParts[0], 10) || 0;
           const sCoin = parseInt(valParts[1], 10) || 0;
@@ -1006,7 +1030,7 @@ function resolveEquippedPetFromPetData(pData) {
           const sAgi = parseInt(valParts[5], 10) || 0;
           const sInt = parseInt(valParts[6], 10) || 0;
 
-          // 사전등록 DB(PLAYERS_DATABASE) 슬롯 매핑을 통해 원본 저장 이름/숫자 (젤리, 드래곤, 토, 01, 1 등) 100% 보존
+          // 사전등록 DB(PLAYERS_DATABASE) 슬롯 매핑을 통해 원본 저장 이름/숫자 100% 보존
           const dbUserForSlot = PLAYERS_DATABASE[nicName.toLowerCase()];
           if (dbUserForSlot && dbUserForSlot.saveSlots) {
             const dbMatch = dbUserForSlot.saveSlots.find(s => 
@@ -1023,7 +1047,6 @@ function resolveEquippedPetFromPetData(pData) {
 
           let sCharName = CHAR_INDEX_TO_NAME[sCharIdx];
           if (!sCharName) {
-            const dbUserForSlot = PLAYERS_DATABASE[nicName.toLowerCase()];
             if (dbUserForSlot && dbUserForSlot.saveSlots) {
               const dbMatch = dbUserForSlot.saveSlots.find(s => 
                 s.gold === sGold && s.imperialCoin === sCoin && s.str === sStr
@@ -1036,7 +1059,6 @@ function resolveEquippedPetFromPetData(pData) {
           if (!sCharName) {
             sCharName = `캐릭터 #${sCharIdx}`;
           }
-
 
           // 6칸 아이템 추출
           let sHeroItems = [];
@@ -1077,10 +1099,10 @@ function resolveEquippedPetFromPetData(pData) {
             }
           }
 
-          saveSlots.push({
+          rawCandidateSlots.push({
             slotKey: slotKey,
+            slotVersion: slotVersion,
             saveCode: sCodeNum,
-            mapVersion: mapVersion,
             characterName: sCharName,
             characterLevel: lastCharLevel > 0 ? lastCharLevel : 6000,
             petName: sPetName,
@@ -1097,6 +1119,28 @@ function resolveEquippedPetFromPetData(pData) {
           });
         }
       });
+    }
+
+    // 새로운 시즌 판별: 발견된 슬롯 중 가장 최신 버전(maxVersion)의 슬롯만 필터링하여 표시!
+    let saveSlots = [];
+    if (rawCandidateSlots.length > 0) {
+      let maxVersion = 0;
+      rawCandidateSlots.forEach(s => {
+        if (s.slotVersion > maxVersion) maxVersion = s.slotVersion;
+      });
+
+      let chosenSlots = rawCandidateSlots;
+      if (maxVersion > 0) {
+        // 최신 버전 번호를 가진 슬롯들만 필터링 (예: 37버전 슬롯만 선택)
+        chosenSlots = rawCandidateSlots.filter(s => s.slotVersion === maxVersion);
+      }
+
+      const dynamicMapVer = maxVersion > 0 ? `v${maxVersion}.00` : mapVersion;
+
+      saveSlots = chosenSlots.map(s => ({
+        ...s,
+        mapVersion: dynamicMapVer
+      }));
     }
 
     // 기본 슬롯 보장
@@ -1133,6 +1177,7 @@ function resolveEquippedPetFromPetData(pData) {
       honorPoint: honorPoint,
       isSeasonCompleted: isSeasonCompleted,
       seasonVersionLabel: seasonVersionLabel,
+      seasonCompletedChar: seasonCompletedChar,
       rankingPoint: rPoints,
       rankStanding: computedRank,
       titleCode: titleLevel,
@@ -1178,6 +1223,9 @@ function createEmptyProfile(userId) {
     userId: userId,
     seasonPoint: 0,
     honorPoint: 0,
+    isSeasonCompleted: false,
+    seasonVersionLabel: "v37",
+    seasonCompletedChar: "",
     rankingPoint: 0,
     rankStanding: "조회 대기중",
     titleCode: "TT_TYPE1",
@@ -1319,14 +1367,15 @@ function updateProfileStatsUI() {
   const labelEl = document.getElementById("valSeasonCompleteLabel");
   const cardBadgeEl = document.getElementById("valSeasonCardBadge");
 
-  const verLabel = currentProfile.seasonVersionLabel || "v36";
+  const verLabel = currentProfile.seasonVersionLabel || "v37";
+  const completedCharName = currentProfile.seasonCompletedChar ? ` [달성 캐릭터: ${currentProfile.seasonCompletedChar}]` : "";
 
   if (currentProfile.isSeasonCompleted) {
     if (bannerEl) bannerEl.style.display = "block";
-    if (labelEl) labelEl.textContent = `${verLabel} 시즌포인트 완료`;
+    if (labelEl) labelEl.textContent = `${verLabel} 시즌포인트 완료${completedCharName}`;
     if (cardBadgeEl) {
       cardBadgeEl.style.display = "block";
-      cardBadgeEl.textContent = `✅ ${verLabel} 시즌 완료`;
+      cardBadgeEl.textContent = `✅ ${verLabel} 시즌 완료${currentProfile.seasonCompletedChar ? ` (${currentProfile.seasonCompletedChar})` : ''}`;
     }
   } else {
     if (bannerEl) bannerEl.style.display = "none";
@@ -1437,9 +1486,18 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
   let html = "";
 
   for (let i = 0; i < 6; i++) {
-    const item = slots[i] || { id: 0, count: 0 };
-    const hasItem = (item.id > 0);
-    const itemData = DSR_ITEMS_MAP[item.id] || null;
+    let item = slots[i] || { id: 0, count: 0 };
+    let itemId = item.id;
+    let itemCount = item.count;
+
+    // { id: 0, count: 9 } 처럼 ID 자리가 0이고 count 자리에 아이템 ID가 들어온 경우 보정
+    if (itemId === 0 && itemCount > 0 && DSR_ITEMS_MAP[itemCount]) {
+      itemId = itemCount;
+      itemCount = 0;
+    }
+
+    const hasItem = (itemId > 0);
+    const itemData = DSR_ITEMS_MAP[itemId] || null;
 
     let icon = defaultCategoryIcon;
     let name = "빈 슬롯";
@@ -1450,20 +1508,23 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
       if (itemData) {
         icon = itemData.icon || defaultCategoryIcon;
         name = itemData.name;
-        codeText = item.count > 0 ? `+#${item.id} (+${item.count})` : `#${item.id}`;
+        codeText = itemCount > 0 ? `+#${itemId} (+${itemCount})` : `#${itemId}`;
         
         if (itemData.rank) {
           let rankColor = "var(--accent-purple)";
+          if (itemData.rank === "레전드급") rankColor = "#fb923c";
           if (itemData.rank === "신급") rankColor = "var(--accent-gold)";
           if (itemData.rank === "반 신급") rankColor = "#f472b6";
           if (itemData.rank === "조합체") rankColor = "var(--accent-emerald)";
           if (itemData.rank === "에픽") rankColor = "#c084fc";
+          if (itemData.rank === "레어") rankColor = "#38bdf8";
+          if (itemData.rank === "일반") rankColor = "#94a3b8";
 
           rankBadge = `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.06); color:${rankColor}; border:1px solid ${rankColor}; font-weight:700;">${itemData.rank}</span>`;
         }
       } else {
-        name = `아이템 #${item.id}`;
-        codeText = item.count > 0 ? `ID:${item.id} (+${item.count})` : `ID:${item.id}`;
+        name = `아이템 #${itemId}`;
+        codeText = itemCount > 0 ? `ID:${itemId} (+${itemCount})` : `ID:${itemId}`;
       }
     }
 
@@ -1601,6 +1662,34 @@ function initTabs() {
   });
 }
 
+function openPatchNotesModal() {
+  const modal = document.getElementById("patchNotesModal");
+  if (modal) {
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closePatchNotesModal() {
+  const modal = document.getElementById("patchNotesModal");
+  if (modal) {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+}
+
+function handleModalOverlayClick(event) {
+  if (event.target && event.target.id === "patchNotesModal") {
+    closePatchNotesModal();
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closePatchNotesModal();
+  }
+});
+
 /* ==========================================================================
    3. Render Other Tabs (Swords, Pet Single-Row Grid, Wings, Warehouse, Relics)
    ========================================================================== */
@@ -1624,6 +1713,9 @@ function renderOtherTabsData() {
       </div>
     `).join('');
   }
+
+  // Recipes (신대륙 조합법)
+  renderRecipesTab();
 }
 
 /* --------------------------------------------------------------------------
@@ -1843,7 +1935,7 @@ function renderWarehouseTab() {
   const userWarehouse = currentProfile.warehouseData || {};
 
   warehouseContainer.innerHTML = WAREHOUSE_CATALOG.map(box => {
-    const userLevel = userWarehouse[box.code] || 0;
+    const userLevel = userWarehouse[box.code] || (box.altCode ? userWarehouse[box.altCode] : 0) || 0;
     const isOwned = (userLevel > 0);
     const isMax = (userLevel >= box.maxLevel);
 
@@ -1886,3 +1978,291 @@ function renderWarehouseTab() {
     `;
   }).join('');
 }
+
+/* ==========================================================================
+   5. Recipes Tab Renderer (신대륙 조합법 & 시즌포인트 테크트리)
+   ========================================================================== */
+let currentRecipeCategory = "all";
+let currentRecipeSearchTerm = "";
+
+function renderRecipesTab() {
+  renderSeasonPointOverview();
+  renderAllRecipesList();
+}
+
+/**
+ * 시즌포인트 6대 필수 아이템 요약 및 아코디언 카드 렌더링
+ */
+function renderSeasonPointOverview() {
+  const totalsContainer = document.getElementById("spSummaryTotals");
+  const cardsContainer = document.getElementById("seasonPointCardsGrid");
+  if (!totalsContainer || !cardsContainer) return;
+
+  // 1. 현재 로드된 유저의 인벤토리 아이템 이름 모음 (보유 여부 실시간 판별)
+  const allUserItemNames = new Set();
+  if (currentProfile && currentProfile.lastSave) {
+    const checkSlots = [
+      ...(currentProfile.lastSave.heroItems || []),
+      ...(currentProfile.lastSave.warehouseItems || []),
+      ...(currentProfile.lastSave.petItems || [])
+    ];
+    checkSlots.forEach(item => {
+      let id = item.id;
+      if (id === 0 && item.count > 0 && DSR_ITEMS_MAP[item.count]) {
+        id = item.count;
+      }
+      if (id > 0 && DSR_ITEMS_MAP[id]) {
+        allUserItemNames.add(DSR_ITEMS_MAP[id].name);
+      }
+    });
+  }
+
+  // 2. 상단 소요 재화 요약 카드
+  totalsContainer.innerHTML = `
+    <div class="sp-total-card highlight-gold-border">
+      <div class="sp-total-icon">🪙</div>
+      <div class="sp-total-info">
+        <div class="sp-total-label">독립 6종 완성 총 주화 (권장)</div>
+        <div class="sp-total-val" style="color: var(--accent-gold);">438 주화</div>
+        <div class="sp-total-sub">핑크게이 문장 2개 제작 (장착용 + 나이트메어 베이스)</div>
+      </div>
+    </div>
+    <div class="sp-total-card">
+      <div class="sp-total-icon">🪙</div>
+      <div class="sp-total-info">
+        <div class="sp-total-label">단일 제작 총 주화 (최소)</div>
+        <div class="sp-total-val" style="color: #60a5fa;">389 주화</div>
+        <div class="sp-total-sub">핑크게이 문장 1개 소모 기준</div>
+      </div>
+    </div>
+    <div class="sp-total-card">
+      <div class="sp-total-icon">💰</div>
+      <div class="sp-total-info">
+        <div class="sp-total-label">총 소요 골드</div>
+        <div class="sp-total-val" style="color: #fbbf24;">140만 ~ 240만</div>
+        <div class="sp-total-sub">긴급용 무기(100만) + 고대갑옷(40만)</div>
+      </div>
+    </div>
+    <div class="sp-total-card">
+      <div class="sp-total-icon">🏆</div>
+      <div class="sp-total-info">
+        <div class="sp-total-label">최대 테크트리 아이템</div>
+        <div class="sp-total-val" style="color: var(--accent-emerald);">푸른 가이아의 특혜</div>
+        <div class="sp-total-sub">331 주화 소모 • 8단계 복합 조합 체인</div>
+      </div>
+    </div>
+  `;
+
+  // 3. 6대 아이템 아코디언 카드 렌더링
+  if (typeof SEASON_POINT_REQUIREMENTS !== "undefined" && SEASON_POINT_REQUIREMENTS.length > 0) {
+    cardsContainer.innerHTML = SEASON_POINT_REQUIREMENTS.map((item) => {
+      const isOwned = allUserItemNames.has(item.name);
+      const ownedBadge = isOwned
+        ? `<span class="char-tag-badge badge-owned" style="font-size:11.5px;">🌟 현재 인벤토리 보유!</span>`
+        : `<span class="char-tag-badge badge-locked" style="font-size:11.5px;">⏳ 미보유 (제작 필요)</span>`;
+
+      let rankColor = "var(--accent-purple)";
+      if (item.rank === "반 신급") rankColor = "#f472b6";
+      if (item.rank === "에픽") rankColor = "#c084fc";
+      if (item.rank === "조합체") rankColor = "var(--accent-emerald)";
+      if (item.rank === "조합재료") rankColor = "#f59e0b";
+
+      // 테크트리 Steps HTML
+      const stepsHtml = item.steps.map(s => `
+        <div class="tech-step-item">
+          <div class="tech-step-badge">STEP ${s.step}</div>
+          <div class="tech-step-content">
+            <div class="tech-step-title">
+              <strong>${s.target}</strong>
+              <div class="tech-step-cost">
+                ${s.coin > 0 ? `<span class="cost-coin">🪙 ${s.coin} 주화</span>` : ''}
+                ${s.gold > 0 ? `<span class="cost-gold">💰 ${(s.gold / 10000).toLocaleString()}만 골드</span>` : ''}
+                ${s.coin === 0 && s.gold === 0 ? `<span class="cost-free">✨ 주화 소모 없음</span>` : ''}
+              </div>
+            </div>
+            <div class="tech-step-mats">
+              ${s.materials.map(m => `<span class="mat-pill">${m}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // 필요 원자재 목록 HTML
+      const rawMatsHtml = item.rawMaterials.map(rm => {
+        let typeStyle = "background: rgba(255,255,255,0.06); color: var(--text-main);";
+        if (rm.type === "currency") typeStyle = "background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); font-weight:700;";
+        if (rm.type === "recipe") typeStyle = "background: rgba(147, 51, 234, 0.15); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.3);";
+        if (rm.type === "equip" || rm.type === "treasure" || rm.type === "armor" || rm.type === "seal" || rm.type === "insignia") {
+          typeStyle = "background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight:600;";
+        }
+        return `
+          <div class="raw-mat-chip" style="${typeStyle}">
+            <span>${rm.name}</span>
+            <span class="raw-mat-cnt">${rm.count}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="sp-req-card ${isOwned ? 'owned-card' : ''}">
+          <div class="sp-card-header" onclick="toggleSpCardDetails('${item.id}')">
+            <div class="sp-card-title-left">
+              <div class="sp-item-icon">${item.icon}</div>
+              <div>
+                <div class="sp-item-name-row">
+                  <span class="sp-item-name">${item.name}</span>
+                  <span class="sp-rank-tag" style="color: ${rankColor}; border-color: ${rankColor};">${item.rank}</span>
+                </div>
+                <div class="sp-item-summary">${item.summaryDesc}</div>
+              </div>
+            </div>
+            <div class="sp-card-header-right">
+              ${ownedBadge}
+              <div class="sp-stat-badge">
+                <span>🪙 <strong>${item.totalCoin}</strong> 주화</span>
+                ${item.totalGold > 0 ? `<span>💰 <strong>${(item.totalGold / 10000).toLocaleString()}만</strong> G</span>` : ''}
+                <span class="step-cnt-pill">${item.stepCount}단계</span>
+              </div>
+              <button type="button" class="btn-toggle-tree" id="btn_toggle_${item.id}">▼ 상세</button>
+            </div>
+          </div>
+
+          <div class="sp-card-body" id="details_${item.id}" style="display: none;">
+            <div class="sp-body-grid">
+              <div class="tech-tree-col">
+                <div class="col-section-title">
+                  <span>🪜 제작 테크트리 단계 (${item.stepCount}단계)</span>
+                </div>
+                <div class="tech-steps-list">
+                  ${stepsHtml}
+                </div>
+              </div>
+              <div class="raw-mats-col">
+                <div class="col-section-title">
+                  <span>📦 필요 원자재 총량 (${item.rawMaterials.length}종)</span>
+                </div>
+                <div class="raw-mats-grid">
+                  ${rawMatsHtml}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function toggleSpCardDetails(itemId) {
+  const details = document.getElementById(`details_${itemId}`);
+  const btn = document.getElementById(`btn_toggle_${itemId}`);
+  if (!details) return;
+
+  const isHidden = (details.style.display === "none");
+  details.style.display = isHidden ? "block" : "none";
+  if (btn) {
+    btn.textContent = isHidden ? "▲ 접기" : "▼ 상세";
+  }
+}
+
+/**
+ * 신대륙 전체 조합법 리스트 렌더러 (검색 & 카테고리 필터 지원)
+ */
+function renderAllRecipesList() {
+  const container = document.getElementById("recipesListContainer");
+  const countSpan = document.getElementById("txtRecipeCount");
+  if (!container) return;
+
+  if (typeof NEW_CONTINENT_RECIPES === "undefined") {
+    container.innerHTML = `<div style="padding:20px; color:var(--text-muted);">조합법 데이터를 불러올 수 없습니다.</div>`;
+    return;
+  }
+
+  let filtered = [...NEW_CONTINENT_RECIPES];
+
+  // 카테고리 필터링
+  if (currentRecipeCategory !== "all") {
+    filtered = filtered.filter(r => r.categoryKey === currentRecipeCategory);
+  }
+
+  // 검색어 필터링 (아이템명 or 재료명)
+  if (currentRecipeSearchTerm) {
+    const term = currentRecipeSearchTerm.toLowerCase().trim();
+    filtered = filtered.filter(r => {
+      const matchName = r.name.toLowerCase().includes(term);
+      const matchMats = r.materials.some(m => m.toLowerCase().includes(term));
+      const matchCat = r.category.toLowerCase().includes(term);
+      return matchName || matchMats || matchCat;
+    });
+  }
+
+  if (countSpan) countSpan.textContent = filtered.length;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle);">
+        검색된 조합법이 없습니다.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map((r) => {
+    let rankColor = "var(--accent-purple)";
+    if (r.rank === "반 신급") rankColor = "#f472b6";
+    if (r.rank === "에픽") rankColor = "#c084fc";
+    if (r.rank === "조합체") rankColor = "var(--accent-emerald)";
+    if (r.rank === "유니크급") rankColor = "#f59e0b";
+    if (r.rank === "노말" || r.rank === "일반") rankColor = "#94a3b8";
+
+    return `
+      <div class="recipe-item-card">
+        <div class="recipe-card-top">
+          <div class="recipe-name-box">
+            <span class="recipe-icon">${r.icon || '⚔️'}</span>
+            <div>
+              <div class="recipe-name">${r.name}</div>
+              <div class="recipe-meta">
+                <span class="cat-tag">${r.category}</span>
+                <span class="sp-rank-tag" style="color:${rankColor}; border-color:${rankColor}; font-size:9.5px; padding:1px 5px;">${r.rank}</span>
+              </div>
+            </div>
+          </div>
+          <div class="recipe-cost-box">
+            ${r.coin > 0 ? `<span class="badge-coin">🪙 ${r.coin} 주화</span>` : ''}
+            ${r.gold > 0 ? `<span class="badge-gold">💰 ${(r.gold / 10000).toLocaleString()}만 G</span>` : ''}
+            ${r.coin === 0 && r.gold === 0 ? `<span class="badge-free">✨ 주화 0</span>` : ''}
+          </div>
+        </div>
+
+        <div class="recipe-mats-area">
+          <div class="recipe-mats-label">필요 조합 재료:</div>
+          <div class="recipe-mats-list">
+            ${r.materials.map(m => `
+              <span class="recipe-mat-pill ${m.includes('조합서') ? 'is-recipe' : ''}">${m}</span>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterRecipeCategory(catKey) {
+  currentRecipeCategory = catKey;
+  const pills = document.querySelectorAll("#recipeCategoryPills .cat-pill");
+  pills.forEach(p => {
+    if (p.getAttribute("onclick").includes(`'${catKey}'`)) {
+      p.classList.add("active");
+    } else {
+      p.classList.remove("active");
+    }
+  });
+  renderAllRecipesList();
+}
+
+function handleRecipeSearch(val) {
+  currentRecipeSearchTerm = val;
+  renderAllRecipesList();
+}
+
