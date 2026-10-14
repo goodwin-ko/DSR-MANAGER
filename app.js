@@ -2143,6 +2143,55 @@ function renderSeasonPointOverview() {
         `;
       }).join('');
 
+      // 구대륙 선행 조합법 섹션 (해당되는 아이템인 경우)
+      let oldPrereqsHtml = "";
+      if (item.oldContinentPrereqs) {
+        const op = item.oldContinentPrereqs;
+        oldPrereqsHtml = `
+          <div class="sp-old-prereqs-section">
+            <div class="sp-old-prereqs-title-row" onclick="toggleSubtreeDetails('${item.id}_old')">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="sp-old-header-badge">📜 구대륙 선행 필수 제작법</span>
+                <strong style="color: #facc15; font-size: 13.5px;">${op.title}</strong>
+              </div>
+              <button type="button" class="btn-toggle-subtree" id="btn_toggle_${item.id}_old">▲ 접기</button>
+            </div>
+            <div class="sp-old-prereqs-content" id="subtree_${item.id}_old" style="display: block;">
+              ${op.items.map(subItem => `
+                <div class="sp-old-item-card">
+                  <div class="sp-old-item-top">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span class="sp-old-item-badge">${subItem.badge}</span>
+                      <span class="sp-old-item-name">${subItem.name}</span>
+                    </div>
+                    <div class="sp-old-item-desc">${subItem.desc}</div>
+                  </div>
+                  <div class="sp-old-steps-grid">
+                    ${subItem.tree.map(st => `
+                      <div class="sp-old-step-block">
+                        <div class="sp-old-step-head">
+                          <span class="sp-old-step-num">${st.step}</span>
+                          <span class="sp-old-step-title">${st.title}</span>
+                          <span class="sp-old-step-target">➔ ${st.target}</span>
+                        </div>
+                        <div class="sp-old-step-mats-list">
+                          ${st.mats.map(m => `
+                            <div class="sp-old-mat-line">
+                              <span class="mat-bullet">•</span>
+                              <span>${m}</span>
+                            </div>
+                          `).join('')}
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
       return `
         <div class="sp-req-card ${isOwned ? 'owned-card' : ''}">
           <div class="sp-card-header" onclick="toggleSpCardDetails('${item.id}')">
@@ -2186,6 +2235,7 @@ function renderSeasonPointOverview() {
                 </div>
               </div>
             </div>
+            ${oldPrereqsHtml}
           </div>
         </div>
       `;
@@ -2202,6 +2252,18 @@ function toggleSpCardDetails(itemId) {
   details.style.display = isHidden ? "block" : "none";
   if (btn) {
     btn.textContent = isHidden ? "▲ 접기" : "▼ 상세";
+  }
+}
+
+function toggleSubtreeDetails(subId) {
+  const elem = document.getElementById(`subtree_${subId}`);
+  const btn = document.getElementById(`btn_toggle_${subId}`);
+  if (!elem) return;
+
+  const isHidden = (elem.style.display === "none");
+  elem.style.display = isHidden ? "block" : "none";
+  if (btn) {
+    btn.textContent = isHidden ? "▲ 접기" : "▼ 펼치기";
   }
 }
 
@@ -2381,39 +2443,58 @@ function renderContinentBridges() {
     </div>
 
     <div class="bridge-cards-grid">
-      ${bridges.map(b => `
-        <div class="bridge-card">
-          <div class="bridge-card-header">
-            <div class="bridge-card-title-group">
-              <span class="bridge-card-icon">${b.icon}</span>
-              <div>
-                <div class="bridge-card-title">${b.title}</div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">최종 목표: <strong style="color:#ffffff;">${b.target}</strong></div>
-              </div>
-            </div>
-            <span class="bridge-badge-key">${b.badge}</span>
-          </div>
-          <div class="bridge-desc">${b.desc}</div>
+      ${bridges.map(b => {
+        const icon = b.icon || '⚡';
+        const title = b.title || '';
+        const target = b.target || b.targetSpItem || '';
+        const badge = b.badge || '승급 계보';
+        const desc = b.desc || b.summary || '';
+        const steps = Array.isArray(b.steps) ? b.steps : [];
 
-          <div class="bridge-steps-flow">
-            ${b.steps.map((st, idx) => {
-              const isLast = (idx === b.steps.length - 1);
-              let stepClass = "step-old";
-              if (st.phase.includes("신대륙")) stepClass = "step-new";
-              if (st.phase.includes("최종") || isLast) stepClass = "step-target";
-
-              return `
-                <div class="bridge-step-box ${stepClass}">
-                  <div class="step-phase-tag">${st.phase}</div>
-                  <div class="step-item-name">${st.item}</div>
-                  <div class="step-item-note">${st.note}</div>
+        return `
+          <div class="bridge-card">
+            <div class="bridge-card-header">
+              <div class="bridge-card-title-group">
+                <span class="bridge-card-icon">${icon}</span>
+                <div>
+                  <div class="bridge-card-title">${title}</div>
+                  <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">최종 목표: <strong style="color:#ffffff;">${target}</strong></div>
                 </div>
-                ${!isLast ? `<span class="bridge-arrow-icon">➔</span>` : ''}
-              `;
-            }).join('')}
+              </div>
+              <span class="bridge-badge-key">${badge}</span>
+            </div>
+            <div class="bridge-desc">${desc}</div>
+
+            <div class="bridge-steps-flow">
+              ${steps.map((st, idx) => {
+                const isLast = (idx === steps.length - 1);
+                const phase = st.phase || st.continent || `STEP ${idx + 1}`;
+                const itemName = st.item || st.name || '';
+                const itemNote = st.note || st.desc || '';
+                const mats = Array.isArray(st.materials) ? st.materials : [];
+
+                let stepClass = "step-old";
+                if (phase.includes("신대륙")) stepClass = "step-new";
+                if (phase.includes("최종") || phase.includes("시즌") || isLast) stepClass = "step-target";
+
+                return `
+                  <div class="bridge-step-box ${stepClass}">
+                    <div class="step-phase-tag">${phase}</div>
+                    <div class="step-item-name">${itemName}</div>
+                    <div class="step-item-note">${itemNote}</div>
+                    ${mats.length > 0 ? `
+                      <div class="bridge-step-mats-pills">
+                        ${mats.map(m => `<span class="bridge-mat-pill">${m}</span>`).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
+                  ${!isLast ? `<span class="bridge-arrow-icon">➔</span>` : ''}
+                `;
+              }).join('')}
+            </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
 }

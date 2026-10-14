@@ -2342,6 +2342,176 @@ body {
   font-weight: bold;
 }
 
+.bridge-step-mats-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.bridge-mat-pill {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: #e2e8f0;
+}
+
+/* 구대륙 선행 제작법 전용 아코디언 섹션 */
+.sp-old-prereqs-section {
+  margin-top: 18px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sp-old-prereqs-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.sp-old-header-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.btn-toggle-subtree {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #facc15;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-toggle-subtree:hover {
+  background: rgba(245, 158, 11, 0.3);
+  color: #ffffff;
+}
+
+.sp-old-prereqs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sp-old-item-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sp-old-item-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp-old-item-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.sp-old-item-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.sp-old-item-desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.sp-old-steps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-old-step-block {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.sp-old-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sp-old-step-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.sp-old-step-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.sp-old-step-target {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #34d399;
+}
+
+.sp-old-step-mats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 6px;
+}
+
+.sp-old-mat-line {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.sp-old-mat-line .mat-bullet {
+  color: #f59e0b;
+}
+
 /* ==========================================================================
    Mobile & Tablet Responsive Enhancements (반응형 모바일 UI 최적화)
    ========================================================================== */
@@ -2873,6 +3043,33 @@ body {
   .bridge-arrow-icon {
     align-self: center;
     transform: rotate(90deg);
+  }
+
+  .sp-old-prereqs-section {
+    padding: 12px;
+  }
+
+  .sp-old-prereqs-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .btn-toggle-subtree {
+    width: 100%;
+    text-align: center;
+  }
+
+  .sp-old-item-card {
+    padding: 10px;
+  }
+
+  .sp-old-step-block {
+    padding: 8px 10px;
+  }
+
+  .sp-old-mat-line {
+    font-size: 11px;
   }
 
   /* 11. 패치노트 모달 팝업 */
