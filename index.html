@@ -287,7 +287,11 @@
       </button>
       <button type="button" class="nav-tab" data-tab="recipes">
         <span>📜 조합법</span>
-        <span class="tab-badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">신대륙</span>
+        <span class="tab-badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">통합</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="rankings">
+        <span>🏆 랭킹 분석실</span>
+        <span class="tab-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);">TOP 30</span>
       </button>
     </nav>
 
@@ -447,6 +451,62 @@
         <div id="recipesBridgeContainer" class="recipes-bridge-section" style="display: none;"></div>
       </div>
     </section>
+
+    <!-- ==========================================
+         8. TAB CONTENT 8: RANKINGS ANALYSIS (TOP 30)
+         ========================================== -->
+    <main id="tab-rankings" class="tab-view">
+      <div class="rankings-header-panel">
+        <div class="season-row-title">
+          <span class="row-badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">실시간 연동</span>
+          <span>m16tool 공식 랭킹 분석실 & 스코어 산출 시스템</span>
+        </div>
+        <p class="rankings-desc-text">
+          m16tool.xyz 공식 <strong style="color:var(--accent-gold);">유저랭킹(TOP 30)</strong>과 <strong style="color:var(--accent-blue);">계급랭킹(TOP 30)</strong>을 실시간 동기화하여 다각도로 분석합니다. 아이디를 클릭하면 해당 유저의 프로필이 즉시 자동 조회됩니다.
+        </p>
+
+        <!-- 1차 서브 모드 탭 (유저랭킹 vs 계급랭킹 vs 스코어 계산 공식) -->
+        <div class="rank-board-switch">
+          <button type="button" class="rank-board-btn active" id="btnRankBoardUser" onclick="switchRankBoard('user')">
+            <span>🏆 유저랭킹 TOP 30 (일반)</span>
+          </button>
+          <button type="button" class="rank-board-btn" id="btnRankBoardTier" onclick="switchRankBoard('tier')">
+            <span>🎖️ 계급랭킹 TOP 30</span>
+          </button>
+          <button type="button" class="rank-board-btn highlight-calc" id="btnRankBoardFormula" onclick="switchRankBoard('formula')">
+            <span>📐 랭킹 스코어 계산 공식 & 종합 분석</span>
+          </button>
+        </div>
+
+        <!-- 2차 다중 정렬 및 필터 툴바 -->
+        <div class="rank-toolbar" id="rankToolbar">
+          <div class="rank-sort-pills">
+            <span class="sort-title-label">정렬 기준:</span>
+            <button type="button" class="rank-sort-btn active" data-sort="rank" onclick="handleRankSort('rank')">👑 기본 순위</button>
+            <button type="button" class="rank-sort-btn" data-sort="seasonPoint" onclick="handleRankSort('seasonPoint')">⭐ 시즌포인트순</button>
+            <button type="button" class="rank-sort-btn" data-sort="honorPoint" onclick="handleRankSort('honorPoint')">🎖️ 명예포인트순</button>
+            <button type="button" class="rank-sort-btn" data-sort="coin" onclick="handleRankSort('coin')">🪙 주화 갯수순</button>
+            <button type="button" class="rank-sort-btn" data-sort="sacredPower" onclick="handleRankSort('sacredPower')">⚡ 성력순</button>
+            <button type="button" class="rank-sort-btn" data-sort="score" onclick="handleRankSort('score')">💯 스코어순</button>
+            <button type="button" class="rank-sort-btn" data-sort="gold" onclick="handleRankSort('gold')">💰 골드순</button>
+            <button type="button" class="rank-sort-btn" data-sort="totStats" onclick="handleRankSort('totStats')">📊 3대 스탯순</button>
+          </div>
+
+          <!-- 랭커 검색창 -->
+          <div class="rank-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="rankSearchInput" placeholder="랭커 아이디 검색..." oninput="handleRankSearch(this.value)">
+            <button type="button" class="rank-search-clear" onclick="clearRankSearch()" title="검색 초기화">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 랭킹 테이블 뷰 컨테이너 -->
+      <div id="rankingsTableContainer" class="rankings-table-wrapper"></div>
+
+      <!-- 랭킹 스코어 계산 공식 & 분석 해설 패널 (formula 모드 활성화 시 표시) -->
+      <div id="rankingsFormulaContainer" class="rankings-formula-section" style="display: none;"></div>
+    </main>
 
   </div>
 

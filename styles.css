@@ -3132,3 +3132,479 @@ body {
 }
 
 
+
+/* ==========================================================================
+   RANKINGS ANALYSIS TAB STYLES (🏆 랭킹 분석실 & 스코어 산출 시스템)
+   ========================================================================== */
+.rankings-header-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.rankings-desc-text {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 10px 0 16px 0;
+}
+
+/* 1차 서브 모드 탭 (유저랭킹 vs 계급랭킹 vs 스코어 계산 공식) */
+.rank-board-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 14px;
+}
+
+.rank-board-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rank-board-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.rank-board-btn.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.3) 100%);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.rank-board-btn.highlight-calc.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(109, 40, 217, 0.35) 100%);
+  border-color: #a855f7;
+  color: #d8b4fe;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.35);
+}
+
+/* 2차 툴바: 정렬 버튼 + 검색창 */
+.rank-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 6px;
+}
+
+.rank-sort-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-title-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.rank-sort-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rank-sort-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.rank-sort-btn.active {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #93c5fd;
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+/* 랭커 검색창 */
+.rank-search-box {
+  position: relative;
+  min-width: 240px;
+  flex-grow: 0;
+}
+
+.rank-search-box input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 7px 32px 7px 32px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.rank-search-box input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.rank-search-box .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.rank-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.rank-search-clear:hover {
+  color: #ffffff;
+}
+
+/* 랭킹 테이블 래퍼 */
+.rankings-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin-bottom: 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rank-table th {
+  background: rgba(15, 23, 42, 0.95);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  border-bottom: 1px solid var(--border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rank-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.rank-table tbody tr:hover {
+  background-color: rgba(51, 65, 85, 0.35);
+}
+
+/* 순위 배지 */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 0 6px;
+}
+
+.rank-top-1 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.rank-top-2 {
+  background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+  color: #000;
+  box-shadow: 0 0 8px rgba(226, 232, 240, 0.4);
+}
+
+.rank-top-3 {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(180, 83, 9, 0.4);
+}
+
+.rank-normal {
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 랭커 아이디 링크 버튼 */
+.ranker-id-btn {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+}
+
+.ranker-id-btn:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.ranker-char-badge {
+  display: inline-block;
+  font-size: 11px;
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+/* 주요 통계 컬러 하이라이트 */
+.val-score-highlight {
+  font-weight: 800;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.val-sp-highlight {
+  font-weight: 700;
+  color: #34d399;
+}
+
+.val-rp-highlight {
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.val-coin-highlight {
+  font-weight: 700;
+  color: #facc15;
+}
+
+.val-gsp-highlight {
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.val-gold-highlight {
+  color: #fbbf24;
+}
+
+/* ==========================================================================
+   FORMULA & ANALYSIS REPORT SECTION (📐 랭킹 공식 완전 해설 패널)
+   ========================================================================== */
+.rankings-formula-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.formula-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.formula-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.formula-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.formula-equation-box {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 15px;
+  color: #c4b5fd;
+  margin-bottom: 18px;
+  line-height: 1.6;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+}
+
+.formula-equation-box.user-equation {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+}
+
+.formula-weights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.formula-weight-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.weight-item-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.weight-item-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.weight-item-desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.formula-case-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.formula-case-table th {
+  background: rgba(30, 41, 59, 0.9);
+  padding: 10px 12px;
+  color: #94a3b8;
+  text-align: left;
+}
+
+.formula-case-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .rankings-header-panel {
+    padding: 14px;
+  }
+
+  .rank-board-switch {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .rank-board-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .rank-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .rank-sort-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rank-sort-btn {
+    flex-shrink: 0;
+  }
+
+  .rank-search-box {
+    width: 100%;
+  }
+
+  .formula-equation-box {
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+
+  .formula-weights-grid {
+    grid-template-columns: 1fr;
+  }
+}

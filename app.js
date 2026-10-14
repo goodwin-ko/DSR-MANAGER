@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSearch();
   initSimulator();
   initTabs();
+  initRankingsTab();
   
   // 페이지 첫 접속 시 아이디 저장 여부 확인
   const savedUserId = localStorage.getItem("dsr_saved_user_id");
@@ -1737,6 +1738,7 @@ function renderOtherTabsData() {
   renderPetLevelBundlesTab();
   renderWingsTab();
   renderWarehouseTab();
+  initRankingsTab();
 
   // Relics
   const relicsContainer = document.getElementById("relicsContainer");
@@ -2528,3 +2530,398 @@ function handleRecipeSearch(val) {
 }
 
 
+
+
+/* ==========================================================================
+   4. RANKINGS ANALYSIS TAB LOGIC (🏆 랭킹 분석실 & 스코어 산출 시스템)
+   ========================================================================== */
+let currentRankBoard = 'user'; // 'user' | 'tier' | 'formula'
+let currentRankSort = 'rank';  // 'rank' | 'seasonPoint' | 'honorPoint' | 'coin' | 'sacredPower' | 'score' | 'gold' | 'totStats'
+let rankSortAsc = false;
+let rankSearchQuery = '';
+
+function initRankingsTab() {
+  renderRankingsTable();
+  renderRankingsFormula();
+}
+
+function switchRankBoard(boardType) {
+  currentRankBoard = boardType;
+  
+  const btnUser = document.getElementById("btnRankBoardUser");
+  const btnTier = document.getElementById("btnRankBoardTier");
+  const btnFormula = document.getElementById("btnRankBoardFormula");
+  const toolbar = document.getElementById("rankToolbar");
+  const tableContainer = document.getElementById("rankingsTableContainer");
+  const formulaContainer = document.getElementById("rankingsFormulaContainer");
+
+  if (btnUser) btnUser.classList.toggle("active", boardType === 'user');
+  if (btnTier) btnTier.classList.toggle("active", boardType === 'tier');
+  if (btnFormula) btnFormula.classList.toggle("active", boardType === 'formula');
+
+  if (boardType === 'formula') {
+    if (toolbar) toolbar.style.display = 'none';
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (formulaContainer) {
+      formulaContainer.style.display = 'flex';
+      renderRankingsFormula();
+    }
+  } else {
+    if (toolbar) toolbar.style.display = 'flex';
+    if (tableContainer) tableContainer.style.display = 'block';
+    if (formulaContainer) formulaContainer.style.display = 'none';
+    renderRankingsTable();
+  }
+}
+
+function handleRankSort(sortKey) {
+  if (currentRankSort === sortKey) {
+    rankSortAsc = !rankSortAsc;
+  } else {
+    currentRankSort = sortKey;
+    rankSortAsc = (sortKey === 'rank');
+  }
+
+  document.querySelectorAll(".rank-sort-btn").forEach(btn => {
+    const key = btn.getAttribute("data-sort");
+    let baseLabel = btn.getAttribute("data-base-label");
+    if (!baseLabel) {
+      baseLabel = btn.textContent.replace(/[▲▼]/g, '').trim();
+      btn.setAttribute("data-base-label", baseLabel);
+    }
+
+    if (key === sortKey) {
+      btn.classList.add("active");
+      const arrow = rankSortAsc ? "▲" : "▼";
+      btn.textContent = `${baseLabel} ${arrow}`;
+    } else {
+      btn.classList.remove("active");
+      btn.textContent = baseLabel;
+    }
+  });
+
+  renderRankingsTable();
+}
+
+function handleRankSearch(query) {
+  rankSearchQuery = (query || "").trim().toLowerCase();
+  renderRankingsTable();
+}
+
+function clearRankSearch() {
+  rankSearchQuery = "";
+  const input = document.getElementById("rankSearchInput");
+  if (input) input.value = "";
+  renderRankingsTable();
+}
+
+function selectRankerProfile(nicName) {
+  if (!nicName) return;
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = nicName;
+
+  handleSaveIdState(nicName);
+  loadProfile(nicName);
+
+  const charTabBtn = document.querySelector('.nav-tab[data-tab="characters"]');
+  if (charTabBtn) charTabBtn.click();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderRankingsTable() {
+  const container = document.getElementById("rankingsTableContainer");
+  if (!container || typeof DSR_RANKINGS_DATA === "undefined") return;
+
+  const rawList = (currentRankBoard === 'user') 
+    ? (DSR_RANKINGS_DATA.userRankings || []) 
+    : (DSR_RANKINGS_DATA.tierRankings || []);
+
+  let list = rawList.filter(item => {
+    if (!rankSearchQuery) return true;
+    return item.nicName.toLowerCase().includes(rankSearchQuery) ||
+           (item.charName && item.charName.toLowerCase().includes(rankSearchQuery));
+  });
+
+  list = [...list].sort((a, b) => {
+    let valA = 0;
+    let valB = 0;
+
+    if (currentRankSort === 'rank') {
+      valA = a.rank;
+      valB = b.rank;
+    } else if (currentRankSort === 'score') {
+      valA = (currentRankBoard === 'user') ? (a.userScore || 0) : (a.tierScore || 0);
+      valB = (currentRankBoard === 'user') ? (b.userScore || 0) : (b.tierScore || 0);
+    } else if (currentRankSort === 'seasonPoint') {
+      valA = a.seasonPoint || 0;
+      valB = b.seasonPoint || 0;
+    } else if (currentRankSort === 'honorPoint') {
+      valA = a.honorPoint || 0;
+      valB = b.honorPoint || 0;
+    } else if (currentRankSort === 'coin') {
+      valA = a.coin || 0;
+      valB = b.coin || 0;
+    } else if (currentRankSort === 'sacredPower') {
+      valA = a.sacredPower || 0;
+      valB = b.sacredPower || 0;
+    } else if (currentRankSort === 'gold') {
+      valA = a.gold || 0;
+      valB = b.gold || 0;
+    } else if (currentRankSort === 'totStats') {
+      valA = a.totStats || 0;
+      valB = b.totStats || 0;
+    }
+
+    if (valA < valB) return rankSortAsc ? -1 : 1;
+    if (valA > valB) return rankSortAsc ? 1 : -1;
+    return a.rank - b.rank;
+  });
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+        <p style="font-size: 16px; margin-bottom: 8px;">🔍 검색 결과가 없습니다.</p>
+        <p style="font-size: 13px;">'${rankSearchQuery}' 와 일치하는 랭커 아이디가 없습니다.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const isUserBoard = (currentRankBoard === 'user');
+
+  let tableHtml = `
+    <table class="rank-table">
+      <thead>
+        <tr>
+          <th style="width: 60px; text-align: center;">순위</th>
+          <th>유저 아이디 (클릭 시 조회)</th>
+          <th style="text-align: right;">${isUserBoard ? '유저 스코어' : '계급 스코어'}</th>
+          <th style="text-align: right;">시즌포인트 (SP)</th>
+          <th style="text-align: right;">명예포인트 (RP)</th>
+          <th style="text-align: right;">제국 주화</th>
+          <th style="text-align: right;">성력 (성검)</th>
+          <th style="text-align: right;">보유 골드</th>
+          <th style="text-align: right;">3대 능력치 합</th>
+          <th style="text-align: center;">${isUserBoard ? '계급랭킹' : '유저랭킹'}</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  list.forEach(row => {
+    let rankBadgeClass = "rank-normal";
+    let rankIcon = row.rank;
+    if (row.rank === 1) { rankBadgeClass = "rank-top-1"; rankIcon = "🥇 1"; }
+    else if (row.rank === 2) { rankBadgeClass = "rank-top-2"; rankIcon = "🥈 2"; }
+    else if (row.rank === 3) { rankBadgeClass = "rank-top-3"; rankIcon = "🥉 3"; }
+
+    const displayScore = isUserBoard ? row.userScore.toLocaleString() : row.tierScore.toLocaleString();
+    const otherRankStr = isUserBoard 
+      ? (row.tierRank ? `🎖️ ${row.tierRank}위 (${row.tierScore}점)` : `<span style="color:#64748b;">-</span>`)
+      : (row.userRank ? `🏆 ${row.userRank}위 (${(row.userScore||0).toLocaleString()}점)` : `<span style="color:#64748b;">-</span>`);
+
+    tableHtml += `
+      <tr>
+        <td style="text-align: center;">
+          <span class="rank-badge ${rankBadgeClass}">${rankIcon}</span>
+        </td>
+        <td>
+          <button type="button" class="ranker-id-btn" onclick="selectRankerProfile('${row.nicName}')" title="'${row.nicName}' 프로필 즉시 조회">
+            <span>👤 ${row.nicName}</span>
+          </button>
+          ${row.charName ? `<span class="ranker-char-badge">${row.charName}</span>` : ''}
+        </td>
+        <td style="text-align: right;">
+          <span class="val-score-highlight">${displayScore}</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="val-sp-highlight">${(row.seasonPoint || 0).toLocaleString()} SP</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="val-rp-highlight">${(row.honorPoint || 0).toLocaleString()} P</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="val-coin-highlight">${(row.coin || 0).toLocaleString()} 🪙</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="val-gsp-highlight">${(row.sacredPower || 0).toLocaleString()} ⚡</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="val-gold-highlight">${(row.gold || 0).toLocaleString()} G</span>
+        </td>
+        <td style="text-align: right;">
+          <span style="color: #cbd5e1; font-weight: 600;">${(row.totStats || 0).toLocaleString()}</span>
+        </td>
+        <td style="text-align: center; font-size: 12.5px;">
+          ${otherRankStr}
+        </td>
+      </tr>
+    `;
+  });
+
+  tableHtml += `
+      </tbody>
+    </table>
+  `;
+
+  container.innerHTML = tableHtml;
+}
+
+function renderRankingsFormula() {
+  const container = document.getElementById("rankingsFormulaContainer");
+  if (!container) return;
+
+  container.innerHTML = `
+    <!-- 1. 계급랭킹 산출 공식 카드 -->
+    <div class="formula-card">
+      <div class="formula-card-header">
+        <div class="formula-card-title">
+          <span>🎖️ 계급랭킹 (Tier Ranking) 스코어 산출 공식</span>
+          <span class="patch-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);">정밀 역산 검증</span>
+        </div>
+        <span style="font-size: 12.5px; color: var(--text-muted);">가중치 분석 일치율: 100%</span>
+      </div>
+
+      <div class="formula-equation-box">
+        계급랭킹 스코어 = (명예포인트 iRP × 2) + (시즌포인트 iPOINT × 1) + ∑ BoxPoint (창고/도감/업적 포인트)
+      </div>
+
+      <div class="formula-weights-grid">
+        <div class="formula-weight-item">
+          <div class="weight-item-label">명예포인트 (iRP)</div>
+          <div class="weight-item-value" style="color: #60a5fa;">가중치 × 2.0 (지배적)</div>
+          <div class="weight-item-desc">계급 스코어의 가장 큰 비중(약 70~80%)을 차지합니다. 1점당 계급 스코어 2점이 즉시 가산됩니다.</div>
+        </div>
+
+        <div class="formula-weight-item">
+          <div class="weight-item-label">시즌포인트 (iPOINT)</div>
+          <div class="weight-item-value" style="color: #34d399;">가중치 × 1.0 (핵심)</div>
+          <div class="weight-item-desc">시즌 동안 클리어한 고유 캐릭터 및 퀘스트 포인트가 1:1 비율로 스코어에 직접 누적됩니다.</div>
+        </div>
+
+        <div class="formula-weight-item">
+          <div class="weight-item-label">박스/창고 포인트 (BoxPoint)</div>
+          <div class="weight-item-value" style="color: #facc15;">가중치 × 1.0 (보너스)</div>
+          <div class="weight-item-desc">계정 내 창고 확장, 도감 해금, 업적 달성 시 지급되는 BoxPoint가 가산됩니다.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <h4 style="font-size: 14px; color: #f1f5f9; margin-bottom: 8px;">실제 최상위 랭커 데이터 실측 검증 사례</h4>
+        <table class="formula-case-table">
+          <thead>
+            <tr>
+              <th>순위 / 랭커</th>
+              <th>명예포인트 (iRP × 2)</th>
+              <th>시즌포인트 (iPOINT)</th>
+              <th>박스/업적 (BoxPoint)</th>
+              <th>계산 스코어</th>
+              <th>실제 랭킹 스코어</th>
+              <th>결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>🥇 1위 HiYuKi</strong></td>
+              <td>539 P (×2 = 1,078)</td>
+              <td>121 SP</td>
+              <td>120 P (시즌/창고)</td>
+              <td><strong>1,319</strong></td>
+              <td><strong>1,319</strong></td>
+              <td><span style="color:#34d399; font-weight:700;">100% 일치 ✅</span></td>
+            </tr>
+            <tr>
+              <td><strong>🥈 2위 Jonas</strong></td>
+              <td>523 P (×2 = 1,046)</td>
+              <td>132 SP</td>
+              <td>24 P</td>
+              <td><strong>1,202</strong></td>
+              <td><strong>1,202</strong></td>
+              <td><span style="color:#34d399; font-weight:700;">100% 일치 ✅</span></td>
+            </tr>
+            <tr>
+              <td><strong>4위 Horus</strong></td>
+              <td>461 P (×2 = 922)</td>
+              <td>45 SP</td>
+              <td>48 P (Box 24+24)</td>
+              <td><strong>1,015</strong></td>
+              <td><strong>1,015</strong></td>
+              <td><span style="color:#34d399; font-weight:700;">100% 일치 ✅</span></td>
+            </tr>
+            <tr>
+              <td><strong>5위 goodwin1</strong></td>
+              <td>386 P (×2 = 772)</td>
+              <td>108 SP</td>
+              <td>10 P</td>
+              <td><strong>890</strong></td>
+              <td><strong>890</strong></td>
+              <td><span style="color:#34d399; font-weight:700;">100% 일치 ✅</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. 유저랭킹 산출 방식 카드 -->
+    <div class="formula-card">
+      <div class="formula-card-header">
+        <div class="formula-card-title">
+          <span>🏆 유저랭킹 (User Ranking) 종합 스코어 산출 메커니즘</span>
+          <span class="patch-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);">빅데이터 분석</span>
+        </div>
+        <span style="font-size: 12.5px; color: var(--text-muted);">성력(GodSwordPoint) 가중 분석</span>
+      </div>
+
+      <div class="formula-equation-box user-equation">
+        유저 스코어 ≈ (성력 GodSwordPoint × 11.5) + 캐릭터 3대 스탯 합산(Str+Agi+Int) + 보유 재화(금 + 제국주화) + (iPOINT × 10,000) + (iRP × 2,000) + 칭호/성검 등급 보너스
+      </div>
+
+      <div class="formula-weights-grid">
+        <div class="formula-weight-item">
+          <div class="weight-item-label">성력 (GodSwordPoint)</div>
+          <div class="weight-item-value" style="color: #38bdf8;">최상위권 절대 지배 지표</div>
+          <div class="weight-item-desc">성력이 100만~1,000만 단위를 넘으면 1점당 약 11~12점의 가중치로 치솟아 1억~1억 5천만 점의 독보적 스코어를 형성합니다.</div>
+        </div>
+
+        <div class="formula-weight-item">
+          <div class="weight-item-label">캐릭터 3대 능력치 합산</div>
+          <div class="weight-item-value" style="color: #f472b6;">중상위권 스펙 분별력</div>
+          <div class="weight-item-desc">성력이 0이어도 Bulsanix2처럼 3대 스탯 합이 938,404(초극스탯)에 달하면 비성력 유저 중 압도적 1위(696만 점)를 달성합니다.</div>
+        </div>
+
+        <div class="formula-weight-item">
+          <div class="weight-item-label">소지 재화 & 기본 베이스</div>
+          <div class="weight-item-value" style="color: #fbbf24;">약 400만 ~ 500만 기본 점수</div>
+          <div class="weight-item-desc">기본 만렙 및 풀 골드(1,000,000 Gold), 제국주화 수천~수십만 개 소지 시 기본 400만 점의 베이스 스코어가 주어집니다.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <h4 style="font-size: 14px; color: #f1f5f9; margin-bottom: 8px;">주요 랭커 유형별 스코어 비교 인사이트</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 10px;">
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 10px; padding: 14px;">
+            <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">⚡ 성력 올인형 (Horus / vgbh111)</div>
+            <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5;">
+              성력을 12,958,237까지 극대화하여 스코어가 <strong>151,013,762점 (1억 5,100만)</strong>으로 유저랭킹 전체 1위를 수성했습니다.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 10px; padding: 14px;">
+            <div style="font-weight: 700; color: #34d399; margin-bottom: 6px;">🎖️ 계급/시즌포인트 올인형 (HiYuKi / Jonas)</div>
+            <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5;">
+              명예포인트 539P, 시즌포인트 121SP, 시즌 캐릭터 91종을 올클리어하여 계급랭킹에서 <strong>1,319점</strong>으로 독보적 1위를 기록했습니다.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 14px;">
+            <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px;">⚔️ 순수 전투 스탯형 (Bulsanix2)</div>
+            <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5;">
+              성력이 0이지만 힘/민/지 3대 스탯 합계를 938,404까지 끌어올려 비성력 랭커 중 최고 점수인 <strong>6,969,059점</strong>을 달성했습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
