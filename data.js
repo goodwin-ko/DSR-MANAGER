@@ -6,14 +6,42 @@
 // ==========================================
 // 0. 시스템 버전 및 패치 히스토리 관리 (패치 시마다 버전 업 & 내용 반영)
 // ==========================================
-const APP_VERSION = "v37.1.3";
-const APP_RELEASE_DATE = "2026.10.13";
+const APP_VERSION = "v37.2.0";
+const APP_RELEASE_DATE = "2026.10.14";
 
 const PATCH_HISTORY = [
   {
+    version: "v37.2.0",
+    date: "2026.10.14",
+    badge: "MAJOR",
+    title: "구대륙 조합 도감 (41종) 신설 & 신/구대륙 계승·승급 연계 시스템 구축",
+    items: [
+      {
+        icon: "📜",
+        title: "구대륙 전체 조합법 41종 정식 추가 (총 69종)",
+        desc: "공통(7종), 무기(9종), 문장(12종), 칭호(7종), 인장(5종), 특수(1종) 등 구대륙 전체 41종 조합법을 도감에 신규 등록하여 신대륙(28종)과 함께 통합 지원합니다."
+      },
+      {
+        icon: "⚡",
+        title: "신/구대륙 승급 연계 및 선행 트리 매칭 (Bridge System)",
+        desc: "구대륙 무기/문장 ➔ 신대륙인의 문장 ➔ 긴급용 무기 ➔ 핑크게이/나이트메어 연계, 8괘/5대 칭호 ➔ 봉인 해제자 칭호 연계, 콜럼버스 ➔ 심연의 해적 ➔ 신대륙 힘의 인장Lv2 연계 등 4대 승급 계보를 도감 카드 및 시각 다이어그램으로 완벽 연계했습니다."
+      },
+      {
+        icon: "🗺️",
+        title: "조합법 탭 대륙별 필터 및 승급 연계도 뷰 신설",
+        desc: "조합법 탭 상단에 [전체(69종)], [신대륙(28종)], [구대륙(41종)], [신/구대륙 승급 연계도] 대륙 전용 필터 버튼을 추가하여 원하는 대륙의 조합법을 손쉽게 탐색할 수 있습니다."
+      },
+      {
+        icon: "⭐",
+        title: "시즌포인트 6대 테크트리 내 구대륙 선행 조건 명시",
+        desc: "핑크게이의 문장 및 힘의 인장Lv2 등 시즌포인트 핵심 장비 제작에 요구되는 구대륙 베이스 아이템 계보를 명확하게 안내합니다."
+      }
+    ]
+  },
+  {
     version: "v37.1.3",
     date: "2026.10.13",
-    badge: "LATEST",
+    badge: "UPDATE",
     title: "모바일 & 태블릿 반응형 UI/UX 전면 최적화",
     items: [
       {
@@ -780,7 +808,8 @@ const NEW_CONTINENT_RECIPES = [
     gold: 1000000,
     materials: ["긴급용 무기 조합서", "신대륙인의 문장[반 신급]", "봉인 해제자 칭호[에픽]", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"],
     rank: "조합체",
-    icon: "⚔️"
+    icon: "⚔️",
+    requiredOldItem: "구대륙 신대륙인의 문장[반 신급] + 봉인 해제자 칭호[에픽]"
   },
   {
     id: "rec_hopang_weapon",
@@ -905,7 +934,8 @@ const NEW_CONTINENT_RECIPES = [
     gold: 0,
     materials: ["힘의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"],
     rank: "에픽",
-    icon: "📌"
+    icon: "📌",
+    requiredOldItem: "구대륙 심연의 해적 인장[에픽] (시즌포인트 핵심)"
   },
   {
     id: "rec_seal_agi",
@@ -916,7 +946,8 @@ const NEW_CONTINENT_RECIPES = [
     gold: 0,
     materials: ["민첩의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "민첩의 조각Lv2[???]", "보어 라이더의 심장"],
     rank: "에픽",
-    icon: "📌"
+    icon: "📌",
+    requiredOldItem: "구대륙 심연의 해적 인장[에픽]"
   },
   {
     id: "rec_seal_int",
@@ -927,7 +958,8 @@ const NEW_CONTINENT_RECIPES = [
     gold: 0,
     materials: ["지능의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "지식의 조각Lv2[???]", "보어 라이더의 심장"],
     rank: "에픽",
-    icon: "💎"
+    icon: "💎",
+    requiredOldItem: "구대륙 심연의 해적 인장[에픽]"
   },
   {
     id: "rec_chieftain_necklace",
@@ -950,6 +982,733 @@ const NEW_CONTINENT_RECIPES = [
     materials: ["핑크게이의 문장[반 신급]", "악몽이 담긴 반지[조합재료]", "흉몽의 영혼[조합재료]", "드림워커의 영혼[조합재료]"],
     rank: "반 신급",
     icon: "💍"
+  }
+];
+
+// 신대륙 기본 프로퍼티 보장
+NEW_CONTINENT_RECIPES.forEach(r => {
+  if (!r.continent) r.continent = "신대륙";
+  if (!r.continentKey) r.continentKey = "new";
+});
+
+// 7-1-B. 구대륙 전체 아이템 조합법 데이터베이스 (41종)
+const OLD_CONTINENT_RECIPES = [
+  // 1. 공통 (7종)
+  {
+    id: "rec_old_necklace_red",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "붉은빛 목걸이[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["붉은빛 목걸이 조합서", "우두머리 목걸이 -레어-", "피나는돌[조합재료]"],
+    rank: "조합체",
+    icon: "📿",
+    upgradeTarget: "구대륙 빛나는 목걸이[조합체]"
+  },
+  {
+    id: "rec_old_necklace_shining",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "빛나는 목걸이[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["빛나는 목걸이 조합서", "붉은빛 목걸이[조합체]", "산적의 목걸이"],
+    rank: "조합체",
+    icon: "📿",
+    upgradeTarget: "구대륙 대륙의 첫번째 보물[조합체]"
+  },
+  {
+    id: "rec_old_treasure_1",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "대륙의 첫번째 보물[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 첫번째 보물 조합서", "빛나는 목걸이[조합체]", "성충의 보석[조합재료]"],
+    rank: "조합체",
+    icon: "🏆",
+    upgradeTarget: "구대륙 대륙의 두번째보물[조합체]"
+  },
+  {
+    id: "rec_old_treasure_2",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "대륙의 두번째보물[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 두번째 보물 조합서", "대륙의 첫번째 보물[조합체]", "이상한 보석[조합재료]"],
+    rank: "조합체",
+    icon: "🏆",
+    upgradeTarget: "구대륙 대륙의 세번째 보물"
+  },
+  {
+    id: "rec_old_treasure_3",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "대륙의 세번째 보물",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 세번째 보물 조합서", "대륙의 두번째보물[조합체]", "불꽃의 병[조합재료]", "장애인의 다리[조합재료]"],
+    rank: "조합체",
+    icon: "🏆",
+    upgradeTarget: "구대륙 2트로피2[조합체] & 소울방패[노말][조합체]"
+  },
+  {
+    id: "rec_old_legend_armor",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "전설의갑옷[노말][조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["전설의갑옷[노말]조합서", "악마의 파편[조합재료]", "전설의갑옷[각성전!]"],
+    rank: "노말",
+    icon: "🛡️",
+    upgradeTarget: "구대륙 2트로피2[조합체] & 대륙의망토[조합체]"
+  },
+  {
+    id: "rec_old_trophy_2",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "공통",
+    categoryKey: "common",
+    name: "2트로피2[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["2트로피2 조합서", "대륙의 세번째 보물", "전설의갑옷[노말][조합체]"],
+    rank: "조합체",
+    icon: "🏆",
+    upgradeTarget: "구대륙 대륙의망토 & 대륙의갑옷 (신대륙 3트로피3 계승 모티브)"
+  },
+
+  // 2. 무기 (9종)
+  {
+    id: "rec_old_gun_normal",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "전설의총[노말]",
+    coin: 0,
+    gold: 0,
+    materials: ["전설의총[노말]조합서", "양털;;[조합재료]", "전설의총[대륙,초보용]"],
+    rank: "노말",
+    icon: "🔫",
+    upgradeTarget: "구대륙 대륙의 총[조합체]"
+  },
+  {
+    id: "rec_old_gun_continent",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "대륙의 총[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 총 조합서", "소원의빛[조합재료]", "부운영자들의 해골", "전설의총[노말]"],
+    rank: "조합체",
+    icon: "🔫",
+    upgradeTarget: "구대륙 창공의 활"
+  },
+  {
+    id: "rec_old_bow_sky",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "창공의 활",
+    coin: 0,
+    gold: 0,
+    materials: ["창공의 활 조합서", "대륙의 총[조합체]", "하피의 깃털[조합재료]", "창공의지배자의 발톱[조합재료]"],
+    rank: "조합체",
+    icon: "🏹",
+    upgradeTarget: "구대륙 가이아의 활"
+  },
+  {
+    id: "rec_old_bow_gaia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "가이아의 활",
+    coin: 0,
+    gold: 0,
+    materials: ["가이아의 활 조합서", "창공의 활", "강력한 힘의 결정체[조합재료]", "신의 영혼[조합재료]"],
+    rank: "조합체",
+    icon: "🏹",
+    upgradeTarget: "구대륙 차원의 활[반 신급]"
+  },
+  {
+    id: "rec_old_bow_dimension",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "차원의 활[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["가이아의 활", "리자드맨의 심장[조합재료]", "블루드래곤의 목[조합재료]"],
+    rank: "반 신급",
+    icon: "🏹",
+    upgradeTarget: "구대륙 영혼의 활[반 신급]"
+  },
+  {
+    id: "rec_old_bow_soul",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "영혼의 활[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["차원의 활[반 신급]", "원한이 담긴 반지[조합재료]", "망령의 영혼[조합재료]", "악령의 영혼[조합재료]"],
+    rank: "반 신급",
+    icon: "🏹",
+    upgradeTarget: "구대륙 영웅의 활[신급]"
+  },
+  {
+    id: "rec_old_bow_hero",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "영웅의 활[신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["영혼의 활[반 신급]", "궁병의 활조각[???]", "몽크의 제황홀[???]", "킹 오브 팬텀[???]", "기사의 검[???]"],
+    rank: "신급",
+    icon: "🏹",
+    upgradeTarget: "구대륙 봉인된 활[신급]"
+  },
+  {
+    id: "rec_old_bow_sealed",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "봉인된 활[신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["영웅의 활[신급]", "히드라의 몸통[???]", "히드라의 목[???]", "히드라의 머리[???]", "히드라의 꼬리[???]"],
+    rank: "신급",
+    icon: "🏹",
+    upgradeTarget: "구대륙 여행자의 활[신급]"
+  },
+  {
+    id: "rec_old_bow_traveler",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "여행자의 활[신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["봉인된 활[신급]", "봉인서"],
+    rank: "신급",
+    icon: "🏹",
+    upgradeTarget: "구대륙 신대륙의 문장[반 신급] (➔ 신대륙인의 문장 ➔ 신대륙 긴급용 무기)"
+  },
+
+  // 3. 문장 (12종)
+  {
+    id: "rec_old_soul_shield",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "소울방패[노말][조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["소울방패 조합서", "대륙의 세번째 보물", "악마의 파편[조합재료]", "럭셔리반지[희귀급]"],
+    rank: "노말",
+    icon: "🛡️",
+    upgradeTarget: "구대륙 대륙의망토[조합체]"
+  },
+  {
+    id: "rec_old_cloak_continent",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "대륙의망토[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의망토 조합서", "소울방패[노말][조합체]", "2트로피2[조합체]", "전설의갑옷[노말][조합체]"],
+    rank: "조합체",
+    icon: "🧣",
+    upgradeTarget: "구대륙 대륙의갑옷[조합체]"
+  },
+  {
+    id: "rec_old_armor_continent",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "대륙의갑옷[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의갑옷 조합서", "대륙의망토[조합체]", "부운영자들의 해골", "2트로피2[조합체]"],
+    rank: "조합체",
+    icon: "🛡️",
+    upgradeTarget: "구대륙 낡은 대륙의 책[조합체]"
+  },
+  {
+    id: "rec_old_book_continent",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "낡은 대륙의 책[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["낡은 대륙의 책 조합서", "대륙의갑옷[조합체]", "부운영자들의 해골", "소원의빛[조합재료]", "???"],
+    rank: "조합체",
+    icon: "📖",
+    upgradeTarget: "구대륙 세계수의 특혜[조합체]"
+  },
+  {
+    id: "rec_old_worldtree_privilege",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "세계수의 특혜[조합체]",
+    coin: 0,
+    gold: 0,
+    materials: ["세계수의 특혜 조합서", "타락한 세계수의 가지[조합재료]", "낡은 대륙의 책[조합체]"],
+    rank: "조합체",
+    icon: "🌳",
+    upgradeTarget: "구대륙 붉은 세계수의 특혜"
+  },
+  {
+    id: "rec_old_red_worldtree",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "붉은 세계수의 특혜",
+    coin: 0,
+    gold: 0,
+    materials: ["붉은 세계수의 특혜 조합서", "세계수의 특혜[조합체]", "붉은 영물의 심장[조합재료]", "개구리의 진액[조합재료]"],
+    rank: "조합체",
+    icon: "🌺",
+    upgradeTarget: "구대륙 차원의 문장[반 신급]"
+  },
+  {
+    id: "rec_old_dimension_insignia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "차원의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["붉은 세계수의 특혜", "차원의 전사 아뮬렛[조합재료]"],
+    rank: "반 신급",
+    icon: "🌀",
+    upgradeTarget: "구대륙 빛의 문장[반 신급]"
+  },
+  {
+    id: "rec_old_light_insignia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "빛의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["차원의 문장[반 신급]", "개구리의 갑옷[조합재료]", "빛[조합재료]"],
+    rank: "반 신급",
+    icon: "✨",
+    upgradeTarget: "구대륙 고대의 문장[반 신급]"
+  },
+  {
+    id: "rec_old_ancient_insignia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "고대의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["빛의 문장[반 신급]", "비석[조합재료]", "이상한 종이[조합재료]"],
+    rank: "반 신급",
+    icon: "🏛️",
+    upgradeTarget: "구대륙 인두인의 예언 문장[반 신급]"
+  },
+  {
+    id: "rec_old_induin_insignia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "인두인의 예언 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["인두인의 예언 문장 조합서", "다크 발키리의 문장[반 신급]", "고대의 문장[반 신급]"],
+    rank: "반 신급",
+    icon: "📜",
+    upgradeTarget: "구대륙 신대륙의 문장[반 신급]"
+  },
+  {
+    id: "rec_old_newcont_insignia_base",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "신대륙의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["신대륙의 문장 조합서", "여행자의 활[신급]", "인두인의 예언 문장[반 신급]", "펠 임프의 시체[조합재료]", "펠 샤먼의 지팡이[조합재료]", "펠 오버시어의 검[조합재료]"],
+    rank: "반 신급",
+    icon: "🏅",
+    upgradeTarget: "구대륙 신대륙인의 문장[반 신급]"
+  },
+  {
+    id: "rec_old_newcont_person_insignia",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "문장",
+    categoryKey: "insignia",
+    name: "신대륙인의 문장[반 신급]",
+    coin: 0,
+    gold: 0,
+    materials: ["신대륙인의 문장 조합서", "신대륙의 문장[반 신급]", "엘퀴네스의 눈물[조합재료]", "크리스탈 골렘의 블럭[조합재료]", "하이브 마인드의 촉수[조합재료]"],
+    rank: "반 신급",
+    icon: "👑",
+    upgradeTarget: "⚡ [신대륙 승급] 신대륙 긴급용 무기[조합체] 필수 재료 (➔ 핑크게이의 문장 ➔ 나이트메어 반지)"
+  },
+
+  // 4. 칭호 (7종)
+  {
+    id: "rec_old_paper",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "대륙의 종이[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 종이 조합서", "우 괘 [에픽]", "좌 괘 [에픽]", "지 괘 [에픽]", "토 괘 [에픽]"],
+    rank: "에픽",
+    icon: "📄",
+    upgradeTarget: "구대륙 장군의 칭호[에픽]"
+  },
+  {
+    id: "rec_old_pen",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "대륙의 펜[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["대륙의 펜 조합서", "괴 괘 [에픽]", "뢰 괘 [에픽]", "멸 괘 [에픽]", "묘 괘 [에픽]"],
+    rank: "에픽",
+    icon: "✒️",
+    upgradeTarget: "구대륙 장군의 칭호[에픽]"
+  },
+  {
+    id: "rec_old_title_general",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "장군의 칭호[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["장군의 칭호 조합서", "대륙의 종이[에픽]", "대륙의 펜[에픽]"],
+    rank: "에픽",
+    icon: "🎖️",
+    upgradeTarget: "구대륙 여행자의 칭호[에픽]"
+  },
+  {
+    id: "rec_old_title_leader",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "리더의 칭호[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["지하계 주술사의 스탭[???]", "처형자의 칼[???]", "워리더의 방패 [???]"],
+    rank: "에픽",
+    icon: "🛡️",
+    upgradeTarget: "구대륙 여행자의 칭호[에픽] & 레이븐 칭호[에픽]"
+  },
+  {
+    id: "rec_old_title_traveler",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "여행자의 칭호[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["여행자의 칭호 조합서", "전왕의 칭호[에픽]", "장군의 칭호[에픽]", "리더의 칭호[에픽]"],
+    rank: "에픽",
+    icon: "🗺️",
+    upgradeTarget: "구대륙 레이븐 칭호[에픽]"
+  },
+  {
+    id: "rec_old_title_raven",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "레이븐 칭호[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["레이븐 칭호 조합서", "여행자의 칭호[에픽]", "리더의 칭호[에픽]", "레이븐 피어의 가방[조합재료]"],
+    rank: "에픽",
+    icon: "🦅",
+    upgradeTarget: "구대륙 봉인 해제자 칭호[에픽]"
+  },
+  {
+    id: "rec_old_title_unsealer",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "칭호",
+    categoryKey: "title",
+    name: "봉인 해제자 칭호[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["봉인 해제자 칭호 조합서", "봉인 해제자A[에픽]", "봉인 해제자B[에픽]", "봉인 해제자C[에픽]", "레이븐 칭호[에픽]"],
+    rank: "에픽",
+    icon: "🔓",
+    upgradeTarget: "⚡ [신대륙 승급] 신대륙 긴급용 무기[조합체] 필수 재료 (➔ 핑크게이의 문장 ➔ 나이트메어 반지)"
+  },
+
+  // 5. 인장 (5종)
+  {
+    id: "rec_old_seal_str",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "인장",
+    categoryKey: "seal",
+    name: "힘의 인장[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["힘의 인장 조합서", "힘의 조각[???]", "돼지고기[조합재료]", "돼지의 심장"],
+    rank: "에픽",
+    icon: "📌",
+    upgradeTarget: "구대륙 콜럼버스의 인장[에픽]"
+  },
+  {
+    id: "rec_old_seal_int",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "인장",
+    categoryKey: "seal",
+    name: "지식의 인장[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["지식의 인장 조합서", "지식의 조각[???]", "돼지고기[조합재료]", "돼지의 심장"],
+    rank: "에픽",
+    icon: "💎",
+    upgradeTarget: "구대륙 콜럼버스의 인장[에픽]"
+  },
+  {
+    id: "rec_old_seal_agi",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "인장",
+    categoryKey: "seal",
+    name: "민첩의 인장[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["민첩의 인장 조합서", "민첩의 조각[???]", "돼지고기[조합재료]", "돼지의 심장"],
+    rank: "에픽",
+    icon: "🏹",
+    upgradeTarget: "구대륙 콜럼버스의 인장[에픽]"
+  },
+  {
+    id: "rec_old_seal_columbus",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "인장",
+    categoryKey: "seal",
+    name: "콜럼버스의 인장[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["콜럼버스의 인장 조합서", "옥좌의 인장", "힘의 인장", "민첩의 인장", "지식의 인장", "대나무 창"],
+    rank: "에픽",
+    icon: "🧭",
+    upgradeTarget: "구대륙 심연의 해적 인장[에픽]"
+  },
+  {
+    id: "rec_old_seal_pirate",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "인장",
+    categoryKey: "seal",
+    name: "심연의 해적 인장[에픽]",
+    coin: 0,
+    gold: 0,
+    materials: ["심연의 해적 인장 조합서", "드워프 해적의 총[조합재료]", "콜럼버스의 인장[에픽]", "심연의 해적모자[조합재료]"],
+    rank: "에픽",
+    icon: "🏴‍☠️",
+    upgradeTarget: "⚡ [신대륙 승급] 신대륙 힘의 인장Lv2[에픽] (시즌포인트 조건) / 민첩 / 지능 인장Lv2 필수 재료"
+  },
+
+  // 6. 기타 (1종)
+  {
+    id: "rec_old_sealed_scroll",
+    continent: "구대륙",
+    continentKey: "old",
+    category: "기타",
+    categoryKey: "etc",
+    name: "봉인된 스크롤",
+    coin: 0,
+    gold: 0,
+    materials: ["봉인된 석판A[조합재료]", "봉인된 석판B[조합재료]", "봉인된 석판C[조합재료]"],
+    rank: "기타",
+    icon: "📜",
+    upgradeTarget: "구대륙 퀘스트 및 봉인 해제용 특수 스크롤"
+  }
+];
+
+// 통합 전체 조합법 데이터베이스 (신대륙 28종 + 구대륙 41종 = 총 69종)
+const ALL_RECIPES_DATABASE = [...NEW_CONTINENT_RECIPES, ...OLD_CONTINENT_RECIPES];
+
+// 7-1-C. 신/구대륙 4대 핵심 승급 계보도 (Bridge System)
+const CONTINENT_UPGRADE_BRIDGES = [
+  {
+    id: "bridge_insignia",
+    title: "1. 문장 & 무기 ➔ 핑크게이 & 나이트메어 반지 체인",
+    targetSpItem: "핑크게이의 문장 / 나이트메어 반지",
+    badge: "시즌포인트 핵심 연계",
+    color: "#f472b6",
+    summary: "구대륙 최고봉 '신대륙인의 문장'과 '봉인 해제자 칭호'가 신대륙 문장의 시작점인 '긴급용 무기'로 이어집니다.",
+    steps: [
+      {
+        continent: "구대륙 (무기 계보)",
+        name: "전설의총[노말] ➔ ... ➔ 여행자의 활[신급] (9단계 제작)",
+        desc: "초보용 총부터 9번의 조합을 거쳐 최종 '여행자의 활[신급]' 완성"
+      },
+      {
+        continent: "구대륙 (문장 계보)",
+        name: "소울방패 ➔ ... ➔ 고대의 문장 ➔ 인두인의 예언 문장[반 신급] (10단계)",
+        desc: "소울방패, 대륙갑옷, 세계수의 특혜, 빛의 문장 등을 거쳐 '인두인의 예언 문장' 완성"
+      },
+      {
+        continent: "구대륙 (결합)",
+        name: "여행자의 활 + 인두인의 예언 문장 ➔ 신대륙의 문장 ➔ 신대륙인의 문장[반 신급]",
+        desc: "구대륙 문장의 정점인 '신대륙인의 문장[반 신급]' 완성!"
+      },
+      {
+        continent: "⚡ 신대륙 승급 결합",
+        name: "신대륙인의 문장[반 신급] + 봉인 해제자 칭호[에픽] ➔ 긴급용 무기[조합체]",
+        desc: "구대륙의 문장과 칭호가 결합하여 신대륙 첫 문장인 '긴급용 무기'로 승급!"
+      },
+      {
+        continent: "신대륙 (시즌포인트 도달)",
+        name: "긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이의 문장 ➔ 나이트메어 반지",
+        desc: "시즌포인트 인증 2대 장비인 '핑크게이의 문장' 및 '나이트메어 반지' 완성!"
+      }
+    ]
+  },
+  {
+    id: "bridge_title",
+    title: "2. 칭호 ➔ 봉인 해제자 칭호 체인",
+    targetSpItem: "봉인 해제자 칭호 ➔ 긴급용 무기",
+    badge: "칭호 승급 계보",
+    color: "#c084fc",
+    summary: "구대륙 8괘 종이/펜부터 5대 칭호를 차례로 통합하여 '봉인 해제자 칭호'를 획득합니다.",
+    steps: [
+      {
+        continent: "구대륙 (재료)",
+        name: "8괘(우/좌/지/토, 괴/뢰/멸/묘) ➔ 대륙의 종이[에픽] + 대륙의 펜[에픽]",
+        desc: "구대륙 에픽 괘들을 모아 대륙의 종이와 대륙의 펜 완성"
+      },
+      {
+        continent: "구대륙 (중간 칭호)",
+        name: "장군의 칭호 + 리더의 칭호 ➔ 여행자의 칭호[에픽]",
+        desc: "장군의 칭호와 리더의 칭호를 전왕의 칭호와 합쳐 여행자의 칭호 완성"
+      },
+      {
+        continent: "구대륙 (최종 칭호)",
+        name: "여행자의 칭호 + 리더의 칭호 + 레이븐 피어 가방 ➔ 레이븐 칭호 ➔ 봉인 해제자 칭호[에픽]",
+        desc: "봉인 해제자 A, B, C와 결합하여 구대륙 최종 '봉인 해제자 칭호[에픽]' 획득!"
+      },
+      {
+        continent: "⚡ 신대륙 승급 결합",
+        name: "봉인 해제자 칭호[에픽] ➔ 신대륙 '긴급용 무기[조합체]' 조합 시 소모",
+        desc: "신대륙 문장 및 핑크게이 테크트리의 필수 재료로 사용!"
+      }
+    ]
+  },
+  {
+    id: "bridge_seal",
+    title: "3. 인장 ➔ 심연의 해적 ➔ 신대륙 인장Lv2 체인",
+    targetSpItem: "힘의 인장Lv2 (시즌포인트 핵심)",
+    badge: "시즌포인트 인장 연계",
+    color: "#f59e0b",
+    summary: "구대륙 3대 스탯 인장과 콜럼버스 인장을 합쳐 '심연의 해적 인장'을 만들고, 신대륙 인장Lv2로 각성합니다.",
+    steps: [
+      {
+        continent: "구대륙 (기초 인장)",
+        name: "힘의 조각/지식의 조각/민첩의 조각 + 돼지고기 + 돼지 심장 ➔ 힘 / 지식 / 민첩의 인장[에픽]",
+        desc: "구대륙 필드 재료로 기본 3대 스탯 인장 제작"
+      },
+      {
+        continent: "구대륙 (통합 인장)",
+        name: "옥좌의 인장 + 힘/민/지 인장 + 대나무 창 ➔ 콜럼버스의 인장[에픽]",
+        desc: "3대 인장을 하나로 통합하여 콜럼버스의 인장 완성"
+      },
+      {
+        continent: "구대륙 (최종 인장)",
+        name: "콜럼버스의 인장 + 드워프 해적 총 + 심연의 해적모자 ➔ 심연의 해적 인장[에픽]",
+        desc: "구대륙 최종 에픽 인장인 '심연의 해적 인장' 완성!"
+      },
+      {
+        continent: "⚡ 신대륙 승급 결합",
+        name: "심연의 해적 인장 + 차가운 돼지고기 + 힘의 조각Lv2 + 보어 라이더 심장 ➔ 힘의 인장Lv2[에픽]",
+        desc: "시즌포인트 필수 조건 아이템인 '힘의 인장Lv2'로 최종 승급! (민첩/지능Lv2 동일)"
+      }
+    ]
+  },
+  {
+    id: "bridge_treasure",
+    title: "4. 목걸이 / 보물 / 갑옷 ➔ 푸른 가이아의 특혜 체인",
+    targetSpItem: "푸른 가이아의 특혜 (331주화/40만G)",
+    badge: "최대 규모 체인",
+    color: "#10b981",
+    summary: "구대륙의 붉은빛 목걸이 ➔ 보물1~3 ➔ 2트로피2 구조가 신대륙에서 파란빛 목걸이 ➔ 보물1~4 ➔ 3트로피3로 계승되어 푸른 가이아의 특혜로 완성됩니다.",
+    steps: [
+      {
+        continent: "구대륙 계보",
+        name: "붉은빛 목걸이 ➔ 빛나는 목걸이 ➔ 대륙 1~3보물 ➔ 2트로피2 + 대륙의갑옷",
+        desc: "구대륙의 기본 모티브이자 트로피/갑옷 계보"
+      },
+      {
+        continent: "신대륙 계승",
+        name: "파란빛 목걸이 ➔ 그림자 목걸이 ➔ 신대륙 1~4보물 (각 37주화)",
+        desc: "구대륙 시스템을 계승하여 신대륙에서 4개 보물 체인으로 확장"
+      },
+      {
+        continent: "신대륙 심화",
+        name: "신대륙 4보물 + 데몬의 갑옷 ➔ 3트로피3 + 스피릿 방패 ➔ 고대의망토 ➔ 고대의갑옷(40만G)",
+        desc: "3트로피3와 데몬갑옷, 스피릿방패로 고대 갑옷 테크트리 진행"
+      },
+      {
+        continent: "신대륙 (시즌포인트 도달)",
+        name: "고대의갑옷 ➔ 낡은 고대의 책 ➔ 가이아의 특혜 ➔ 푸른 가이아의 특혜[조합체]",
+        desc: "시즌포인트 최고난도 필수 아이템 '푸른 가이아의 특혜' 최종 완성!"
+      }
+    ]
   }
 ];
 
@@ -1012,7 +1771,7 @@ const SEASON_POINT_REQUIREMENTS = [
         target: "긴급용 무기[조합체]",
         coin: 0,
         gold: 1000000,
-        materials: ["긴급용 무기 조합서", "신대륙인의 문장[반 신급]", "봉인 해제자 칭호[에픽]", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"]
+        materials: ["긴급용 무기 조합서", "구대륙: 신대륙인의 문장[반 신급] (12단계)", "구대륙: 봉인 해제자 칭호[에픽] (7단계)", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"]
       },
       {
         step: 2,
@@ -1162,13 +1921,13 @@ const SEASON_POINT_REQUIREMENTS = [
         target: "힘의 인장Lv2[에픽]",
         coin: 5,
         gold: 0,
-        materials: ["힘의 인장Lv2 조합서", "심연의 해적 인장[에픽]", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"]
+        materials: ["힘의 인장Lv2 조합서", "구대륙: 심연의 해적 인장[에픽] (콜럼버스 인장 기반)", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"]
       }
     ],
     rawMaterials: [
       { name: "제국 주화", count: "5개", type: "currency" },
       { name: "힘의 인장Lv2 조합서", count: "1개", type: "recipe" },
-      { name: "심연의 해적 인장[에픽]", count: "1개", type: "seal" },
+      { name: "심연의 해적 인장[에픽]", count: "1개 (구대륙 인장 최종)", type: "seal" },
       { name: "차가운 돼지고기[조합재료]", count: "1개", type: "mat" },
       { name: "힘의 조각Lv2[???]", count: "1개", type: "mat" },
       { name: "보어 라이더의 심장", count: "1개", type: "mat" }

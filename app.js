@@ -2019,14 +2019,15 @@ function renderWarehouseTab() {
 }
 
 /* ==========================================================================
-   5. Recipes Tab Renderer (신대륙 조합법 & 시즌포인트 테크트리)
+   5. Recipes Tab Renderer (대륙 조합법 & 시즌포인트 테크트리 & 승급 연계)
    ========================================================================== */
+let currentRecipeContinent = "all"; // 'all', 'new', 'old', 'bridge'
 let currentRecipeCategory = "all";
 let currentRecipeSearchTerm = "";
 
 function renderRecipesTab() {
   renderSeasonPointOverview();
-  renderAllRecipesList();
+  filterRecipeContinent(currentRecipeContinent);
 }
 
 /**
@@ -2205,33 +2206,77 @@ function toggleSpCardDetails(itemId) {
 }
 
 /**
- * 신대륙 전체 조합법 리스트 렌더러 (검색 & 카테고리 필터 지원)
+ * 대륙 탭 필터링 ('all', 'new', 'old', 'bridge')
+ */
+function filterRecipeContinent(cKey) {
+  currentRecipeContinent = cKey;
+
+  // 1. 대륙 버튼 활성화 스타일 갱신
+  const pills = document.querySelectorAll("#recipeContinentPills .continent-pill");
+  pills.forEach(p => {
+    if (p.getAttribute("onclick") && p.getAttribute("onclick").includes(`'${cKey}'`)) {
+      p.classList.add("active");
+    } else {
+      p.classList.remove("active");
+    }
+  });
+
+  const listContainer = document.getElementById("recipesListContainer");
+  const bridgeContainer = document.getElementById("recipesBridgeContainer");
+  const catPills = document.getElementById("recipeCategoryPills");
+
+  if (cKey === "bridge") {
+    // 승급 연계도 뷰 표시
+    if (listContainer) listContainer.style.display = "none";
+    if (bridgeContainer) bridgeContainer.style.display = "flex";
+    if (catPills) catPills.style.opacity = "0.4";
+    renderContinentBridges();
+  } else {
+    // 일반 레시피 목록 뷰 표시
+    if (listContainer) listContainer.style.display = "grid";
+    if (bridgeContainer) bridgeContainer.style.display = "none";
+    if (catPills) catPills.style.opacity = "1";
+    renderAllRecipesList();
+  }
+}
+
+/**
+ * 대륙 통합 레시피 리스트 렌더러 (검색 & 카테고리 필터 지원)
  */
 function renderAllRecipesList() {
   const container = document.getElementById("recipesListContainer");
   const countSpan = document.getElementById("txtRecipeCount");
   if (!container) return;
 
-  if (typeof NEW_CONTINENT_RECIPES === "undefined") {
-    container.innerHTML = `<div style="padding:20px; color:var(--text-muted);">조합법 데이터를 불러올 수 없습니다.</div>`;
-    return;
+  const allRecipes = (typeof ALL_RECIPES_DATABASE !== "undefined" && ALL_RECIPES_DATABASE.length > 0)
+    ? ALL_RECIPES_DATABASE
+    : ((typeof NEW_CONTINENT_RECIPES !== "undefined") ? NEW_CONTINENT_RECIPES : []);
+
+  let filtered = [...allRecipes];
+
+  // 1. 대륙 필터
+  if (currentRecipeContinent === "new") {
+    filtered = filtered.filter(r => r.continentKey === "new");
+  } else if (currentRecipeContinent === "old") {
+    filtered = filtered.filter(r => r.continentKey === "old");
   }
 
-  let filtered = [...NEW_CONTINENT_RECIPES];
-
-  // 카테고리 필터링
+  // 2. 카테고리 필터링
   if (currentRecipeCategory !== "all") {
     filtered = filtered.filter(r => r.categoryKey === currentRecipeCategory);
   }
 
-  // 검색어 필터링 (아이템명 or 재료명)
+  // 3. 검색어 필터링 (아이템명, 재료명, 대륙, 승급 대상/선행템)
   if (currentRecipeSearchTerm) {
     const term = currentRecipeSearchTerm.toLowerCase().trim();
     filtered = filtered.filter(r => {
       const matchName = r.name.toLowerCase().includes(term);
       const matchMats = r.materials.some(m => m.toLowerCase().includes(term));
       const matchCat = r.category.toLowerCase().includes(term);
-      return matchName || matchMats || matchCat;
+      const matchCont = (r.continent || "").toLowerCase().includes(term);
+      const matchUpgrade = (r.upgradeTarget || "").toLowerCase().includes(term);
+      const matchReq = (r.requiredOldItem || "").toLowerCase().includes(term);
+      return matchName || matchMats || matchCat || matchCont || matchUpgrade || matchReq;
     });
   }
 
@@ -2240,7 +2285,7 @@ function renderAllRecipesList() {
   if (filtered.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle);">
-        검색된 조합법이 없습니다.
+        검색 조건에 일치하는 조합법이 없습니다.
       </div>
     `;
     return;
@@ -2249,19 +2294,45 @@ function renderAllRecipesList() {
   container.innerHTML = filtered.map((r) => {
     let rankColor = "var(--accent-purple)";
     if (r.rank === "반 신급") rankColor = "#f472b6";
-    if (r.rank === "에픽") rankColor = "#c084fc";
+    if (r.rank === "에픽" || r.rank.includes("에픽")) rankColor = "#c084fc";
+    if (r.rank === "신급") rankColor = "#ec4899";
     if (r.rank === "조합체") rankColor = "var(--accent-emerald)";
     if (r.rank === "유니크급") rankColor = "#f59e0b";
+    if (r.rank === "희귀급") rankColor = "#38bdf8";
     if (r.rank === "노말" || r.rank === "일반") rankColor = "#94a3b8";
+
+    const isOld = (r.continentKey === "old");
+    const continentBadge = isOld
+      ? `<span class="badge-continent continent-old">📜 구대륙</span>`
+      : `<span class="badge-continent continent-new">✨ 신대륙</span>`;
+
+    // 승급 연계 안내 박스
+    let upgradeBoxHtml = "";
+    if (r.upgradeTarget) {
+      upgradeBoxHtml = `
+        <div class="recipe-upgrade-box upgrade-target">
+          <span class="upgrade-icon">⚡ 신대륙 승급 연계:</span>
+          <span class="upgrade-desc">${r.upgradeTarget}</span>
+        </div>
+      `;
+    } else if (r.requiredOldItem) {
+      upgradeBoxHtml = `
+        <div class="recipe-upgrade-box required-old">
+          <span class="upgrade-icon">🔗 구대륙 선행 필요:</span>
+          <span class="upgrade-desc">${r.requiredOldItem}</span>
+        </div>
+      `;
+    }
 
     return `
       <div class="recipe-item-card">
         <div class="recipe-card-top">
           <div class="recipe-name-box">
-            <span class="recipe-icon">${r.icon || '⚔️'}</span>
+            <span class="recipe-icon">${r.icon || (isOld ? '📜' : '⚔️')}</span>
             <div>
               <div class="recipe-name">${r.name}</div>
               <div class="recipe-meta">
+                ${continentBadge}
                 <span class="cat-tag">${r.category}</span>
                 <span class="sp-rank-tag" style="color:${rankColor}; border-color:${rankColor}; font-size:9.5px; padding:1px 5px;">${r.rank}</span>
               </div>
@@ -2274,11 +2345,13 @@ function renderAllRecipesList() {
           </div>
         </div>
 
+        ${upgradeBoxHtml}
+
         <div class="recipe-mats-area">
-          <div class="recipe-mats-label">필요 조합 재료:</div>
+          <div class="recipe-mats-label">필요 조합 재료 (${r.materials.length}개):</div>
           <div class="recipe-mats-list">
             ${r.materials.map(m => `
-              <span class="recipe-mat-pill ${m.includes('조합서') ? 'is-recipe' : ''}">${m}</span>
+              <span class="recipe-mat-pill ${m.includes('조합서') ? 'is-recipe' : (m.includes('신급') || m.includes('에픽') || m.includes('보물') ? 'is-boss' : '')}">${m}</span>
             `).join('')}
           </div>
         </div>
@@ -2287,21 +2360,90 @@ function renderAllRecipesList() {
   }).join('');
 }
 
+/**
+ * 신/구대륙 4대 승급 연계도 렌더러
+ */
+function renderContinentBridges() {
+  const container = document.getElementById("recipesBridgeContainer");
+  const countSpan = document.getElementById("txtRecipeCount");
+  if (!container) return;
+
+  const bridges = (typeof CONTINENT_UPGRADE_BRIDGES !== "undefined") ? CONTINENT_UPGRADE_BRIDGES : [];
+  if (countSpan) countSpan.textContent = `${bridges.length}대 승급 연계 체인`;
+
+  container.innerHTML = `
+    <div class="bridge-intro-banner">
+      <div class="bridge-intro-icon">⚡</div>
+      <div class="bridge-intro-text">
+        <h3>구대륙 ➔ 신대륙 4대 핵심 승급 연계 계보도</h3>
+        <p>구대륙에서 제작한 최상위 장비(문장, 칭호, 인장, 보물)가 신대륙 핵심 장비 및 시즌포인트 필수 아이템의 기반 재료로 계승되는 4가지 주요 루트입니다. 단계를 확인하고 테크트리를 손실 없이 완성하세요!</p>
+      </div>
+    </div>
+
+    <div class="bridge-cards-grid">
+      ${bridges.map(b => `
+        <div class="bridge-card">
+          <div class="bridge-card-header">
+            <div class="bridge-card-title-group">
+              <span class="bridge-card-icon">${b.icon}</span>
+              <div>
+                <div class="bridge-card-title">${b.title}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">최종 목표: <strong style="color:#ffffff;">${b.target}</strong></div>
+              </div>
+            </div>
+            <span class="bridge-badge-key">${b.badge}</span>
+          </div>
+          <div class="bridge-desc">${b.desc}</div>
+
+          <div class="bridge-steps-flow">
+            ${b.steps.map((st, idx) => {
+              const isLast = (idx === b.steps.length - 1);
+              let stepClass = "step-old";
+              if (st.phase.includes("신대륙")) stepClass = "step-new";
+              if (st.phase.includes("최종") || isLast) stepClass = "step-target";
+
+              return `
+                <div class="bridge-step-box ${stepClass}">
+                  <div class="step-phase-tag">${st.phase}</div>
+                  <div class="step-item-name">${st.item}</div>
+                  <div class="step-item-note">${st.note}</div>
+                </div>
+                ${!isLast ? `<span class="bridge-arrow-icon">➔</span>` : ''}
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function filterRecipeCategory(catKey) {
   currentRecipeCategory = catKey;
   const pills = document.querySelectorAll("#recipeCategoryPills .cat-pill");
   pills.forEach(p => {
-    if (p.getAttribute("onclick").includes(`'${catKey}'`)) {
+    if (p.getAttribute("onclick") && p.getAttribute("onclick").includes(`'${catKey}'`)) {
       p.classList.add("active");
     } else {
       p.classList.remove("active");
     }
   });
-  renderAllRecipesList();
+
+  // 만약 현재 bridge 뷰라면 all 로 자동 전환
+  if (currentRecipeContinent === "bridge") {
+    filterRecipeContinent("all");
+  } else {
+    renderAllRecipesList();
+  }
 }
 
 function handleRecipeSearch(val) {
   currentRecipeSearchTerm = val;
-  renderAllRecipesList();
+  if (currentRecipeContinent === "bridge" && val.trim().length > 0) {
+    filterRecipeContinent("all");
+  } else {
+    renderAllRecipesList();
+  }
 }
+
 
