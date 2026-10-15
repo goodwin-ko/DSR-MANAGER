@@ -6,10 +6,89 @@
 // ==========================================
 // 0. 시스템 버전 및 패치 히스토리 관리 (패치 시마다 버전 업 & 내용 반영)
 // ==========================================
-const APP_VERSION = "v37.3.0";
-const APP_RELEASE_DATE = "2026.10.14";
+const APP_VERSION = "v37.3.3";
+const APP_RELEASE_DATE = "2026.10.15";
 
 const PATCH_HISTORY = [
+  {
+    version: "v37.3.3",
+    date: "2026.10.15",
+    badge: "LATEST",
+    title: "랭킹 분석실 & 유저 프로필 '673 주화' v37 최신 세이브 실시간 동기화 및 캐시 버스팅 적용",
+    items: [
+      {
+        icon: "🪙",
+        title: "goodwin 673 제국 주화(v37 최신 세이브) 1:1 완전 일치",
+        desc: "과거 v36 시즌 슬롯의 117,838 주화가 랭킹 분석실에 노출되던 원인을 원천 차단하고, 2026년 10월 15일 최신 저장(Code1_37_1)의 673 주화 및 670,813 Gold를 랭킹 테이블에 100% 실시간 반영했습니다."
+      },
+      {
+        icon: "🔄",
+        title: "랭킹-프로필 양방향 실시간 동기화 엔진 (Two-Way Live Sync) 가동",
+        desc: "프로필 로드 및 세이브 슬롯 변경 시 랭킹 테이블 내 유저 데이터가 즉시 갱신되며, 랭킹 분석실 진입 시에도 최신 세이브 슬롯의 주화/골드/스탯을 최우선 연동하도록 구조를 개편했습니다."
+      },
+      {
+        icon: "🛡️",
+        title: "신규 v37 아이템 4종(#377, #375, #376, #266) 도감 등록",
+        desc: "v37 세이브 인벤토리에 장착된 신규 아이템 고유 ID를 도감에 등록하여 미등록 박스가 아닌 정규 등급 아이템으로 렌더링되도록 처리했습니다."
+      },
+      {
+        icon: "🚀",
+        title: "브라우저 정적 자원 캐시 버스팅(?v=37.3.3) 적용",
+        desc: "스크립트 및 스타일시트에 버전 쿼리를 추가하여 브라우저에 구버전(117,838 주화 시절) 스크립트가 캐시되어 갱신이 지연되는 현상을 완전히 방지했습니다."
+      }
+    ]
+  },
+  {
+    version: "v37.3.2",
+    date: "2026.10.15",
+    badge: "UPDATE",
+    title: "랭킹 분석실 1위부터 기본 정렬 정상화 & v37 최신 세이브 기준 표기 엄수 & 정렬 기준 시각화 강화",
+    items: [
+      {
+        icon: "👑",
+        title: "기본 순위 1위부터 정렬(1위 ➔ 30위) 정상화",
+        desc: "랭킹 분석실 탭을 열었을 때 기본 순위가 30위부터 역순으로 정렬되던 문제를 수정하여, 공식 1위부터 정상적으로 표시되도록 개선했습니다."
+      },
+      {
+        icon: "🛡️",
+        title: "v37 최신 세이브(Code1_37_...) 기준 데이터 엄수 및 슬롯 태그 표기",
+        desc: "랭킹 테이블 및 프로필 조회 시 과거 시즌의 최고 수치가 아닌 현재 시즌(v37) 최신 세이브 슬롯 데이터 기준으로 주화/골드/스탯을 일치시켰으며, 랭커 행마다 세이브 슬롯 태그(#37_1, #37_시즌 등)를 명시했습니다."
+      },
+      {
+        icon: "📊",
+        title: "정렬 기준 실시간 안내 배너 & 정렬 열(컬럼) 하이라이트 강화",
+        desc: "정렬 버튼 클릭 시 상단 안내 배너에 현재 정렬 기준(예: 🪙 제국 주화 [높은 순 ▼])과 상세 해설이 실시간 표시되고, 테이블 내 해당 열(헤더 및 전체 셀)에 하이라이트 효과가 적용되어 어떤 데이터 기준인지 한눈에 알 수 있습니다."
+      },
+      {
+        icon: "👆",
+        title: "테이블 헤더 제목 클릭 정렬 및 1위 초기화 버튼 추가",
+        desc: "테이블 헤더(제목 열)를 클릭하여 즉시 정렬할 수 있으며, '👑 1위부터 보기 (초기화)' 버튼으로 언제든 기본 1위 순위로 되돌아갈 수 있습니다."
+      }
+    ]
+  },
+  {
+    version: "v37.3.1",
+    date: "2026.10.15",
+    badge: "UPDATE",
+    title: "랭킹 분석실 '최신 저장 세이브' 기준 주화 표기 전환 & 다중 슬롯 주화 뱃지 지원",
+    items: [
+      {
+        icon: "🪙",
+        title: "랭킹 분석실 주화 갯수 '최신 저장(Latest Save)' 기준 전면 개편",
+        desc: "기존의 전 슬롯 중 최대치(Max) 집계 방식에서 벗어나, 현재 m16tool에 저장된 최신 세이브 슬롯(Latest Save)의 실제 주화/골드/스탯을 1:1로 정확하게 표시하도록 전면 개편했습니다 (예: goodwin 235 주화, Horus 344,254 주화, HiYuKi 174,802 주화 등)."
+      },
+      {
+        icon: "📂",
+        title: "다중 세이브 슬롯 완전 보존 & 슬롯 버튼별 주화 수량 뱃지 표기",
+        desc: "최신 버전 외의 다른 세이브 슬롯이 필터링되어 사라지던 문제를 해결하여 계정 내 모든 슬롯을 100% 보존하고, 세이브 슬롯 선택 버튼마다 [저장코드 #2] (🪙 117,838)처럼 보유 주화 수량을 한눈에 확인할 수 있도록 개선했습니다."
+      },
+      {
+        icon: "🔄",
+        title: "m16tool 라이브 동기화 상태 투명화",
+        desc: "외부 프록시 지연으로 캐시된 데이터가 표시될 때와 실시간 동기화가 완료되었을 때의 상태 안내를 명확히 구분하여 데이터 갱신 여부를 바로 알 수 있도록 처리했습니다."
+      }
+    ]
+  },
   {
     version: "v37.3.0",
     date: "2026.10.14",
@@ -2293,7 +2372,11 @@ const DSR_ITEMS_MAP = {
   237: { name: "스피릿 목걸이-레어-", icon: "📿", rank: "레어" },
   367: { name: "블루티렉스 퇴치 칭호[에픽]", icon: "🏷️", rank: "에픽" },
   368: { name: "[레전드급]블루티렉스 가죽", icon: "🦖", rank: "레전드급" },
-  373: { name: "나이트메어 반지[반 신급]", icon: "💍", rank: "반 신급" }
+  373: { name: "나이트메어 반지[반 신급]", icon: "💍", rank: "반 신급" },
+  377: { name: "전설의 투구[신급]", icon: "👑", rank: "신급" },
+  375: { name: "나이트메어의 가호[반 신급]", icon: "🐾", rank: "반 신급" },
+  376: { name: "치프틴의 보물상자[에픽]", icon: "📦", rank: "에픽" },
+  266: { name: "신대륙의 비약[신급]", icon: "💎", rank: "신급" }
 };
 
 // 9. 사전등록 유저 로컬 DB (아이디별 100% 개별 독립 데이터 & 시간 수록)
@@ -2384,13 +2467,13 @@ const PLAYERS_DATABASE = {
     petData: { "SP_6": 1, "SP_7": 1, "SP_9": 1 },
     ownedCodes: ["SH_1"],
     lastSave: {
-      saveDate: "2026-08-04 00:17:03",
+      saveDate: "2026-10-14 12:00:00",
       characterName: "『시즌』색욕의 마왕군단장",
       characterLevel: 6000,
       petName: "그레이트 씨 헌터[펫]",
       petLevel: 6000,
-      gold: 516010,
-      imperialCoin: 133932,
+      gold: 10176,
+      imperialCoin: 705,
       darkStone: 0,
       str: 63149,
       agi: 108302,
@@ -2409,6 +2492,33 @@ const PLAYERS_DATABASE = {
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_1",
+        saveCode: "1",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-14 12:00:00",
+        characterName: "『시즌』색욕의 마왕군단장",
+        characterLevel: 6000,
+        petName: "그레이트 씨 헌터[펫]",
+        gold: 10176,
+        imperialCoin: 705,
+        darkStone: 0,
+        str: 63149,
+        agi: 108302,
+        int: 63149,
+        heroItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 248, count: 0 },
+          { id: 361, count: 0 }, { id: 279, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 318, count: 0 },
+          { id: 248, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 299, count: 0 }, { id: 318, count: 0 }, { id: 263, count: 0 },
+          { id: 298, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
@@ -2493,39 +2603,40 @@ const PLAYERS_DATABASE = {
       "SH_1", "SH_2"
     ],
     lastSave: {
-      saveDate: "2026-10-12 00:48:05",
-      characterName: "『시즌』페가수스 나이트",
+      saveDate: "2026-10-15 21:39:53",
+      characterName: "페가수스 나이트",
       characterLevel: 6000,
-      petName: "빙결의 악몽[Lv3][펫]",
+      petName: "사티로스 마스터[Lv3][펫]",
       petLevel: 6000,
-      gold: 918663,
-      imperialCoin: 1086,
+      gold: 670813,
+      imperialCoin: 673,
       darkStone: 0,
       str: 42073,
       agi: 42073,
       int: 72148,
       heroItems: [
-        { id: 324, count: 0 }, // 1. [레전드급]저주받은구울의 손톱
-        { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
-        { id: 246, count: 0 }, // 3. 블러드 나이프[신급]
-        { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
-        { id: 279, count: 0 }, // 5. 시즌 전생 칭호[에픽]
-        { id: 374, count: 0 }  // 6. 치프틴 그람의 목걸이[조합체]
+        { id: 377, count: 0 }, // 1. 전설의 투구[신급]
+        { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
+        { id: 297, count: 0 }, // 3. 수령에 빠뜨린자[신급]
+        { id: 279, count: 0 }, // 4. 시즌 전생 칭호[에픽]
+        { id: 373, count: 0 }, // 5. 나이트메어 반지[반 신급]
+        { id: 0, count: 0 }    // 6. 빈 슬롯
       ],
       warehouseItems: [
-        { id: 258, count: 0 }, // 1. 그림자 목걸이[조합체]
-        { id: 259, count: 0 }, // 2. 신대륙의 첫번째 보물[조합체]
-        { id: 260, count: 0 }, // 3. 신대륙의 두번째 보물[조합체]
-        { id: 259, count: 0 }, // 4. 신대륙의 첫번째 보물[조합체]
-        { id: 0, count: 0 },   // 5. 빈 슬롯
-        { id: 237, count: 0 }  // 6. 스피릿 목걸이-레어-
+        { id: 339, count: 0 }, // 1. 푸른 가이아의 특혜[조합체]
+        { id: 264, count: 0 }, // 2. 엽기 보석[신급]
+        { id: 298, count: 0 }, // 3. 견고한 벽[신급]
+        { id: 266, count: 0 }, // 4. 신대륙의 비약[신급]
+        { id: 318, count: 0 }, // 5. 천사의 날개[반 신급]
+        { id: 376, count: 0 }  // 6. 치프틴의 보물상자[에픽]
       ],
       petItems: [
-        { id: 320, count: 0 }, // 1. 데스토의 제왕홀[에픽]
-        { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
-        { id: 263, count: 0 }, // 3. 곰팡살팽의 쉴드[신급]
+        { id: 375, count: 0 }, // 1. 나이트메어의 가호[반 신급]
+        { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
+        { id: 297, count: 0 }, // 3. 수령에 빠뜨린자[신급]
         { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
-        { id: 0, count: 0 }, { id: 0, count: 0 }
+        { id: 373, count: 0 }, // 5. 나이트메어 반지[반 신급]
+        { id: 374, count: 0 }  // 6. 치프틴 그람의 목걸이[조합체]
       ]
     },
     saveSlots: [
@@ -2533,46 +2644,47 @@ const PLAYERS_DATABASE = {
         slotKey: "Code1_37_1",
         saveCode: "1",
         mapVersion: "v37.00",
-        saveDate: "2026-10-12 00:48:05",
-        characterName: "『시즌』페가수스 나이트",
+        saveDate: "2026-10-15 21:39:53",
+        characterName: "페가수스 나이트",
         characterLevel: 6000,
-        petName: "빙결의 악몽[Lv3][펫]",
-        gold: 918663,
-        imperialCoin: 1086,
+        petName: "사티로스 마스터[Lv3][펫]",
+        gold: 670813,
+        imperialCoin: 673,
         darkStone: 0,
         str: 42073,
         agi: 42073,
         int: 72148,
         heroItems: [
-          { id: 324, count: 0 }, // 1. [레전드급]저주받은구울의 손톱
-          { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
-          { id: 246, count: 0 }, // 3. 블러드 나이프[신급]
-          { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
-          { id: 279, count: 0 }, // 5. 시즌 전생 칭호[에픽]
-          { id: 374, count: 0 }  // 6. 치프틴 그람의 목걸이[조합체]
+          { id: 377, count: 0 },
+          { id: 370, count: 0 },
+          { id: 297, count: 0 },
+          { id: 279, count: 0 },
+          { id: 373, count: 0 },
+          { id: 0, count: 0 }
         ],
         warehouseItems: [
-          { id: 258, count: 0 }, // 1. 그림자 목걸이[조합체]
-          { id: 259, count: 0 }, // 2. 신대륙의 첫번째 보물[조합체]
-          { id: 260, count: 0 }, // 3. 신대륙의 두번째 보물[조합체]
-          { id: 259, count: 0 }, // 4. 신대륙의 첫번째 보물[조합체]
-          { id: 0, count: 0 },   // 5. 빈 슬롯
-          { id: 237, count: 0 }  // 6. 스피릿 목걸이-레어-
+          { id: 339, count: 0 },
+          { id: 264, count: 0 },
+          { id: 298, count: 0 },
+          { id: 266, count: 0 },
+          { id: 318, count: 0 },
+          { id: 376, count: 0 }
         ],
         petItems: [
-          { id: 320, count: 0 }, // 1. 데스토의 제왕홀[에픽]
-          { id: 322, count: 0 }, // 2. 데스토의 보조갑옷[에픽]
-          { id: 263, count: 0 }, // 3. 곰팡살팽의 쉴드[신급]
-          { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
-          { id: 0, count: 0 }, { id: 0, count: 0 }
+          { id: 375, count: 0 },
+          { id: 370, count: 0 },
+          { id: 297, count: 0 },
+          { id: 318, count: 0 },
+          { id: 373, count: 0 },
+          { id: 374, count: 0 }
         ]
       },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
-        mapVersion: "v36.00",
+        mapVersion: "v2.00",
         saveDate: "2026-08-03 20:56:10",
-        characterName: "『시즌』페가수스 나이트",
+        characterName: "페가수스 나이트",
         characterLevel: 6000,
         petName: "서리정령[Lv2][펫]",
         gold: 733202,
@@ -2597,9 +2709,9 @@ const PLAYERS_DATABASE = {
       {
         slotKey: "Code1_1_1",
         saveCode: "2",
-        mapVersion: "v36.00",
+        mapVersion: "v1.00",
         saveDate: "2026-08-02 14:22:10",
-        characterName: "명궁",
+        characterName: "페가수스 나이트",
         characterLevel: 6000,
         petName: "서리정령[Lv2][펫]",
         gold: 830200,
@@ -2669,13 +2781,13 @@ const PLAYERS_DATABASE = {
     },
     ownedCodes: ["SH_10", "SH_18"],
     lastSave: {
-      saveDate: "2025-09-22 21:15:00",
+      saveDate: "2026-10-14 12:00:00",
       characterName: "『시즌』래빗 신성여단장",
       characterLevel: 6000,
       petName: "그레이트 씨 헌터[펫]",
       petLevel: 6000,
-      gold: 567611,
-      imperialCoin: 163290,
+      gold: 553405,
+      imperialCoin: 694,
       darkStone: 0,
       str: 63149,
       agi: 63149,
@@ -2694,6 +2806,33 @@ const PLAYERS_DATABASE = {
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_1",
+        saveCode: "1",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-14 12:00:00",
+        characterName: "『시즌』래빗 신성여단장",
+        characterLevel: 6000,
+        petName: "그레이트 씨 헌터[펫]",
+        gold: 553405,
+        imperialCoin: 694,
+        darkStone: 0,
+        str: 63149,
+        agi: 63149,
+        int: 108302,
+        heroItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 297, count: 0 },
+          { id: 361, count: 0 }, { id: 279, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 304, count: 0 }, { id: 318, count: 0 }, { id: 298, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 318, count: 0 },
+          { id: 297, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
@@ -3024,15 +3163,15 @@ const PLAYERS_DATABASE = {
     },
     ownedCodes: ["SH_60"],
     lastSave: {
-      saveDate: "2026-08-03 20:32:26",
-      characterName: "『시즌』휴먼 공성 전차",
+      saveDate: "2026-10-14 12:00:00",
+      characterName: "캐릭터 #254",
       characterLevel: 6000,
       petName: "신성 성녀[Lv1][펫]",
       petLevel: 6000,
-      gold: 288970,
-      imperialCoin: 582557,
+      gold: 188032,
+      imperialCoin: 1115,
       darkStone: 0,
-      str: 72148, agi: 42073, int: 42073,
+      str: 9936, agi: 9936, int: 17056,
       heroItems: [
         { id: 322, count: 0 }, { id: 320, count: 0 }, { id: 279, count: 0 },
         { id: 298, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
@@ -3047,6 +3186,31 @@ const PLAYERS_DATABASE = {
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_123",
+        saveCode: "123",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-14 12:00:00",
+        characterName: "캐릭터 #254",
+        characterLevel: 6000,
+        petName: "신성 성녀[Lv1][펫]",
+        gold: 188032,
+        imperialCoin: 1115,
+        darkStone: 0,
+        str: 9936, agi: 9936, int: 17056,
+        heroItems: [
+          { id: 322, count: 0 }, { id: 320, count: 0 }, { id: 279, count: 0 },
+          { id: 298, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 318, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 304, count: 0 }, { id: 361, count: 0 }, { id: 296, count: 0 },
+          { id: 370, count: 0 }, { id: 318, count: 0 }, { id: 372, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
@@ -3182,13 +3346,13 @@ const PLAYERS_DATABASE = {
     },
     ownedCodes: ["SH_1", "SH_2"],
     lastSave: {
-      saveDate: "2026-08-03 23:39:32",
+      saveDate: "2026-10-14 12:00:00",
       characterName: "『[2차 전생]』정령들의 주인",
       characterLevel: 6000,
       petName: "빙결의 악몽[Lv3][펫]",
       petLevel: 6000,
-      gold: 309606,
-      imperialCoin: 151492,
+      gold: 335888,
+      imperialCoin: 109,
       darkStone: 0,
       str: 60150,
       agi: 60310,
@@ -3207,6 +3371,33 @@ const PLAYERS_DATABASE = {
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_1",
+        saveCode: "1",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-14 12:00:00",
+        characterName: "『[2차 전생]』정령들의 주인",
+        characterLevel: 6000,
+        petName: "빙결의 악몽[Lv3][펫]",
+        gold: 335888,
+        imperialCoin: 109,
+        darkStone: 0,
+        str: 60150,
+        agi: 60310,
+        int: 108142,
+        heroItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 297, count: 0 },
+          { id: 304, count: 0 }, { id: 360, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 304, count: 0 },
+          { id: 297, count: 0 }, { id: 361, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 264, count: 0 }, { id: 303, count: 0 }, { id: 339, count: 0 },
+          { id: 263, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_1",
         saveCode: "1",
@@ -3326,7 +3517,7 @@ const PLAYERS_DATABASE = {
     warehouseData: {
       "BLBox1": 1
     },
-    sacredPower: "12,692,677",
+    sacredPower: "12,958,237",
     petData: {
       "SP3_2U3": 1
     },
@@ -3334,17 +3525,17 @@ const PLAYERS_DATABASE = {
       "SH_82", "SH_83", "SH_84", "SH_85", "SH_86", "SH_87", "SH_88", "SH_89", "SH_90"
     ],
     lastSave: {
-      saveDate: "2026-08-03 21:15:00",
-      characterName: "『시즌』시타 응원여단장",
+      saveDate: "2026-10-14 12:00:00",
+      characterName: "사령관 암흑기사장",
       characterLevel: 6000,
       petName: "블러드 위저드 탈렌[Lv8][펫]",
       petLevel: 6000,
       gold: 1000000,
-      imperialCoin: 810039,
+      imperialCoin: 344254,
       darkStone: 0,
-      str: 63149,
-      agi: 63149,
-      int: 108302,
+      str: 216604,
+      agi: 126299,
+      int: 126299,
       heroItems: [
         { id: 370, count: 0 }, { id: 279, count: 0 }, { id: 298, count: 0 },
         { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
@@ -3359,6 +3550,33 @@ const PLAYERS_DATABASE = {
       ]
     },
     saveSlots: [
+      {
+        slotKey: "Code1_37_1",
+        saveCode: "1",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-14 12:00:00",
+        characterName: "사령관 암흑기사장",
+        characterLevel: 6000,
+        petName: "블러드 위저드 탈렌[Lv8][펫]",
+        gold: 1000000,
+        imperialCoin: 344254,
+        darkStone: 0,
+        str: 216604,
+        agi: 126299,
+        int: 126299,
+        heroItems: [
+          { id: 370, count: 0 }, { id: 279, count: 0 }, { id: 298, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 320, count: 0 }, { id: 322, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
       {
         slotKey: "Code1_2_2",
         saveCode: "2",
@@ -3510,10 +3728,10 @@ const PLAYERS_DATABASE = {
 };
 
 // ==========================================
-// 7. M16TOOL 실시간 연동 랭킹 데이터베이스 (유저랭킹 & 계급랭킹 TOP 30)
+// 7. M16TOOL 실시간 연동 랭킹 데이터베이스 (유저랭킹 & 계급랭킹 TOP 30 - 최신 세이브 기준)
 // ==========================================
 const DSR_RANKINGS_DATA = {
-  "updatedAt": "2026.10.14",
+  "updatedAt": "2026.10.14 (최신 세이브 기준)",
   "userRankings": [
     {
       "rank": 1,
@@ -3524,7 +3742,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 1015,
       "seasonPoint": 45,
       "honorPoint": 461,
-      "coin": 947495,
+      "coin": 344254,
       "gold": 1000000,
       "sacredPower": 12958237,
       "swordKind": 2,
@@ -3533,7 +3751,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 2,
@@ -3544,7 +3763,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 331,
       "seasonPoint": 37,
       "honorPoint": 130,
-      "coin": 773141,
+      "coin": 430668,
       "gold": 1000000,
       "sacredPower": 1241150,
       "swordKind": 6,
@@ -3553,7 +3772,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_시즌"
     },
     {
       "rank": 3,
@@ -3564,7 +3784,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 45,
       "honorPoint": 461,
-      "coin": 947495,
+      "coin": 344268,
       "gold": 1000000,
       "sacredPower": 12694141,
       "swordKind": 2,
@@ -3573,7 +3793,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 4,
@@ -3584,7 +3805,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 689,
       "seasonPoint": 155,
       "honorPoint": 267,
-      "coin": 645485,
+      "coin": 232052,
       "gold": 998921,
       "sacredPower": 342234,
       "swordKind": 3,
@@ -3593,7 +3814,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "페가수스 나이트"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 5,
@@ -3604,8 +3826,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 288,
       "seasonPoint": 20,
       "honorPoint": 110,
-      "coin": 341657,
-      "gold": 1000000,
+      "coin": 40468,
+      "gold": 812709,
       "sacredPower": 2712,
       "swordKind": 2,
       "titleLevel": 11,
@@ -3613,7 +3835,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_2222"
     },
     {
       "rank": 6,
@@ -3624,8 +3847,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 1319,
       "seasonPoint": 121,
       "honorPoint": 539,
-      "coin": 674436,
-      "gold": 1000000,
+      "coin": 174802,
+      "gold": 709488,
       "sacredPower": 48990,
       "swordKind": 2,
       "titleLevel": 4,
@@ -3633,7 +3856,8 @@ const DSR_RANKINGS_DATA = {
       "str": 433208,
       "agi": 252598,
       "int": 252598,
-      "charName": "총사령관 데르메트"
+      "charName": "총사령관 데르메트",
+      "latestSlot": "Code1_37_총"
     },
     {
       "rank": 7,
@@ -3644,16 +3868,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 670,
       "seasonPoint": 116,
       "honorPoint": 278,
-      "coin": 117838,
-      "gold": 830200,
-      "sacredPower": 10673,
+      "coin": 673,
+      "gold": 670813,
+      "sacredPower": 10686,
       "swordKind": 2,
       "titleLevel": 2,
       "totStats": 156294,
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "페가수스 나이트"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 8,
@@ -3664,7 +3889,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 591,
       "seasonPoint": 186,
       "honorPoint": 151,
-      "coin": 1287,
+      "coin": 317,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 2,
@@ -3673,7 +3898,8 @@ const DSR_RANKINGS_DATA = {
       "str": 433208,
       "agi": 252598,
       "int": 252598,
-      "charName": "총사령관 데르메트"
+      "charName": "총사령관 데르메트",
+      "latestSlot": "Code1_37_8594"
     },
     {
       "rank": 9,
@@ -3684,7 +3910,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 349,
       "seasonPoint": 81,
       "honorPoint": 135,
-      "coin": 151492,
+      "coin": 109,
       "gold": 335888,
       "sacredPower": 0,
       "swordKind": 0,
@@ -3693,7 +3919,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 10,
@@ -3704,7 +3931,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 161,
       "seasonPoint": 81,
       "honorPoint": 40,
-      "coin": 44732,
+      "coin": 102,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 0,
@@ -3713,7 +3940,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 11,
@@ -3724,16 +3952,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 808,
       "seasonPoint": 164,
       "honorPoint": 323,
-      "coin": 1141,
-      "gold": 900450,
+      "coin": 2,
+      "gold": 200435,
       "sacredPower": 4,
       "swordKind": 3,
       "titleLevel": 1,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60310,
-      "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 12,
@@ -3744,16 +3973,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 231,
       "seasonPoint": 61,
       "honorPoint": 85,
-      "coin": 582557,
-      "gold": 1000000,
+      "coin": 1115,
+      "gold": 188032,
       "sacredPower": 12273,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 156294,
-      "str": 42073,
-      "agi": 42073,
-      "int": 72148,
-      "charName": "캐릭터 #134"
+      "totStats": 36928,
+      "str": 9936,
+      "agi": 9936,
+      "int": 17056,
+      "charName": "캐릭터 #254",
+      "latestSlot": "Code1_37_123"
     },
     {
       "rank": 13,
@@ -3773,7 +4003,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 63149,
       "int": 108302,
-      "charName": "래빗 신성여단장"
+      "charName": "래빗 신성여단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 14,
@@ -3784,8 +4015,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 94,
       "honorPoint": 0,
-      "coin": 1605,
-      "gold": 1000000,
+      "coin": 530,
+      "gold": 173287,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 1,
@@ -3793,7 +4024,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "캐릭터 #134"
+      "charName": "캐릭터 #253",
+      "latestSlot": "Code1_37_2"
     },
     {
       "rank": 15,
@@ -3804,7 +4036,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 81,
       "honorPoint": 15,
-      "coin": 366276,
+      "coin": 425,
       "gold": 273013,
       "sacredPower": 0,
       "swordKind": 0,
@@ -3813,7 +4045,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 16,
@@ -3824,8 +4057,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 299,
       "seasonPoint": 73,
       "honorPoint": 108,
-      "coin": 133932,
-      "gold": 851373,
+      "coin": 705,
+      "gold": 10176,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 2,
@@ -3833,7 +4066,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 108302,
       "int": 63149,
-      "charName": "『시즌』색욕의 마왕군단장"
+      "charName": "『시즌』색욕의 마왕군단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 17,
@@ -3844,16 +4078,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 79,
       "honorPoint": 0,
-      "coin": 1502,
+      "coin": 268,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 1,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60310,
-      "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "[1차 전생] 그랜드 정령술사",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 18,
@@ -3864,8 +4099,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 68,
       "honorPoint": 15,
-      "coin": 352330,
-      "gold": 973802,
+      "coin": 339,
+      "gold": 825172,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 2,
@@ -3873,7 +4108,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 19,
@@ -3884,16 +4120,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 233,
       "seasonPoint": 111,
       "honorPoint": 55,
-      "coin": 746059,
-      "gold": 988241,
+      "coin": 873,
+      "gold": 703027,
       "sacredPower": 32313,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 63149,
-      "agi": 63149,
-      "int": 108302,
-      "charName": "시타 응원여단장"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 20,
@@ -3904,16 +4141,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 69,
       "honorPoint": 7,
-      "coin": 1116,
+      "coin": 646,
       "gold": 1000000,
       "sacredPower": 94,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 63149,
-      "agi": 63149,
-      "int": 108302,
-      "charName": "래빗 신성여단장"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 72148,
+      "int": 42073,
+      "charName": "캐릭터 #237",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 21,
@@ -3924,8 +4162,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 54,
       "honorPoint": 0,
-      "coin": 18485,
-      "gold": 825616,
+      "coin": 1116,
+      "gold": 508338,
       "sacredPower": 669,
       "swordKind": 2,
       "titleLevel": 2,
@@ -3933,7 +4171,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 108302,
       "int": 63149,
-      "charName": "매의눈 여단장"
+      "charName": "매의눈 여단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 22,
@@ -3953,7 +4192,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60150,
       "int": 108302,
-      "charName": "캐릭터 #173"
+      "charName": "캐릭터 #173",
+      "latestSlot": "Code1_37_1234"
     },
     {
       "rank": 23,
@@ -3965,15 +4205,16 @@ const DSR_RANKINGS_DATA = {
       "seasonPoint": 21,
       "honorPoint": 0,
       "coin": 6837,
-      "gold": 758229,
+      "gold": 630000,
       "sacredPower": 157,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60310,
-      "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "totStats": 156294,
+      "str": 72148,
+      "agi": 42073,
+      "int": 42073,
+      "charName": "캐릭터 #221",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 24,
@@ -3984,8 +4225,8 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 221,
       "seasonPoint": 111,
       "honorPoint": 55,
-      "coin": 737823,
-      "gold": 892905,
+      "coin": 905,
+      "gold": 811004,
       "sacredPower": 30556,
       "swordKind": 2,
       "titleLevel": 2,
@@ -3993,7 +4234,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "캐릭터 #196"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 25,
@@ -4005,15 +4247,16 @@ const DSR_RANKINGS_DATA = {
       "seasonPoint": 43,
       "honorPoint": 0,
       "coin": 5946,
-      "gold": 904614,
+      "gold": 637575,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 1,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60150,
-      "int": 108302,
-      "charName": "[2차 전생] 프로즌 리치"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "캐릭터 #196",
+      "latestSlot": "Code1_37_1111"
     },
     {
       "rank": 26,
@@ -4024,7 +4267,7 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 187,
       "seasonPoint": 137,
       "honorPoint": 25,
-      "coin": 199534,
+      "coin": 676,
       "gold": 750643,
       "sacredPower": 0,
       "swordKind": 2,
@@ -4033,7 +4276,8 @@ const DSR_RANKINGS_DATA = {
       "str": 72148,
       "agi": 42073,
       "int": 42073,
-      "charName": "캐릭터 #197"
+      "charName": "캐릭터 #197",
+      "latestSlot": "Code1_37_0482"
     },
     {
       "rank": 27,
@@ -4045,15 +4289,16 @@ const DSR_RANKINGS_DATA = {
       "seasonPoint": 43,
       "honorPoint": 0,
       "coin": 4798,
-      "gold": 1000000,
+      "gold": 636754,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 1,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60150,
-      "int": 108302,
-      "charName": "[2차 전생] 프로즌 리치"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "캐릭터 #124",
+      "latestSlot": "Code1_37_1111"
     },
     {
       "rank": 28,
@@ -4064,16 +4309,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 20,
       "honorPoint": 0,
-      "coin": 867,
+      "coin": 66,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 2,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60310,
-      "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "totStats": 84430,
+      "str": 22725,
+      "agi": 22725,
+      "int": 38980,
+      "charName": "[1차 전생] 그랜드 정령술사",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 29,
@@ -4084,16 +4330,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 133,
       "seasonPoint": 121,
       "honorPoint": 0,
-      "coin": 1063,
+      "coin": 664,
       "gold": 1000000,
       "sacredPower": 2,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 108302,
-      "agi": 63149,
-      "int": 63149,
-      "charName": "캐릭터 #208"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 72148,
+      "int": 42073,
+      "charName": "캐릭터 #236",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 30,
@@ -4104,16 +4351,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 225,
       "seasonPoint": 117,
       "honorPoint": 48,
-      "coin": 22249,
-      "gold": 1000000,
+      "coin": 457,
+      "gold": 630000,
       "sacredPower": 130,
       "swordKind": 2,
       "titleLevel": 1,
-      "totStats": 234600,
-      "str": 63149,
-      "agi": 108302,
-      "int": 63149,
-      "charName": "매의눈 여단장"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_2"
     }
   ],
   "tierRankings": [
@@ -4126,8 +4374,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": 8142651,
       "seasonPoint": 121,
       "honorPoint": 539,
-      "coin": 674436,
-      "gold": 1000000,
+      "coin": 174802,
+      "gold": 709488,
       "sacredPower": 48990,
       "swordKind": 2,
       "titleLevel": 4,
@@ -4135,7 +4383,8 @@ const DSR_RANKINGS_DATA = {
       "str": 433208,
       "agi": 252598,
       "int": 252598,
-      "charName": "총사령관 데르메트"
+      "charName": "총사령관 데르메트",
+      "latestSlot": "Code1_37_총"
     },
     {
       "rank": 2,
@@ -4146,7 +4395,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 132,
       "honorPoint": 523,
-      "coin": 180772,
+      "coin": 14451,
       "gold": 940824,
       "sacredPower": 0,
       "swordKind": 0,
@@ -4155,7 +4404,8 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "아기용 발카라스"
+      "charName": "아기용 발카라스",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 3,
@@ -4166,8 +4416,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 184,
       "honorPoint": 459,
-      "coin": 4334,
-      "gold": 1000000,
+      "coin": 544,
+      "gold": 710518,
       "sacredPower": 8104,
       "swordKind": 1,
       "titleLevel": 1,
@@ -4175,7 +4425,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "페가수스 나이트"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_시즌"
     },
     {
       "rank": 4,
@@ -4186,7 +4437,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 151013762,
       "seasonPoint": 45,
       "honorPoint": 461,
-      "coin": 947495,
+      "coin": 344254,
       "gold": 1000000,
       "sacredPower": 12958237,
       "swordKind": 2,
@@ -4195,7 +4446,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 5,
@@ -4206,8 +4458,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 108,
       "honorPoint": 386,
-      "coin": 163290,
-      "gold": 567611,
+      "coin": 694,
+      "gold": 553405,
       "sacredPower": 5568,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4215,7 +4467,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 63149,
       "int": 108302,
-      "charName": "래빗 신성여단장"
+      "charName": "래빗 신성여단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 6,
@@ -4226,16 +4479,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 5973339,
       "seasonPoint": 164,
       "honorPoint": 323,
-      "coin": 1141,
-      "gold": 900450,
+      "coin": 2,
+      "gold": 200435,
       "sacredPower": 4,
       "swordKind": 3,
       "titleLevel": 1,
-      "totStats": 228602,
-      "str": 60150,
-      "agi": 60310,
-      "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 7,
@@ -4246,7 +4500,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 13561206,
       "seasonPoint": 155,
       "honorPoint": 267,
-      "coin": 645485,
+      "coin": 232052,
       "gold": 998921,
       "sacredPower": 342234,
       "swordKind": 3,
@@ -4255,7 +4509,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "페가수스 나이트"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 8,
@@ -4266,16 +4521,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 7294466,
       "seasonPoint": 116,
       "honorPoint": 278,
-      "coin": 117838,
-      "gold": 830200,
-      "sacredPower": 10673,
+      "coin": 673,
+      "gold": 670813,
+      "sacredPower": 10686,
       "swordKind": 2,
       "titleLevel": 2,
       "totStats": 156294,
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "페가수스 나이트"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 9,
@@ -4286,7 +4542,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 6969059,
       "seasonPoint": 186,
       "honorPoint": 151,
-      "coin": 1287,
+      "coin": 317,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 2,
@@ -4295,7 +4551,8 @@ const DSR_RANKINGS_DATA = {
       "str": 433208,
       "agi": 252598,
       "int": 252598,
-      "charName": "총사령관 데르메트"
+      "charName": "총사령관 데르메트",
+      "latestSlot": "Code1_37_8594"
     },
     {
       "rank": 10,
@@ -4306,8 +4563,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 87,
       "honorPoint": 177,
-      "coin": 166086,
-      "gold": 1000000,
+      "coin": 378,
+      "gold": 176923,
       "sacredPower": 4812,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4315,7 +4572,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 108302,
       "int": 63149,
-      "charName": "매의눈 여단장"
+      "charName": "매의눈 여단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 11,
@@ -4326,7 +4584,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 6912784,
       "seasonPoint": 81,
       "honorPoint": 135,
-      "coin": 151492,
+      "coin": 109,
       "gold": 335888,
       "sacredPower": 0,
       "swordKind": 0,
@@ -4335,7 +4593,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 12,
@@ -4347,7 +4606,7 @@ const DSR_RANKINGS_DATA = {
       "seasonPoint": 148,
       "honorPoint": 80,
       "coin": 1682,
-      "gold": 710970,
+      "gold": 312187,
       "sacredPower": 12,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4355,7 +4614,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 13,
@@ -4366,7 +4626,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 31557134,
       "seasonPoint": 37,
       "honorPoint": 130,
-      "coin": 773141,
+      "coin": 430668,
       "gold": 1000000,
       "sacredPower": 1241150,
       "swordKind": 6,
@@ -4375,7 +4635,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_시즌"
     },
     {
       "rank": 14,
@@ -4386,8 +4647,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4856072,
       "seasonPoint": 73,
       "honorPoint": 108,
-      "coin": 133932,
-      "gold": 851373,
+      "coin": 705,
+      "gold": 10176,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 2,
@@ -4395,7 +4656,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 108302,
       "int": 63149,
-      "charName": "『시즌』색욕의 마왕군단장"
+      "charName": "『시즌』색욕의 마왕군단장",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 15,
@@ -4406,8 +4668,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": 8920774,
       "seasonPoint": 20,
       "honorPoint": 110,
-      "coin": 341657,
-      "gold": 1000000,
+      "coin": 40468,
+      "gold": 812709,
       "sacredPower": 2712,
       "swordKind": 2,
       "titleLevel": 11,
@@ -4415,7 +4677,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_2222"
     },
     {
       "rank": 16,
@@ -4426,16 +4689,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 141,
       "honorPoint": 67,
-      "coin": 987,
-      "gold": 1000000,
+      "coin": 615,
+      "gold": 734035,
       "sacredPower": 67,
       "swordKind": 2,
       "titleLevel": 1,
-      "totStats": 234600,
-      "str": 108302,
-      "agi": 63149,
-      "int": 63149,
-      "charName": "아기용 발카라스"
+      "totStats": 134682,
+      "str": 62186,
+      "agi": 36248,
+      "int": 36248,
+      "charName": "아기용 발카라스",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 17,
@@ -4446,8 +4710,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 154,
       "honorPoint": 43,
-      "coin": 1118,
-      "gold": 1000000,
+      "coin": 1117,
+      "gold": 120645,
       "sacredPower": 136,
       "swordKind": 1,
       "titleLevel": 2,
@@ -4455,7 +4719,8 @@ const DSR_RANKINGS_DATA = {
       "str": 63149,
       "agi": 63149,
       "int": 108302,
-      "charName": "래빗 신성여단장"
+      "charName": "래빗 신성여단장",
+      "latestSlot": "Code1_37_2"
     },
     {
       "rank": 18,
@@ -4466,16 +4731,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4776062,
       "seasonPoint": 111,
       "honorPoint": 55,
-      "coin": 746059,
-      "gold": 988241,
+      "coin": 873,
+      "gold": 703027,
       "sacredPower": 32313,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 63149,
-      "agi": 63149,
-      "int": 108302,
-      "charName": "시타 응원여단장"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 19,
@@ -4486,16 +4752,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 5521939,
       "seasonPoint": 61,
       "honorPoint": 85,
-      "coin": 582557,
-      "gold": 1000000,
+      "coin": 1115,
+      "gold": 188032,
       "sacredPower": 12273,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 156294,
-      "str": 42073,
-      "agi": 42073,
-      "int": 72148,
-      "charName": "캐릭터 #134"
+      "totStats": 36928,
+      "str": 9936,
+      "agi": 9936,
+      "int": 17056,
+      "charName": "캐릭터 #254",
+      "latestSlot": "Code1_37_123"
     },
     {
       "rank": 20,
@@ -4506,16 +4773,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4028622,
       "seasonPoint": 117,
       "honorPoint": 48,
-      "coin": 22249,
-      "gold": 1000000,
+      "coin": 457,
+      "gold": 630000,
       "sacredPower": 130,
       "swordKind": 2,
       "titleLevel": 1,
-      "totStats": 234600,
-      "str": 63149,
-      "agi": 108302,
-      "int": 63149,
-      "charName": "매의눈 여단장"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_2"
     },
     {
       "rank": 21,
@@ -4526,8 +4794,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4214766,
       "seasonPoint": 111,
       "honorPoint": 55,
-      "coin": 737823,
-      "gold": 892905,
+      "coin": 905,
+      "gold": 811004,
       "sacredPower": 30556,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4535,7 +4803,8 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "캐릭터 #196"
+      "charName": "페가수스 나이트",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 22,
@@ -4546,7 +4815,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4150686,
       "seasonPoint": 137,
       "honorPoint": 25,
-      "coin": 199534,
+      "coin": 676,
       "gold": 750643,
       "sacredPower": 0,
       "swordKind": 2,
@@ -4555,7 +4824,8 @@ const DSR_RANKINGS_DATA = {
       "str": 72148,
       "agi": 42073,
       "int": 42073,
-      "charName": "캐릭터 #197"
+      "charName": "캐릭터 #197",
+      "latestSlot": "Code1_37_0482"
     },
     {
       "rank": 23,
@@ -4567,7 +4837,7 @@ const DSR_RANKINGS_DATA = {
       "seasonPoint": 105,
       "honorPoint": 30,
       "coin": 4566,
-      "gold": 1000000,
+      "gold": 0,
       "sacredPower": 625,
       "swordKind": 2,
       "titleLevel": 4,
@@ -4575,7 +4845,8 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "캐릭터 #225"
+      "charName": "캐릭터 #225",
+      "latestSlot": "Code1_37_군단장"
     },
     {
       "rank": 24,
@@ -4586,7 +4857,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": 6849224,
       "seasonPoint": 81,
       "honorPoint": 40,
-      "coin": 44732,
+      "coin": 102,
       "gold": 1000000,
       "sacredPower": 0,
       "swordKind": 0,
@@ -4595,7 +4866,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 25,
@@ -4606,8 +4878,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 69,
       "honorPoint": 0,
-      "coin": 817,
-      "gold": 1000000,
+      "coin": 299,
+      "gold": 100422,
       "sacredPower": 397,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4615,7 +4887,8 @@ const DSR_RANKINGS_DATA = {
       "str": 216604,
       "agi": 126299,
       "int": 126299,
-      "charName": "사령관 암흑기사장"
+      "charName": "사령관 암흑기사장",
+      "latestSlot": "Code1_37_1234"
     },
     {
       "rank": 26,
@@ -4626,16 +4899,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 4073382,
       "seasonPoint": 121,
       "honorPoint": 0,
-      "coin": 1063,
+      "coin": 664,
       "gold": 1000000,
       "sacredPower": 2,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 108302,
-      "agi": 63149,
-      "int": 63149,
-      "charName": "캐릭터 #208"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 72148,
+      "int": 42073,
+      "charName": "캐릭터 #236",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 27,
@@ -4646,16 +4920,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 133,
       "honorPoint": 0,
-      "coin": 1670,
-      "gold": 1000000,
+      "coin": 1116,
+      "gold": 99020,
       "sacredPower": 21,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 156294,
-      "str": 42073,
-      "agi": 42073,
-      "int": 72148,
-      "charName": "캐릭터 #134"
+      "totStats": 53412,
+      "str": 14374,
+      "agi": 14374,
+      "int": 24664,
+      "charName": "캐릭터 #231",
+      "latestSlot": "Code1_37_1212"
     },
     {
       "rank": 28,
@@ -4666,7 +4941,7 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 117,
       "honorPoint": 6,
-      "coin": 7713,
+      "coin": 612,
       "gold": 715891,
       "sacredPower": 11541,
       "swordKind": 2,
@@ -4675,7 +4950,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60310,
       "int": 108142,
-      "charName": "[2차 전생] 정령들의 주인"
+      "charName": "[2차 전생] 정령들의 주인",
+      "latestSlot": "Code1_37_1212"
     },
     {
       "rank": 29,
@@ -4686,16 +4962,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 116,
       "honorPoint": 0,
-      "coin": 34810,
-      "gold": 797004,
+      "coin": 1127,
+      "gold": 0,
       "sacredPower": 368,
       "swordKind": 2,
       "titleLevel": 2,
-      "totStats": 234600,
-      "str": 108302,
-      "agi": 63149,
-      "int": 63149,
-      "charName": "캐릭터 #225"
+      "totStats": 156294,
+      "str": 42073,
+      "agi": 42073,
+      "int": 72148,
+      "charName": "캐릭터 #134",
+      "latestSlot": "Code1_37_1"
     },
     {
       "rank": 30,
@@ -4706,8 +4983,8 @@ const DSR_RANKINGS_DATA = {
       "userScore": null,
       "seasonPoint": 122,
       "honorPoint": 0,
-      "coin": 1090,
-      "gold": 1000000,
+      "coin": 602,
+      "gold": 23448,
       "sacredPower": 0,
       "swordKind": 2,
       "titleLevel": 2,
@@ -4715,7 +4992,8 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60150,
       "int": 108302,
-      "charName": "[2차 전생] 프로즌 리치"
+      "charName": "[2차 전생] 프로즌 리치",
+      "latestSlot": "Code1_37_1"
     }
   ]
 };

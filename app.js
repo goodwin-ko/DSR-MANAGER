@@ -96,6 +96,59 @@ function handleSaveIdState(userId) {
 }
 
 /**
+ * 프로필의 최신 세이브 슬롯 데이터를 DSR_RANKINGS_DATA에 양방향 실시간 동기화
+ */
+function syncRankingsDataWithProfile(profile) {
+  if (!profile || !profile.userId || typeof DSR_RANKINGS_DATA === "undefined") return false;
+  const targetNic = profile.userId.trim().toLowerCase();
+
+  // 최신 v37 슬롯 또는 최신 저장 슬롯 탐색
+  let targetSlot = null;
+  if (profile.saveSlots && profile.saveSlots.length > 0) {
+    targetSlot = profile.saveSlots.find(s => s.slotKey && s.slotKey.includes('_37_')) ||
+                 profile.saveSlots.find(s => s.mapVersion && s.mapVersion.includes('37')) ||
+                 profile.saveSlots[0];
+  } else if (profile.lastSave) {
+    targetSlot = profile.lastSave;
+  }
+
+  if (!targetSlot) return false;
+
+  const coinVal = (targetSlot.imperialCoin !== undefined) ? targetSlot.imperialCoin : (profile.lastSave?.imperialCoin || 0);
+  const goldVal = (targetSlot.gold !== undefined) ? targetSlot.gold : (profile.lastSave?.gold || 0);
+  const strVal = targetSlot.str || profile.lastSave?.str || 0;
+  const agiVal = targetSlot.agi || profile.lastSave?.agi || 0;
+  const intVal = targetSlot.int || profile.lastSave?.int || 0;
+  const totStats = strVal + agiVal + intVal;
+  const slotKey = targetSlot.slotKey || "Code1_37_1";
+  const charName = targetSlot.characterName || profile.lastSave?.characterName || "";
+
+  let updated = false;
+  const allRankRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
+  allRankRows.forEach(row => {
+    if (row.nicName && row.nicName.toLowerCase() === targetNic) {
+      if (coinVal !== undefined) row.coin = coinVal;
+      if (goldVal !== undefined) row.gold = goldVal;
+      if (strVal) row.str = strVal;
+      if (agiVal) row.agi = agiVal;
+      if (intVal) row.int = intVal;
+      if (totStats) row.totStats = totStats;
+      if (slotKey) row.latestSlot = slotKey;
+      if (charName) row.charName = charName.replace(/^『[^』]+』/, '').trim();
+      if (profile.seasonPoint !== undefined) row.seasonPoint = profile.seasonPoint;
+      if (profile.honorPoint !== undefined) row.honorPoint = profile.honorPoint;
+      if (profile.sacredPower) {
+        const spNum = parseInt(String(profile.sacredPower).replace(/,/g, ''), 10);
+        if (!isNaN(spNum)) row.sacredPower = spNum;
+      }
+      updated = true;
+    }
+  });
+
+  return updated;
+}
+
+/**
  * m16tool.xyz 실시간 연동 및 프로필 데이터 바인딩
  */
 async function loadProfile(userId) {
@@ -127,16 +180,87 @@ async function loadProfile(userId) {
       warehouseData: { ...dbProfile.warehouseData },
       petData: { ...dbProfile.petData },
       ownedCodes: new Set(dbProfile.ownedCodes || []),
-      saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? dbProfile.saveSlots : [safeLastSave],
+      saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? [...dbProfile.saveSlots] : [safeLastSave],
       selectedSlotIndex: 0,
       lastSave: { ...safeLastSave }
     };
+
+    // 실시간 양방향 동기화: DB 프로필의 v37 실제 세이브 수치(673 주화 등)를 DSR_RANKINGS_DATA에 즉각 반영
+    syncRankingsDataWithProfile(currentProfile);
+
+    // DSR_RANKINGS_DATA에만 있고 프로필에는 없는 신규 슬롯인 경우에만 폴백 추가
+    if (typeof DSR_RANKINGS_DATA !== "undefined") {
+      const rData = DSR_RANKINGS_DATA.userRankings?.find(u => u.nicName.toLowerCase() === targetKey) ||
+                    DSR_RANKINGS_DATA.tierRankings?.find(t => t.nicName.toLowerCase() === targetKey);
+      if (rData && rData.latestSlot) {
+        const existIdx = currentProfile.saveSlots.findIndex(s => s.slotKey === rData.latestSlot);
+        if (existIdx < 0) {
+          const v37Slot = {
+            slotKey: rData.latestSlot,
+            saveCode: rData.latestSlot.replace(/^Code1_\d+_/, "") || "1",
+            mapVersion: "v37.00",
+            saveDate: "v37 최신 세이브",
+            characterName: rData.charName || currentProfile.lastSave?.characterName || "사령관",
+            characterLevel: 6000,
+            petName: currentProfile.lastSave?.petName || "없음",
+            gold: rData.gold || 0,
+            imperialCoin: rData.coin || 0,
+            darkStone: 0,
+            str: rData.str || 0,
+            agi: rData.agi || 0,
+            int: rData.int || 0,
+            heroItems: currentProfile.lastSave?.heroItems || [],
+            petItems: currentProfile.lastSave?.petItems || [],
+            warehouseItems: currentProfile.lastSave?.warehouseItems || []
+          };
+          currentProfile.saveSlots.unshift(v37Slot);
+          currentProfile.lastSave = { ...currentProfile.saveSlots[0] };
+          currentProfile.selectedSlotIndex = 0;
+        }
+      }
+    }
 
     try { updateProfileStatsUI(); } catch (e) {}
     try { renderSeasonsMatrix(); } catch (e) {}
     try { renderOtherTabsData(); } catch (e) {}
     showApiNotice(`'${cleanId}' 유저 로그를 조회 중입니다...`);
   } else {
+    // DB 프로필이 없더라도 DSR_RANKINGS_DATA의 랭커인 경우 즉시 v37 프로필 기본 구성
+    if (typeof DSR_RANKINGS_DATA !== "undefined") {
+      const rData = DSR_RANKINGS_DATA.userRankings?.find(u => u.nicName.toLowerCase() === targetKey) ||
+                    DSR_RANKINGS_DATA.tierRankings?.find(t => t.nicName.toLowerCase() === targetKey);
+      if (rData && rData.latestSlot) {
+        const v37Slot = {
+          slotKey: rData.latestSlot,
+          saveCode: rData.latestSlot.replace(/^Code1_\d+_/, "") || "1",
+          mapVersion: "v37.00",
+          saveDate: "v37 최신 세이브",
+          characterName: rData.charName || "사령관",
+          characterLevel: 6000,
+          petName: "없음",
+          gold: rData.gold || 0,
+          imperialCoin: rData.coin || 0,
+          darkStone: 0,
+          str: rData.str || 0,
+          agi: rData.agi || 0,
+          int: rData.int || 0,
+          heroItems: [], petItems: [], warehouseItems: []
+        };
+        currentProfile = {
+          ...createEmptyProfile(cleanId),
+          seasonPoint: rData.seasonPoint || 0,
+          honorPoint: rData.honorPoint || 0,
+          rankingPoint: rData.userScore || 0,
+          sacredPower: (rData.sacredPower || 0).toLocaleString(),
+          saveSlots: [v37Slot],
+          selectedSlotIndex: 0,
+          lastSave: { ...v37Slot }
+        };
+        try { updateProfileStatsUI(); } catch (e) {}
+        try { renderSeasonsMatrix(); } catch (e) {}
+        try { renderOtherTabsData(); } catch (e) {}
+      }
+    }
     showApiNotice(`'${cleanId}' m16tool 유저 로그를 라이브 조회 중입니다...`);
   }
 
@@ -179,6 +303,9 @@ async function loadProfile(userId) {
         lastSave: { ...safeLastSave }
       };
 
+      // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화
+      try { syncRankingsDataWithProfile(currentProfile); } catch (e) {}
+
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
       try { renderOtherTabsData(); } catch (e) {}
@@ -190,7 +317,7 @@ async function loadProfile(userId) {
       try { renderOtherTabsData(); } catch (e) {}
       showApiNotice(`'${cleanId}' 유저의 m16tool 검색 결과가 없습니다. 아이디를 확인해 주세요.`, false, 5000);
     } else {
-      showApiNotice(`[OK] '${cleanId}' 프로필 데이터 조회가 완료되었습니다.`, false, 3000);
+      showApiNotice(`⚠️ '${cleanId}' m16tool 라이브 통신 지연으로 캐시된 사전 프로필이 표시 중입니다. (로컬 server.py 실행 시 100% 실시간 갱신)`, false, 5000);
     }
   } catch (err) {
     console.warn("m16tool Fetch Warning:", err);
@@ -1123,25 +1250,18 @@ function resolveEquippedPetFromPetData(pData) {
       });
     }
 
-    // 새로운 시즌 판별: 발견된 슬롯 중 가장 최신 버전(maxVersion)의 슬롯만 필터링하여 표시!
+    // 모든 세이브 슬롯 완전 보존 (버전별 필터링으로 인한 고주화/메인 슬롯 유실 방지!)
     let saveSlots = [];
     if (rawCandidateSlots.length > 0) {
-      let maxVersion = 0;
-      rawCandidateSlots.forEach(s => {
-        if (s.slotVersion > maxVersion) maxVersion = s.slotVersion;
+      // 최신 버전(v37 등) 최우선 및 원본 최신 세이브 순서(최신저장 기준) 보존
+      const sortedSlots = [...rawCandidateSlots].sort((a, b) => {
+        if (b.slotVersion !== a.slotVersion) return b.slotVersion - a.slotVersion;
+        return 0; // m16tool 원문 순서(최신 세이브 순) 유지
       });
 
-      let chosenSlots = rawCandidateSlots;
-      if (maxVersion > 0) {
-        // 최신 버전 번호를 가진 슬롯들만 필터링 (예: 37버전 슬롯만 선택)
-        chosenSlots = rawCandidateSlots.filter(s => s.slotVersion === maxVersion);
-      }
-
-      const dynamicMapVer = maxVersion > 0 ? `v${maxVersion}.00` : mapVersion;
-
-      saveSlots = chosenSlots.map(s => ({
+      saveSlots = sortedSlots.map(s => ({
         ...s,
-        mapVersion: dynamicMapVer
+        mapVersion: s.slotVersion > 0 ? `v${s.slotVersion}.00` : mapVersion
       }));
     }
 
@@ -1314,7 +1434,10 @@ function renderSaveSlotBar() {
     const codeTagStyle = isActive ? "color:#090d16; font-weight:900;" : "color:var(--accent-gold); font-weight:800;";
     const verStyle = isActive ? "color:#090d16; opacity:0.9;" : "color:var(--text-sub); opacity:0.85;";
 
-    btn.innerHTML = `<span style="${codeTagStyle}">[저장코드 #${codeNum}]</span> <span style="font-size:10.5px; ${verStyle}">(${verTag})</span> <span>${charTitle}</span>`;
+    const coinBadge = (slot.imperialCoin > 0)
+      ? `<span style="font-size:11px; color:${isActive ? '#78350f' : '#facc15'}; font-weight:700; margin-left:4px;">(🪙 ${slot.imperialCoin.toLocaleString()})</span>`
+      : '';
+    btn.innerHTML = `<span style="${codeTagStyle}">[저장코드 #${codeNum}]</span> <span style="font-size:10.5px; ${verStyle}">(${verTag})</span> <span>${charTitle}</span>${coinBadge}`;
 
     btn.addEventListener("click", () => {
       currentProfile.selectedSlotIndex = idx;
@@ -2537,7 +2660,7 @@ function handleRecipeSearch(val) {
    ========================================================================== */
 let currentRankBoard = 'user'; // 'user' | 'tier' | 'formula'
 let currentRankSort = 'rank';  // 'rank' | 'seasonPoint' | 'honorPoint' | 'coin' | 'sacredPower' | 'score' | 'gold' | 'totStats'
-let rankSortAsc = false;
+let rankSortAsc = true;        // 기본 순위는 1위부터 순서대로 나열 (true = 1위 -> 30위)
 let rankSearchQuery = '';
 
 function initRankingsTab() {
@@ -2579,6 +2702,7 @@ function handleRankSort(sortKey) {
     rankSortAsc = !rankSortAsc;
   } else {
     currentRankSort = sortKey;
+    // 'rank'는 1위부터(오름차순), 지표(주화, 스코어 등)는 큰 수치부터(내림차순) 기본 정렬
     rankSortAsc = (sortKey === 'rank');
   }
 
@@ -2632,6 +2756,19 @@ function selectRankerProfile(nicName) {
 function renderRankingsTable() {
   const container = document.getElementById("rankingsTableContainer");
   if (!container || typeof DSR_RANKINGS_DATA === "undefined") return;
+
+  // 1. PLAYERS_DATABASE 등록 유저들의 v37 최신 세이브 선제 동기화 (goodwin 등 최신 673 주화 보장)
+  if (typeof PLAYERS_DATABASE !== "undefined") {
+    Object.keys(PLAYERS_DATABASE).forEach(uid => {
+      const p = PLAYERS_DATABASE[uid];
+      if (p) syncRankingsDataWithProfile(p);
+    });
+  }
+
+  // 2. 현재 활성화된 프로필 최신 세이브 실시간 동기화
+  if (currentProfile && currentProfile.userId) {
+    syncRankingsDataWithProfile(currentProfile);
+  }
 
   const rawList = (currentRankBoard === 'user') 
     ? (DSR_RANKINGS_DATA.userRankings || []) 
@@ -2690,19 +2827,59 @@ function renderRankingsTable() {
 
   const isUserBoard = (currentRankBoard === 'user');
 
+  // 활성화된 정렬 기준 메타정보 및 해설 매핑
+  const sortMetaMap = {
+    rank: { name: "👑 기본 순위", tip: "m16tool 공식 랭킹 순위 기준 (1위부터 순서대로 나열)" },
+    score: { name: isUserBoard ? "💯 유저 스코어" : "🎖️ 계급 스코어", tip: "m16tool 공식 산출 종합 랭킹 스코어 기준" },
+    seasonPoint: { name: "⭐ 시즌포인트 (SP)", tip: "시즌포인트(iPOINT) 누적 수치 기준" },
+    honorPoint: { name: "🎖️ 명예포인트 (RP)", tip: "계급 결정 핵심인 iRP 명예포인트 기준" },
+    coin: { name: "🪙 제국 주화", tip: "v37 최신 세이브 슬롯의 제국 주화 보유량 기준" },
+    sacredPower: { name: "⚡ 성력 (성검)", tip: "성검 성력(GodSwordPoint) 수치 기준" },
+    gold: { name: "💰 보유 골드", tip: "v37 최신 세이브 슬롯의 보유 골드 기준" },
+    totStats: { name: "📊 3대 능력치 합", tip: "힘 + 민첩 + 지능 3대 스탯 총합 기준" }
+  };
+
+  const activeSortMeta = sortMetaMap[currentRankSort] || { name: currentRankSort, tip: "" };
+  const sortDirectionText = (currentRankSort === 'rank')
+    ? (rankSortAsc ? "1위 ➔ 30위 순서 (기본)" : "30위 ➔ 1위 역순")
+    : (rankSortAsc ? "낮은 순 ▲ (오름차순)" : "높은 순 ▼ (내림차순)");
+
+  // 정렬 기준 안내 배너
+  let bannerHtml = `
+    <div class="rank-sort-info-bar">
+      <div class="rank-sort-info-left">
+        <span class="rank-sort-active-badge">📊 현재 정렬: <strong>${activeSortMeta.name}</strong> [${sortDirectionText}]</span>
+        <span class="rank-sort-tip-text">💡 ${activeSortMeta.tip} — 강조된 열(컬럼)을 기준으로 정렬 중입니다. (테이블 제목을 눌러도 정렬됩니다)</span>
+      </div>
+      <div class="rank-sort-info-right">
+        <span class="rank-v37-sync-badge">🛡️ v37 최신저장 기준 (Code1_37_...)</span>
+        ${(currentRankSort !== 'rank' || !rankSortAsc) ? `
+          <button type="button" class="btn-reset-rank-sort" onclick="handleRankSort('rank'); if(!rankSortAsc) handleRankSort('rank');" title="기본 1위부터 보기로 초기화">
+            👑 1위부터 보기 (초기화)
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  const getThClass = (key) => `sortable-th ${currentRankSort === key ? 'col-sorted-th active' : ''}`;
+  const getThArrow = (key) => (currentRankSort === key) ? `<span class="th-sort-arrow">${rankSortAsc ? '▲' : '▼'}</span>` : '';
+  const colClass = (key) => (currentRankSort === key ? ' col-sorted-td' : '');
+
   let tableHtml = `
+    ${bannerHtml}
     <table class="rank-table">
       <thead>
         <tr>
-          <th style="width: 60px; text-align: center;">순위</th>
-          <th>유저 아이디 (클릭 시 조회)</th>
-          <th style="text-align: right;">${isUserBoard ? '유저 스코어' : '계급 스코어'}</th>
-          <th style="text-align: right;">시즌포인트 (SP)</th>
-          <th style="text-align: right;">명예포인트 (RP)</th>
-          <th style="text-align: right;">제국 주화</th>
-          <th style="text-align: right;">성력 (성검)</th>
-          <th style="text-align: right;">보유 골드</th>
-          <th style="text-align: right;">3대 능력치 합</th>
+          <th class="${getThClass('rank')}" onclick="handleRankSort('rank')" style="width: 70px; text-align: center; cursor: pointer;" title="클릭하여 순위 정렬">순위 ${getThArrow('rank')}</th>
+          <th>유저 아이디 (클릭 시 v37 프로필 조회)</th>
+          <th class="${getThClass('score')}" onclick="handleRankSort('score')" style="text-align: right; cursor: pointer;" title="클릭하여 스코어 정렬">${isUserBoard ? '유저 스코어' : '계급 스코어'} ${getThArrow('score')}</th>
+          <th class="${getThClass('seasonPoint')}" onclick="handleRankSort('seasonPoint')" style="text-align: right; cursor: pointer;" title="클릭하여 시즌포인트 정렬">시즌포인트 (SP) ${getThArrow('seasonPoint')}</th>
+          <th class="${getThClass('honorPoint')}" onclick="handleRankSort('honorPoint')" style="text-align: right; cursor: pointer;" title="클릭하여 명예포인트 정렬">명예포인트 (RP) ${getThArrow('honorPoint')}</th>
+          <th class="${getThClass('coin')}" onclick="handleRankSort('coin')" style="text-align: right; cursor: pointer;" title="클릭하여 제국 주화 정렬">제국 주화 ${getThArrow('coin')}</th>
+          <th class="${getThClass('sacredPower')}" onclick="handleRankSort('sacredPower')" style="text-align: right; cursor: pointer;" title="클릭하여 성력 정렬">성력 (성검) ${getThArrow('sacredPower')}</th>
+          <th class="${getThClass('gold')}" onclick="handleRankSort('gold')" style="text-align: right; cursor: pointer;" title="클릭하여 보유 골드 정렬">보유 골드 ${getThArrow('gold')}</th>
+          <th class="${getThClass('totStats')}" onclick="handleRankSort('totStats')" style="text-align: right; cursor: pointer;" title="클릭하여 3대 능력치 합 정렬">3대 능력치 합 ${getThArrow('totStats')}</th>
           <th style="text-align: center;">${isUserBoard ? '계급랭킹' : '유저랭킹'}</th>
         </tr>
       </thead>
@@ -2721,36 +2898,39 @@ function renderRankingsTable() {
       ? (row.tierRank ? `🎖️ ${row.tierRank}위 (${row.tierScore}점)` : `<span style="color:#64748b;">-</span>`)
       : (row.userRank ? `🏆 ${row.userRank}위 (${(row.userScore||0).toLocaleString()}점)` : `<span style="color:#64748b;">-</span>`);
 
+    const slotTagStr = row.latestSlot ? row.latestSlot.replace('Code1_', '') : 'v37';
+
     tableHtml += `
       <tr>
-        <td style="text-align: center;">
+        <td class="${colClass('rank')}" style="text-align: center;">
           <span class="rank-badge ${rankBadgeClass}">${rankIcon}</span>
         </td>
         <td>
-          <button type="button" class="ranker-id-btn" onclick="selectRankerProfile('${row.nicName}')" title="'${row.nicName}' 프로필 즉시 조회">
+          <button type="button" class="ranker-id-btn" onclick="selectRankerProfile('${row.nicName}')" title="'${row.nicName}' v37 프로필 즉시 조회">
             <span>👤 ${row.nicName}</span>
           </button>
           ${row.charName ? `<span class="ranker-char-badge">${row.charName}</span>` : ''}
+          <span class="ranker-slot-tag" title="v37 최신 세이브 슬롯 (Code1_${slotTagStr})">${slotTagStr}</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('score')}" style="text-align: right;">
           <span class="val-score-highlight">${displayScore}</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('seasonPoint')}" style="text-align: right;">
           <span class="val-sp-highlight">${(row.seasonPoint || 0).toLocaleString()} SP</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('honorPoint')}" style="text-align: right;">
           <span class="val-rp-highlight">${(row.honorPoint || 0).toLocaleString()} P</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('coin')}" style="text-align: right;">
           <span class="val-coin-highlight">${(row.coin || 0).toLocaleString()} 🪙</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('sacredPower')}" style="text-align: right;">
           <span class="val-gsp-highlight">${(row.sacredPower || 0).toLocaleString()} ⚡</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('gold')}" style="text-align: right;">
           <span class="val-gold-highlight">${(row.gold || 0).toLocaleString()} G</span>
         </td>
-        <td style="text-align: right;">
+        <td class="${colClass('totStats')}" style="text-align: right;">
           <span style="color: #cbd5e1; font-weight: 600;">${(row.totStats || 0).toLocaleString()}</span>
         </td>
         <td style="text-align: center; font-size: 12.5px;">
