@@ -214,6 +214,27 @@ function getRelicLevel(relicCode) {
 }
 
 /**
+ * 슬롯 키 간의 버전 및 저장코드 우선순위 판별 (예: Code1_37_2 >= Code1_37_1)
+ */
+function isSlotNewerOrEqual(newSlotKey, existingSlotKey) {
+  if (!existingSlotKey) return true;
+  if (!newSlotKey) return false;
+  if (newSlotKey === existingSlotKey) return true;
+  const matchNew = String(newSlotKey).match(/(?:Code1_|v)(\d+)(?:_(.+))?/i);
+  const matchOld = String(existingSlotKey).match(/(?:Code1_|v)(\d+)(?:_(.+))?/i);
+  if (!matchNew || !matchOld) return true;
+  const verNew = parseInt(matchNew[1], 10) || 0;
+  const verOld = parseInt(matchOld[1], 10) || 0;
+  if (verNew !== verOld) return verNew >= verOld;
+  const codeNew = parseInt(matchNew[2], 10);
+  const codeOld = parseInt(matchOld[2], 10);
+  if (!isNaN(codeNew) && !isNaN(codeOld)) {
+    return codeNew >= codeOld;
+  }
+  return true;
+}
+
+/**
  * 프로필의 최신 세이브 슬롯 데이터를 DSR_RANKINGS_DATA에 양방향 실시간 동기화
  */
 function syncRankingsDataWithProfile(profile) {
@@ -223,7 +244,10 @@ function syncRankingsDataWithProfile(profile) {
   // 최신 v37 슬롯 또는 최신 저장 슬롯 탐색 (saveSlots[0]이 항상 최신 버전의 마지막 저장 슬롯!)
   let targetSlot = null;
   if (profile.saveSlots && profile.saveSlots.length > 0) {
-    targetSlot = profile.saveSlots[0];
+    const sortedSlots = (typeof sortSaveSlotsLatestFirst === "function")
+      ? sortSaveSlotsLatestFirst(profile.saveSlots)
+      : profile.saveSlots;
+    targetSlot = sortedSlots[0];
   } else if (profile.lastSave) {
     targetSlot = profile.lastSave;
   }
@@ -243,6 +267,10 @@ function syncRankingsDataWithProfile(profile) {
   const allRankRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
   allRankRows.forEach(row => {
     if (row.nicName && row.nicName.toLowerCase() === targetNic) {
+      // 이미 더 최신의 세이브 슬롯(예: Code1_37_2)이 반영되어 있다면 구슬롯(Code1_37_1 등)으로 다운그레이드 방지!
+      if (!isSlotNewerOrEqual(slotKey, row.latestSlot)) {
+        return;
+      }
       if (coinVal !== undefined) row.coin = coinVal;
       if (goldVal !== undefined) row.gold = goldVal;
       if (strVal) row.str = strVal;
@@ -485,6 +513,17 @@ async function loadProfile(userId) {
         currentProfile.greyBean = 3;
         currentProfile.beans = { red: 0, blue: 0, grey: 3 };
         if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+      }
+
+      // 라이브 로그 파싱 결과를 인메모리 PLAYERS_DATABASE에도 즉시 반영하여 타 유저 조회 시 덮어쓰기 방지
+      if (typeof PLAYERS_DATABASE !== "undefined") {
+        const tKey = cleanId.toLowerCase();
+        PLAYERS_DATABASE[tKey] = {
+          ...(PLAYERS_DATABASE[tKey] || {}),
+          ...currentProfile,
+          saveSlots: currentProfile.saveSlots,
+          lastSave: currentProfile.lastSave
+        };
       }
 
       // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화

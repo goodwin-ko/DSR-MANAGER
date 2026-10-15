@@ -2626,62 +2626,6 @@ const PLAYERS_DATABASE = {
           { id: 299, count: 0 }, { id: 318, count: 0 }, { id: 263, count: 0 },
           { id: 298, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
         ]
-      },
-      {
-        slotKey: "Code1_2_1",
-        saveCode: "1",
-        mapVersion: "v36.00",
-        saveDate: "2026-08-04 00:17:03",
-        characterName: "『시즌』색욕의 마왕군단장",
-        characterLevel: 6000,
-        petName: "그레이트 씨 헌터[펫]",
-        petLevel: 6000,
-        gold: 516010,
-        imperialCoin: 133932,
-        darkStone: 0,
-        str: 63149,
-        agi: 108302,
-        int: 63149,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 248, count: 0 },
-          { id: 361, count: 0 }, { id: 279, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 318, count: 0 },
-          { id: 248, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 299, count: 0 }, { id: 318, count: 0 }, { id: 263, count: 0 },
-          { id: 298, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_2",
-        saveCode: "2",
-        mapVersion: "v36.00",
-        saveDate: "2026-08-03 20:32:22",
-        characterName: "『시즌』드래곤 프리스트",
-        characterLevel: 6000,
-        petName: "그레이트 씨 헌터[펫]",
-        petLevel: 5561,
-        gold: 851373,
-        imperialCoin: 1123,
-        darkStone: 0,
-        str: 42073,
-        agi: 42073,
-        int: 72148,
-        heroItems: [
-          { id: 324, count: 0 }, { id: 254, count: 0 }, { id: 263, count: 0 },
-          { id: 318, count: 0 }, { id: 0, count: 17 }, { id: 279, count: 0 }
-        ],
-        petItems: [
-          { id: 324, count: 0 }, { id: 272, count: 0 }, { id: 318, count: 0 },
-          { id: 323, count: 0 }, { id: 0, count: 8 }, { id: 263, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 0, count: 1 }, { id: 0, count: 8 }, { id: 0, count: 0 },
-          { id: 237, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
       }
     ]
   },
@@ -2858,33 +2802,6 @@ const PLAYERS_DATABASE = {
         petName: "그레이트 씨 헌터[펫]",
         gold: 553405,
         imperialCoin: 694,
-        darkStone: 0,
-        str: 63149,
-        agi: 63149,
-        int: 108302,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 297, count: 0 },
-          { id: 361, count: 0 }, { id: 279, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 304, count: 0 }, { id: 318, count: 0 }, { id: 298, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 318, count: 0 },
-          { id: 297, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_1",
-        saveCode: "1",
-        mapVersion: "v36.00",
-        saveDate: "2025-09-22 21:15:00",
-        characterName: "『시즌』래빗 신성여단장",
-        characterLevel: 6000,
-        petName: "그레이트 씨 헌터[펫]",
-        gold: 567611,
-        imperialCoin: 163290,
         darkStone: 0,
         str: 63149,
         agi: 63149,
@@ -3439,33 +3356,6 @@ const PLAYERS_DATABASE = {
           { id: 264, count: 0 }, { id: 303, count: 0 }, { id: 339, count: 0 },
           { id: 263, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
         ]
-      },
-      {
-        slotKey: "Code1_2_1",
-        saveCode: "1",
-        mapVersion: "v36.00",
-        saveDate: "2025-09-22 21:15:00",
-        characterName: "『[2차 전생]』정령들의 주인",
-        characterLevel: 6000,
-        petName: "빙결의 악몽[Lv3][펫]",
-        gold: 309606,
-        imperialCoin: 151492,
-        darkStone: 0,
-        str: 60150,
-        agi: 60310,
-        int: 108142,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 297, count: 0 },
-          { id: 304, count: 0 }, { id: 360, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 304, count: 0 },
-          { id: 297, count: 0 }, { id: 361, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 264, count: 0 }, { id: 303, count: 0 }, { id: 339, count: 0 },
-          { id: 263, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
       }
     ]
   },
@@ -3546,60 +3436,102 @@ const PLAYERS_DATABASE = {
   },
   "horus": {
     userId: "Horus",
-    seasonPoint: 240,
-    honorPoint: 0,
-    rankingPoint: 0,
+    seasonPoint: 45,
+    honorPoint: 461,
+    rankingPoint: 461,
     rankStanding: "시타 응원여단장",
-    titleCode: "TT_TYPE5",
-    swordCode: "BLSwrod1",
-    swordLevel: 1,
-    ownedSwords: ["BLSwrod1"],
-    wingId: 5,
-    wingLevel: 9,
+    titleCode: "TT_TYPE1",
+    titleLevel: 8,
+    swordCode: "BLSwrod2",
+    swordLevel: 9,
+    ownedSwords: ["BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5"],
+    wingId: 0,
+    wingLevel: 0,
     warehouseData: {
-      "BLBox1": 1
+      "BLBox2": 9, "BLBox3": 9, "BLBox4": 9, "BLBox5": 9, "BLBox6": 9,
+      "BLBox7": 9, "BLBox8": 9, "BLBox9": 9, "BLBox10": 9, "BLBox11": 9
     },
-    sacredPower: "12,958,237",
+    sacredPower: "13,066,093",
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 2,
+    beans: { red: 0, blue: 0, grey: 2 },
+    sdata1: "0,0,0,0,0,33,",
+    sdata2: "9,1,0,0,0,0,9,0,0,0,0,9,0,0,0,0,0,0,0,37,8,37,0,",
     petData: {
-      "SP3_2U3": 1
+      "SP_1": 1, "SP_2": 1, "SP_3": 1, "SP_4": 1, "SP_5": 1, "SP_6": 1, "SP_7": 1, "SP_8": 2, "SP_9": 1,
+      "SP2_1": 4, "SP2_2": 4, "SP2_3": 4, "SP2_4": 3, "SP2_5": 3, "SP2_6": 3, "SP2_7": 3, "SP2_8": 3, "SP2_9": 3,
+      "SP3_2U": 9, "SP3_2U2": 9, "SP3_2U3": 9
     },
     ownedCodes: [
+      "SH_1", "SH_2", "SH_3", "SH_4", "SH_5", "SH_6", "SH_7", "SH_8", "SH_9", "SH_10",
+      "SH_11", "SH_12", "SH_13", "SH_14", "SH_15", "SH_16", "SH_17", "SH_18", "SH_19", "SH_20",
+      "SH_21", "SH_22", "SH_23", "SH_24", "SH_25", "SH_26", "SH_27",
       "SH_82", "SH_83", "SH_84", "SH_85", "SH_86", "SH_87", "SH_88", "SH_89", "SH_90"
     ],
     lastSave: {
-      saveDate: "2026-10-14 12:00:00",
-      characterName: "사령관 암흑기사장",
+      saveDate: "2026-10-16 00:28:43",
+      characterName: "『시즌』시타 응원여단장",
       characterLevel: 6000,
       petName: "블러드 위저드 탈렌[Lv8][펫]",
       petLevel: 6000,
       gold: 1000000,
-      imperialCoin: 344254,
+      imperialCoin: 779632,
       darkStone: 0,
-      str: 216604,
-      agi: 126299,
-      int: 126299,
+      str: 63149,
+      agi: 63149,
+      int: 108302,
       heroItems: [
-        { id: 370, count: 0 }, { id: 279, count: 0 }, { id: 298, count: 0 },
+        { id: 322, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
         { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
       ],
       petItems: [
-        { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 },
+        { id: 367, count: 0 }, { id: 368, count: 0 }, { id: 0, count: 0 },
         { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
       ],
       warehouseItems: [
-        { id: 320, count: 0 }, { id: 322, count: 0 }, { id: 0, count: 0 },
+        { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
         { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
       ]
     },
     saveSlots: [
       {
+        slotKey: "Code1_37_2",
+        saveCode: "2",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-16 00:28:43",
+        characterName: "『시즌』시타 응원여단장",
+        characterLevel: 6000,
+        petName: "블러드 위저드 탈렌[Lv8][펫]",
+        petLevel: 6000,
+        gold: 1000000,
+        imperialCoin: 779632,
+        darkStone: 0,
+        str: 63149,
+        agi: 63149,
+        int: 108302,
+        heroItems: [
+          { id: 322, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 367, count: 0 }, { id: 368, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
+      {
         slotKey: "Code1_37_1",
         saveCode: "1",
         mapVersion: "v37.00",
-        saveDate: "2026-10-14 12:00:00",
+        saveDate: "2026-10-15 12:00:00",
         characterName: "사령관 암흑기사장",
         characterLevel: 6000,
         petName: "블러드 위저드 탈렌[Lv8][펫]",
+        petLevel: 6000,
         gold: 1000000,
         imperialCoin: 344254,
         darkStone: 0,
@@ -3607,66 +3539,12 @@ const PLAYERS_DATABASE = {
         agi: 126299,
         int: 126299,
         heroItems: [
-          { id: 370, count: 0 }, { id: 279, count: 0 }, { id: 298, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+          { id: 373, count: 0 }, { id: 374, count: 0 }, { id: 339, count: 0 },
+          { id: 361, count: 0 }, { id: 303, count: 0 }, { id: 0, count: 0 }
         ],
         petItems: [
           { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 },
           { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 320, count: 0 }, { id: 322, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_2",
-        saveCode: "2",
-        mapVersion: "v36.00",
-        saveDate: "2026-08-03 21:15:00",
-        characterName: "『시즌』시타 응원여단장",
-        characterLevel: 6000,
-        petName: "블러드 위저드 탈렌[Lv8][펫]",
-        gold: 1000000,
-        imperialCoin: 810039,
-        darkStone: 0,
-        str: 63149,
-        agi: 63149,
-        int: 108302,
-        heroItems: [
-          { id: 370, count: 0 }, { id: 279, count: 0 }, { id: 298, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 320, count: 0 }, { id: 322, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_1",
-        saveCode: "1",
-        mapVersion: "v36.00",
-        saveDate: "2026-08-03 20:30:00",
-        characterName: "사령관 암흑기사장",
-        characterLevel: 6000,
-        petName: "블러드 위저드 탈렌[펫]",
-        gold: 1000000,
-        imperialCoin: 456345,
-        darkStone: 0,
-        str: 216604,
-        agi: 126299,
-        int: 126299,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 279, count: 0 },
-          { id: 339, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 361, count: 0 },
-          { id: 305, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
         ],
         warehouseItems: [
           { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
@@ -3888,17 +3766,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": 1015,
       "seasonPoint": 45,
       "honorPoint": 461,
-      "coin": 344254,
+      "coin": 779632,
       "gold": 1000000,
-      "sacredPower": 12958237,
+      "sacredPower": 13066093,
       "swordKind": 2,
       "titleLevel": 8,
-      "totStats": 469202,
-      "str": 216604,
-      "agi": 126299,
-      "int": 126299,
-      "charName": "사령관 암흑기사장",
-      "latestSlot": "Code1_37_1"
+      "totStats": 234600,
+      "str": 63149,
+      "agi": 63149,
+      "int": 108302,
+      "charName": "시타 응원여단장",
+      "latestSlot": "Code1_37_2"
     },
     {
       "rank": 2,
@@ -4583,17 +4461,17 @@ const DSR_RANKINGS_DATA = {
       "userScore": 151013762,
       "seasonPoint": 45,
       "honorPoint": 461,
-      "coin": 344254,
+      "coin": 779632,
       "gold": 1000000,
-      "sacredPower": 12958237,
+      "sacredPower": 13066093,
       "swordKind": 2,
       "titleLevel": 8,
-      "totStats": 469202,
-      "str": 216604,
-      "agi": 126299,
-      "int": 126299,
-      "charName": "사령관 암흑기사장",
-      "latestSlot": "Code1_37_1"
+      "totStats": 234600,
+      "str": 63149,
+      "agi": 63149,
+      "int": 108302,
+      "charName": "시타 응원여단장",
+      "latestSlot": "Code1_37_2"
     },
     {
       "rank": 5,
