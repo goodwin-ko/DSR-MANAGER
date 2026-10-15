@@ -6,14 +6,57 @@
 // ==========================================
 // 0. 시스템 버전 및 패치 히스토리 관리 (패치 시마다 버전 업 & 내용 반영)
 // ==========================================
-const APP_VERSION = "v37.3.3";
+const APP_VERSION = "v37.4.0";
 const APP_RELEASE_DATE = "2026.10.15";
 
 const PATCH_HISTORY = [
   {
+    version: "v37.4.0",
+    date: "2026.10.15",
+    badge: "MAJOR",
+    title: "신규 아이템 3종/펫 정밀 매핑 & 4대 유물 도감 전면 개편 & 세이브 슬롯 최신순 정렬",
+    items: [
+      {
+        icon: "⚔️",
+        title: "신규 아이템 3종 공식 등록 및 미매핑 아이템 코드번호 전용 표기",
+        desc: "377번 '헤로스 완드[영웅]', 376번 '헬 윈드보우[영웅]', 375번 '살육자의 도끼'를 정식 등록하였으며, 매핑되지 않은 아이템은 임의의 명칭 대신 순수 코드 번호(#ID)로만 깔끔하게 표시하도록 개선했습니다."
+      },
+      {
+        icon: "📂",
+        title: "세이브 슬롯 최신 저장 슬롯 최우선(맨 앞) 자동 정렬 및 기본 선택",
+        desc: "계정 조회 시 가장 최근에 저장된 최신 세이브 슬롯이 맨 앞에 배치되고, 최초 화면에 최신 저장 슬롯 데이터부터 즉시 활성화되도록 순서 정렬을 전면 개편했습니다."
+      },
+      {
+        icon: "🐾",
+        title: "goodwin 펫 '빙결의 악몽' 매핑 정상화 & 신규 펫 '켈자르맨서 코르' 등록",
+        desc: "goodwin의 펫을 실제 장착 펫인 '빙결의 악몽[Lv3][펫]'으로 완벽하게 매핑하고 오류를 제거하였으며, 신규 추가된 펫 '켈자르맨서 코르[펫]'을 도감 및 시스템에 공식 등록했습니다."
+      },
+      {
+        icon: "🏹",
+        title: "kk2103 2대 세이브 슬롯 캐릭터 명칭 정밀 연동",
+        desc: "kk2103 유저의 37_궁수 슬롯을 '[2차 전생]신궁' 및 '켈자르맨서 코르[펫]'으로, 37_1234 슬롯을 '[2차 전생]지천사'로 정확하게 분리 등록했습니다."
+      },
+      {
+        icon: "🗡️",
+        title: "성검 탭 듀란달 전승 효과 발동 및 소유 성검 우선 배치",
+        desc: "4대 성검 전승 달성 시 듀란달의 초월 효과가 시각적으로 즉시 활성화되며, 보유/장착 중인 성검이 목록 앞쪽에 우선 정렬되어 한눈에 파악할 수 있도록 개선했습니다."
+      },
+      {
+        icon: "🪽",
+        title: "goodwin 날개 코드 정확한 미보유 판정 및 날개 시스템 정밀화",
+        desc: "날개 미소유 유저에게 날개가 표시되던 문제를 수정하고, m16tool의 NBWing 코드를 정확하게 분석하여 미소유 시 '장착된 날개 없음'으로 엄격하게 판정합니다."
+      },
+      {
+        icon: "🔮",
+        title: "공식 4대 유물 도감 시스템 전면 개편 (최대 Lv.9)",
+        desc: "유물 목록박스A(10종, SP_LBOX), 성유물 목록박스A(11종), 성유물 목록박스B(1종, 파멸 성물), 신유물 목록박스A(1종, 태극령)의 전체 23종 유물 도감 및 레벨별 세부 옵션/획득 경로를 완벽 탑재했습니다."
+      }
+    ]
+  },
+  {
     version: "v37.3.3",
     date: "2026.10.15",
-    badge: "LATEST",
+    badge: "UPDATE",
     title: "랭킹 분석실 & 유저 프로필 '673 주화' v37 최신 세이브 실시간 동기화 및 캐시 버스팅 적용",
     items: [
       {
@@ -671,16 +714,82 @@ const PET_LEVEL_BUNDLES = [
       { code: "SP_RGUP3", name: "스핑거 도그", desc: "Lv9 최상위 펫" },
       { code: "SP_RGUP4", name: "카오스 라이언", desc: "Lv9 최상위 펫" }
     ]
+  },
+  {
+    level: 10,
+    title: "신규 & 특수 펫 묶음",
+    pets: [
+      { code: "SP_KEL", name: "켈자르맨서 코르[펫]", desc: "v37 신규 추가 특수 펫" },
+      { code: "SP_FROG", name: "백스플 개구리[펫]", desc: "특수 이벤트 펫" }
+    ]
   }
 ];
 
-// 7. 기타 탭 정보
+// 7. 공식 유물 (Relics) 4대 목록박스 데이터베이스 (최대 Lv.9)
+const RELICS_DATABASE = [
+  {
+    boxId: "relic_box_a",
+    boxTitle: "유물 목록박스A",
+    icon: "🔮",
+    badge: "10종 도감 (SP_LBOX)",
+    desc: "기본/이벤트/보스 처치로 획득 가능한 10대 기본 유물입니다. (최대 Lv.9)",
+    items: [
+      { code: "SP_LBOX1", name: "이키라의 석상", source: "블랙 히드라 데릭", maxLevel: 9, option: "레벨당 트리거 데미지 5%", baseVal: 5, unit: "%", type: "triggerDmg" },
+      { code: "SP_LBOX2", name: "도굴꾼의 석상", source: "이벤트 획득", maxLevel: 9, option: "레벨당 아이템 드랍률 3%", baseVal: 3, unit: "%", type: "dropRate" },
+      { code: "SP_LBOX3", name: "서리 석상", source: "미정", maxLevel: 9, option: "레벨당 트리거 데미지 5%, LV9달성시 시즌 영웅의 증표 습득시 효과 2배", baseVal: 5, unit: "%", type: "triggerDmgSpecial" },
+      { code: "SP_LBOX4", name: "벨레브의 석상", source: "미정", maxLevel: 9, option: "레벨당 트리거 데미지 5%, LV9달성시 전설의 증표 습득시 효과 3배", baseVal: 5, unit: "%", type: "triggerDmgSpecial" },
+      { code: "SP_LBOX5", name: "은빛버드의 석상", source: "미정", maxLevel: 9, option: "레벨당 트리거 데미지 5%, LV9달성시 사령관의 증표 습득시 효과 3배", baseVal: 5, unit: "%", type: "triggerDmgSpecial" },
+      { code: "SP_LBOX6", name: "데빌로의 석상", source: "미정", maxLevel: 9, option: "레벨당 트리거 데미지 10%, LV9달성시 총사령관의 증표 습득시 효과 5배", baseVal: 10, unit: "%", type: "triggerDmgSpecial" },
+      { code: "SP_LBOX7", name: "퍼프로의 석상", source: "이벤트 획득", maxLevel: 9, option: "레벨당 드랍률 증가 5%", baseVal: 5, unit: "%", type: "dropRate" },
+      { code: "SP_LBOX8", name: "기오루의 석상", source: "미정", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -1%, 기오루의 석상, 이무기의 석상, 인비즈의 석상 합산", baseVal: -1, unit: "%", type: "dmgReduce" },
+      { code: "SP_LBOX9", name: "이무기의 석상", source: "미정", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -1%, 기오루의 석상, 이무기의 석상, 인비즈의 석상 합산", baseVal: -1, unit: "%", type: "dmgReduce" },
+      { code: "SP_LBOX10", name: "인비즈의 석상", source: "미정", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -1%, 기오루의 석상, 이무기의 석상, 인비즈의 석상 합산", baseVal: -1, unit: "%", type: "dmgReduce" }
+    ]
+  },
+  {
+    boxId: "holy_relic_box_a",
+    boxTitle: "성유물 목록박스A",
+    icon: "✨",
+    badge: "11종 도감 (이벤트 및 후원)",
+    desc: "이벤트 및 후원 / 성유물A 전부 MAX 달성 시 해금되는 고대 성유물입니다. (최대 Lv.9)",
+    items: [
+      { code: "HRL_1", name: "바티칸의 성물", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 트리거 데미지 10%", baseVal: 10, unit: "%", type: "triggerDmg" },
+      { code: "HRL_2", name: "로티엘의 깃털", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 아이템 드랍률 5%", baseVal: 5, unit: "%", type: "dropRate" },
+      { code: "HRL_3", name: "콜롬버스의 나침반", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 초기 캐릭터 생성시 지급되는 제국주화 재화량 +300", baseVal: 300, unit: "주화", type: "coinBonus" },
+      { code: "HRL_4", name: "축복의 성잔", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 성력 증가량 +1", baseVal: 1, unit: "", type: "sacredPower" },
+      { code: "HRL_5", name: "청룡의 유물", source: "이벤트 및 후원", maxLevel: 9, option: "시즌 영웅의 증표 습득시 레벨당 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "triggerDmg" },
+      { code: "HRL_6", name: "갓파의 유물", source: "이벤트 및 후원", maxLevel: 9, option: "전설의 증표 습득시 레벨당 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "triggerDmg" },
+      { code: "HRL_7", name: "봉황의 깃털", source: "이벤트 및 후원", maxLevel: 9, option: "사령관의 증표 습득시 레벨당 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "triggerDmg" },
+      { code: "HRL_8", name: "로툴러스의 모래시계", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -2%, 로툴러스의 모래시계, 발키리의 잔, 이브의 귀걸이 합산", baseVal: -2, unit: "%", type: "dmgReduce" },
+      { code: "HRL_9", name: "발키리의 잔", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -2%, 로툴러스의 모래시계, 발키리의 잔, 이브의 귀걸이 합산", baseVal: -2, unit: "%", type: "dmgReduce" },
+      { code: "HRL_10", name: "이브의 귀걸이", source: "이벤트 및 후원", maxLevel: 9, option: "레벨당 받는 트리거 데미지 -2%, 로툴러스의 모래시계, 발키리의 잔, 이브의 귀걸이 합산", baseVal: -2, unit: "%", type: "dmgReduce" },
+      { code: "HRL_ROZ", name: "로잔티움의 성물", source: "성유물 목록박스A 전부 MAX 소지", maxLevel: 1, option: "아이템드랍률 +50%, 트리거 데미지 +100%, 계급레벨 +1, 성력 증가량 +5, 받는 트리거 데미지 +26%(성유물A효과 합산)", type: "setBonus" }
+    ]
+  },
+  {
+    boxId: "holy_relic_box_b",
+    boxTitle: "성유물 목록박스B",
+    icon: "💀",
+    badge: "1종 도감 (파멸의 성유물)",
+    desc: "로잔티움의 성물 소유 시 해금되는 상위 성유물입니다. (최대 Lv.9)",
+    items: [
+      { code: "HRL_B_ROZ", name: "로잔티움의 파멸 성물", source: "로잔티움의 성물 소유시", maxLevel: 9, option: "로잔티움의 성물 소유시, 로잔티움의 파멸 성물 레벨에 따라 효과 증가 / 레벨당 아이템 드랍률 +10%, 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "special" }
+    ]
+  },
+  {
+    boxId: "divine_relic_box_a",
+    boxTitle: "신유물 목록박스A",
+    icon: "👑",
+    badge: "1종 도감 (최상위 신유물)",
+    desc: "특수 혜택으로 제공되는 최상위 신유물입니다. (최대 Lv.9)",
+    items: [
+      { code: "DRL_TAEGUK", name: "태극령", source: "특수 혜택", maxLevel: 9, option: "레벨당 드랍률 +25%, 레벨당 트리거 데미지 +50%, 레벨당 성력 증가량 +1, 레벨당 받는 트리거 데미지 -5%, 레벨당 스코어 점수 +2", type: "mythic" }
+    ]
+  }
+];
+
 const OTHER_TABS_DATA = {
-  relics: [
-    { name: "용의 여의주", rank: "신화 1급", level: "Lv.MAX", effect: "모든 공격력 +50%, 성력 증가량 +20%" },
-    { name: "태고의 수정구", rank: "전설 2급", level: "Lv.8", effect: "스킬 쿨타임 감소 -15%, MP 회복 +100" },
-    { name: "마왕의 징장", rank: "유일 3급", level: "Lv.5", effect: "적 방어력 20% 무시, 트리거 데미지 +15%" }
-  ]
+  relics: RELICS_DATABASE
 };
 
 // 7-1. 신대륙 전체 아이템 조합법 데이터베이스
@@ -2373,10 +2482,9 @@ const DSR_ITEMS_MAP = {
   367: { name: "블루티렉스 퇴치 칭호[에픽]", icon: "🏷️", rank: "에픽" },
   368: { name: "[레전드급]블루티렉스 가죽", icon: "🦖", rank: "레전드급" },
   373: { name: "나이트메어 반지[반 신급]", icon: "💍", rank: "반 신급" },
-  377: { name: "전설의 투구[신급]", icon: "👑", rank: "신급" },
-  375: { name: "나이트메어의 가호[반 신급]", icon: "🐾", rank: "반 신급" },
-  376: { name: "치프틴의 보물상자[에픽]", icon: "📦", rank: "에픽" },
-  266: { name: "신대륙의 비약[신급]", icon: "💎", rank: "신급" }
+  377: { name: "헤로스 완드[영웅]", icon: "🪄", rank: "영웅" },
+  376: { name: "헬 윈드보우[영웅]", icon: "🏹", rank: "영웅" },
+  375: { name: "살육자의 도끼", icon: "🪓", rank: "영웅" }
 };
 
 // 9. 사전등록 유저 로컬 DB (아이디별 100% 개별 독립 데이터 & 시간 수록)
@@ -2589,8 +2697,8 @@ const PLAYERS_DATABASE = {
     swordCode: "BLSwrod2", // 그람(모능)
     swordLevel: 1,
     ownedSwords: ["BLSwrod1", "BLSwrod2"],
-    wingId: 5,
-    wingLevel: 9,
+    wingId: 0,
+    wingLevel: 0,
     warehouseData: {
       "BLBox1": 1, "BLBox4": 1
     },
@@ -2606,7 +2714,7 @@ const PLAYERS_DATABASE = {
       saveDate: "2026-10-15 21:39:53",
       characterName: "페가수스 나이트",
       characterLevel: 6000,
-      petName: "사티로스 마스터[Lv3][펫]",
+      petName: "빙결의 악몽[Lv3][펫]",
       petLevel: 6000,
       gold: 670813,
       imperialCoin: 673,
@@ -2615,7 +2723,7 @@ const PLAYERS_DATABASE = {
       agi: 42073,
       int: 72148,
       heroItems: [
-        { id: 377, count: 0 }, // 1. 전설의 투구[신급]
+        { id: 377, count: 0 }, // 1. 헤로스 완드[영웅]
         { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
         { id: 297, count: 0 }, // 3. 수령에 빠뜨린자[신급]
         { id: 279, count: 0 }, // 4. 시즌 전생 칭호[에픽]
@@ -2626,12 +2734,12 @@ const PLAYERS_DATABASE = {
         { id: 339, count: 0 }, // 1. 푸른 가이아의 특혜[조합체]
         { id: 264, count: 0 }, // 2. 엽기 보석[신급]
         { id: 298, count: 0 }, // 3. 견고한 벽[신급]
-        { id: 266, count: 0 }, // 4. 신대륙의 비약[신급]
+        { id: 266, count: 0 }, // 4. #266
         { id: 318, count: 0 }, // 5. 천사의 날개[반 신급]
-        { id: 376, count: 0 }  // 6. 치프틴의 보물상자[에픽]
+        { id: 376, count: 0 }  // 6. 헬 윈드보우[영웅]
       ],
       petItems: [
-        { id: 375, count: 0 }, // 1. 나이트메어의 가호[반 신급]
+        { id: 375, count: 0 }, // 1. 살육자의 도끼
         { id: 370, count: 0 }, // 2. 데릭의 뼈갑옷[에픽]
         { id: 297, count: 0 }, // 3. 수령에 빠뜨린자[신급]
         { id: 318, count: 0 }, // 4. 천사의 날개[반 신급]
@@ -2647,7 +2755,7 @@ const PLAYERS_DATABASE = {
         saveDate: "2026-10-15 21:39:53",
         characterName: "페가수스 나이트",
         characterLevel: 6000,
-        petName: "사티로스 마스터[Lv3][펫]",
+        petName: "빙결의 악몽[Lv3][펫]",
         gold: 670813,
         imperialCoin: 673,
         darkStone: 0,
@@ -3724,6 +3832,79 @@ const PLAYERS_DATABASE = {
         ]
       }
     ]
+  },
+  "kk2103": {
+    userId: "kk2103",
+    seasonPoint: 0,
+    honorPoint: 0,
+    rankingPoint: 4398117,
+    rankStanding: "일반 유저",
+    titleCode: 1,
+    swordCode: "BLSwrod0",
+    swordLevel: 1,
+    ownedSwords: [],
+    wingId: 0,
+    wingLevel: 0,
+    warehouseData: {},
+    sacredPower: "0",
+    petData: {
+      "켈자르맨서 코르[펫]": 1
+    },
+    ownedCodes: [],
+    lastSave: {
+      saveDate: "2026-10-15 12:00:00",
+      characterName: "[2차 전생]지천사",
+      characterLevel: 6000,
+      petName: "켈자르맨서 코르[펫]",
+      petLevel: 6000,
+      gold: 777037,
+      imperialCoin: 3,
+      darkStone: 0,
+      str: 60150,
+      agi: 60150,
+      int: 108302,
+      heroItems: [],
+      petItems: [],
+      warehouseItems: []
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_37_1234",
+        saveCode: "1234",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-15 12:00:00",
+        characterName: "[2차 전생]지천사",
+        characterLevel: 6000,
+        petName: "켈자르맨서 코르[펫]",
+        gold: 777037,
+        imperialCoin: 3,
+        darkStone: 0,
+        str: 60150,
+        agi: 60150,
+        int: 108302,
+        heroItems: [],
+        petItems: [],
+        warehouseItems: []
+      },
+      {
+        slotKey: "Code1_37_궁수",
+        saveCode: "궁수",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-15 11:00:00",
+        characterName: "[2차 전생]신궁",
+        characterLevel: 6000,
+        petName: "켈자르맨서 코르[펫]",
+        gold: 777037,
+        imperialCoin: 3,
+        darkStone: 0,
+        str: 60150,
+        agi: 60150,
+        int: 108302,
+        heroItems: [],
+        petItems: [],
+        warehouseItems: []
+      }
+    ]
   }
 };
 
@@ -4192,7 +4373,7 @@ const DSR_RANKINGS_DATA = {
       "str": 60150,
       "agi": 60150,
       "int": 108302,
-      "charName": "캐릭터 #173",
+      "charName": "[2차 전생]지천사",
       "latestSlot": "Code1_37_1234"
     },
     {

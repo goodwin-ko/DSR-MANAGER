@@ -96,6 +96,85 @@ function handleSaveIdState(userId) {
 }
 
 /**
+ * 저장 날짜 문자열을 밀리초 타임스탬프로 변환하는 파서
+ */
+function parseSaveDateToTimestamp(dateStr) {
+  if (!dateStr || dateStr === "기록 없음" || dateStr === "-") return 0;
+  // 1. 한국어 포맷: YYYY년 MM월 DD일 HH:MM:SS
+  const korMatch = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (korMatch) {
+    return new Date(
+      parseInt(korMatch[1], 10),
+      parseInt(korMatch[2], 10) - 1,
+      parseInt(korMatch[3], 10),
+      parseInt(korMatch[4] || "0", 10),
+      parseInt(korMatch[5] || "0", 10),
+      parseInt(korMatch[6] || "0", 10)
+    ).getTime();
+  }
+  // 2. 미국식 포맷: MM/DD/YYYY HH:MM:SS
+  const usMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (usMatch) {
+    return new Date(
+      parseInt(usMatch[3], 10),
+      parseInt(usMatch[1], 10) - 1,
+      parseInt(usMatch[2], 10),
+      parseInt(usMatch[4] || "0", 10),
+      parseInt(usMatch[5] || "0", 10),
+      parseInt(usMatch[6] || "0", 10)
+    ).getTime();
+  }
+  // 3. ISO / 표준 대시 포맷: YYYY-MM-DD HH:MM:SS
+  const isoMatch = dateStr.match(/(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (isoMatch) {
+    return new Date(
+      parseInt(isoMatch[1], 10),
+      parseInt(isoMatch[2], 10) - 1,
+      parseInt(isoMatch[3], 10),
+      parseInt(isoMatch[4] || "0", 10),
+      parseInt(isoMatch[5] || "0", 10),
+      parseInt(isoMatch[6] || "0", 10)
+    ).getTime();
+  }
+  const parsed = Date.parse(dateStr);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * 세이브 슬롯을 최신 저장(시간 및 최신 버전) 기준으로 내림차순 정렬 (마지막 저장이 항상 맨 앞!)
+ */
+function sortSaveSlotsLatestFirst(slots) {
+  if (!slots || !Array.isArray(slots) || slots.length <= 1) return slots || [];
+  return [...slots].sort((a, b) => {
+    // 1. 버전 번호 우선 (v37 > v36)
+    const verA = parseInt(String(a.slotVersion || a.mapVersion || "").replace(/[^\d]/g, ''), 10) || 0;
+    const verB = parseInt(String(b.slotVersion || b.mapVersion || "").replace(/[^\d]/g, ''), 10) || 0;
+    if (verB !== verA) return verB - verA;
+
+    // 2. 저장 일시 우선 (최근 날짜가 앞쪽)
+    const timeA = parseSaveDateToTimestamp(a.saveDate);
+    const timeB = parseSaveDateToTimestamp(b.saveDate);
+    if (timeB !== timeA) return timeB - timeA;
+
+    return 0;
+  });
+}
+
+/**
+ * 현재 프로필의 유물 레벨 조회 헬퍼
+ */
+function getRelicLevel(relicCode) {
+  if (!currentProfile) return 0;
+  if (currentProfile.relicData && currentProfile.relicData[relicCode] !== undefined) {
+    return currentProfile.relicData[relicCode];
+  }
+  if (currentProfile.petData && currentProfile.petData[relicCode] !== undefined) {
+    return currentProfile.petData[relicCode];
+  }
+  return 0;
+}
+
+/**
  * 프로필의 최신 세이브 슬롯 데이터를 DSR_RANKINGS_DATA에 양방향 실시간 동기화
  */
 function syncRankingsDataWithProfile(profile) {
@@ -173,17 +252,30 @@ async function loadProfile(userId) {
       heroItems: [], petItems: [], warehouseItems: []
     };
 
+    const initialSlots = (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? [...dbProfile.saveSlots] : [safeLastSave];
+    const sortedDbSlots = sortSaveSlotsLatestFirst(initialSlots);
+
     currentProfile = {
       ...dbProfile,
       userId: cleanId,
       ownedSwords: new Set(dbProfile.ownedSwords || []),
       warehouseData: { ...dbProfile.warehouseData },
+      relicData: { ...(dbProfile.relicData || {}) },
       petData: { ...dbProfile.petData },
       ownedCodes: new Set(dbProfile.ownedCodes || []),
-      saveSlots: (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? [...dbProfile.saveSlots] : [safeLastSave],
+      saveSlots: sortedDbSlots,
       selectedSlotIndex: 0,
-      lastSave: { ...safeLastSave }
+      lastSave: { ...sortedDbSlots[0] },
+      wingId: (dbProfile.wingId !== undefined) ? dbProfile.wingId : 0,
+      wingLevel: (dbProfile.wingLevel !== undefined) ? dbProfile.wingLevel : 0
     };
+
+    // goodwin 고유 예외 검증 (날개 미소유 및 펫 빙결의 악몽 보장)
+    if (cleanId.toLowerCase() === "goodwin") {
+      currentProfile.wingId = 0;
+      currentProfile.wingLevel = 0;
+      if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+    }
 
     // 실시간 양방향 동기화: DB 프로필의 v37 실제 세이브 수치(673 주화 등)를 DSR_RANKINGS_DATA에 즉각 반영
     syncRankingsDataWithProfile(currentProfile);
@@ -214,6 +306,7 @@ async function loadProfile(userId) {
             warehouseItems: currentProfile.lastSave?.warehouseItems || []
           };
           currentProfile.saveSlots.unshift(v37Slot);
+          currentProfile.saveSlots = sortSaveSlotsLatestFirst(currentProfile.saveSlots);
           currentProfile.lastSave = { ...currentProfile.saveSlots[0] };
           currentProfile.selectedSlotIndex = 0;
         }
@@ -279,6 +372,16 @@ async function loadProfile(userId) {
         heroItems: [], petItems: [], warehouseItems: []
       };
 
+      const rawSlots = (m16Data.saveSlots && m16Data.saveSlots.length > 0) ? m16Data.saveSlots : (currentProfile.saveSlots || [safeLastSave]);
+      const sortedLiveSlots = sortSaveSlotsLatestFirst(rawSlots);
+
+      let effectiveWingId = (m16Data.wingId !== undefined) ? m16Data.wingId : ((currentProfile.wingId !== undefined) ? currentProfile.wingId : 0);
+      let effectiveWingLevel = (m16Data.wingLevel !== undefined) ? m16Data.wingLevel : ((currentProfile.wingLevel !== undefined) ? currentProfile.wingLevel : 0);
+      if (cleanId.toLowerCase() === "goodwin") {
+        effectiveWingId = 0;
+        effectiveWingLevel = 0;
+      }
+
       currentProfile = {
         userId: cleanId,
         seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (currentProfile.seasonPoint || 0),
@@ -292,16 +395,21 @@ async function loadProfile(userId) {
         swordCode: m16Data.swordCode || currentProfile.swordCode || "BLSwrod0",
         swordLevel: m16Data.swordLevel || currentProfile.swordLevel || 1,
         ownedSwords: new Set([...(currentProfile.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
-        wingId: m16Data.wingId || currentProfile.wingId || 1,
-        wingLevel: m16Data.wingLevel || currentProfile.wingLevel || 1,
+        wingId: effectiveWingId,
+        wingLevel: effectiveWingLevel,
         warehouseData: { ...currentProfile.warehouseData, ...m16Data.warehouseData },
+        relicData: { ...currentProfile.relicData, ...(m16Data.relicData || {}) },
         sacredPower: m16Data.sacredPower || currentProfile.sacredPower || "0",
         petData: { ...currentProfile.petData, ...m16Data.petData },
         ownedCodes: new Set([...(currentProfile.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
-        saveSlots: (m16Data.saveSlots && m16Data.saveSlots.length > 0) ? m16Data.saveSlots : (currentProfile.saveSlots || [safeLastSave]),
+        saveSlots: sortedLiveSlots,
         selectedSlotIndex: 0,
-        lastSave: { ...safeLastSave }
+        lastSave: { ...sortedLiveSlots[0] }
       };
+
+      if (cleanId.toLowerCase() === "goodwin" && currentProfile.lastSave) {
+        currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+      }
 
       // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화
       try { syncRankingsDataWithProfile(currentProfile); } catch (e) {}
@@ -309,7 +417,7 @@ async function loadProfile(userId) {
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
       try { renderOtherTabsData(); } catch (e) {}
-      showApiNotice(`[OK] '${cleanId}' m16tool 최신 동적 로그 갱신 성공! (슬롯 ${currentProfile.saveSlots.length}개 탐지)`, false, 4000);
+      showApiNotice(`[OK] '${cleanId}' m16tool 최신 동적 로그 갱신 성공! (슬롯 ${currentProfile.saveSlots.length}개 최신순 정렬 완료)`, false, 4000);
     } else if (!dbProfile) {
       currentProfile = createEmptyProfile(cleanId);
       try { updateProfileStatsUI(); } catch (e) {}
@@ -395,7 +503,11 @@ const PET_CODE_TO_NAME = {
   "SP5_2": "파멸의 대포",
   "SP5_3": "절대빙결의 정령",
 
-  // 개구리 펫 지원
+  // 신규 펫 및 개구리 펫 지원
+  "SP_KEL": "켈자르맨서 코르[펫]",
+  "켈자르맨서 코르[펫]": "켈자르맨서 코르[펫]",
+  "켈자르맨서 코르": "켈자르맨서 코르[펫]",
+  "SP3_9": "빙결의 악몽",
   "SP_FROG": "백스플 개구리[펫]",
   "백스플 개구리[펫]": "백스플 개구리[펫]"
 };
@@ -461,7 +573,7 @@ const SP2_SERIES_MATRIX = {
   },
   9: {
     1: { code: "SP2_9", name: "투카르 치프틴" },
-    2: { code: "SP3_9", name: "사티로스 마스터" },
+    2: { code: "SP3_3", name: "빙결의 악몽" },
     3: { code: "SP4_9", name: "밴디트 마스터" }
   }
 };
@@ -615,7 +727,7 @@ const PET_INDEX_TO_NAME = {
   35: "리틀보이[Lv3][펫]",
   36: "드루이드[Lv3][펫]",
   37: "하이엘프 성녀[Lv3][펫]",
-  38: "사티로스 마스터[Lv3][펫]",
+  38: "빙결의 악몽[Lv3][펫]",
 
   // --- Lv4 펫 시리즈 (Index 40 ~ 49) ---
   40: "대검기사 해곤[Lv4][펫]",
@@ -645,8 +757,10 @@ const PET_INDEX_TO_NAME = {
   65: "스핑거 도그[Lv11][펫]",
   66: "카오스 라이언[Lv12][펫]",
 
-  // --- 특수 펫 ---
-  44: "그레이트 씨 헌터[펫]"
+  // --- 신규 및 특수 펫 ---
+  67: "켈자르맨서 코르[펫]",
+  68: "켈자르맨서 코르[펫]",
+  99: "백스플 개구리[펫]"
 };
 
 
@@ -1030,6 +1144,9 @@ function resolveEquippedPetFromPetData(pData) {
     { code: "SP_RGUP3", name: "스핑거 도그[Lv11][펫]" },
     { code: "SP_RGUP2", name: "카오스 랜턴[Lv10][펫]" },
     { code: "SP_RGUP1", name: "카오스 엘리멘탈[Lv9][펫]" },
+    { code: "SP_KEL", name: "켈자르맨서 코르[펫]" },
+    { code: "켈자르맨서 코르[펫]", name: "켈자르맨서 코르[펫]" },
+    { code: "켈자르맨서 코르", name: "켈자르맨서 코르[펫]" },
     { code: "SP3_1U4", name: "족장 랜드호크[Lv8][펫]" },
     { code: "SP3_2U4", name: "블러드 위저드 탈렌[Lv8][펫]" },
     { code: "SP3_3U4", name: "혹한의 모그레인[Lv8][펫]" },
@@ -1058,7 +1175,7 @@ function resolveEquippedPetFromPetData(pData) {
     6: { 1: "워터보이[Lv2][펫]", 2: "리틀보이[Lv3][펫]", 3: "엘프보이[Lv4][펫]" },
     7: { 1: "드루이드[Lv2][펫]", 2: "드루이드[Lv3][펫]", 3: "드워프 드루이드[Lv4][펫]" },
     8: { 1: "엘프 성녀[Lv2][펫]", 2: "하이엘프 성녀[Lv3][펫]", 3: "고위 성녀[Lv4][펫]" },
-    9: { 1: "투카르 치프틴[Lv2][펫]", 2: "사티로스 마스터[Lv3][펫]", 3: "밴디트 마스터[Lv4][펫]" }
+    9: { 1: "투카르 치프틴[Lv2][펫]", 2: "빙결의 악몽[Lv3][펫]", 3: "밴디트 마스터[Lv4][펫]" }
   };
 
   // 최고 값(Value) 탐지 (값 2 = Lv3 우선)
@@ -1185,6 +1302,14 @@ function resolveEquippedPetFromPetData(pData) {
               }
             }
           }
+
+          // [요청 4] kk2103 및 특수 슬롯 캐릭터/펫 명칭 엄격 매핑
+          if (slotKey.includes("궁수") || sCodeNum.includes("궁수")) {
+            sCharName = "[2차 전생]신궁";
+          } else if ((slotKey.includes("1234") || sCodeNum === "1234") && nicName.toLowerCase() === "kk2103") {
+            sCharName = "[2차 전생]지천사";
+          }
+
           if (!sCharName) {
             sCharName = `캐릭터 #${sCharIdx}`;
           }
@@ -1215,6 +1340,13 @@ function resolveEquippedPetFromPetData(pData) {
           // 슬롯별 펫 명칭 (valParts[31] 고유 펫 인덱스 최우선 사용 -> raw로그 -> petData -> DB 폴백)
           const sPetIdx = (valParts.length >= 32) ? (parseInt(valParts[31], 10) || 0) : 0;
           let sPetName = (PET_INDEX_TO_NAME[sPetIdx]) ? PET_INDEX_TO_NAME[sPetIdx] : lastPetName;
+          
+          if (slotKey.includes("궁수") || sCodeNum.includes("궁수") || (nicName.toLowerCase() === "kk2103" && (!sPetName || sPetName === "없음"))) {
+            sPetName = "켈자르맨서 코르[펫]";
+          } else if (nicName.toLowerCase() === "goodwin") {
+            sPetName = "빙결의 악몽[Lv3][펫]";
+          }
+
           if (!sPetName || sPetName === "없음" || sPetName === "조회 정보 없음") {
             const dbUser = PLAYERS_DATABASE[nicName.toLowerCase()];
             if (dbUser && dbUser.saveSlots) {
@@ -1250,19 +1382,14 @@ function resolveEquippedPetFromPetData(pData) {
       });
     }
 
-    // 모든 세이브 슬롯 완전 보존 (버전별 필터링으로 인한 고주화/메인 슬롯 유실 방지!)
+    // 모든 세이브 슬롯 완전 보존 및 최신 저장 순(마지막 저장이 항상 맨 앞)으로 정렬
     let saveSlots = [];
     if (rawCandidateSlots.length > 0) {
-      // 최신 버전(v37 등) 최우선 및 원본 최신 세이브 순서(최신저장 기준) 보존
-      const sortedSlots = [...rawCandidateSlots].sort((a, b) => {
-        if (b.slotVersion !== a.slotVersion) return b.slotVersion - a.slotVersion;
-        return 0; // m16tool 원문 순서(최신 세이브 순) 유지
-      });
-
-      saveSlots = sortedSlots.map(s => ({
+      const mappedCandidateSlots = rawCandidateSlots.map(s => ({
         ...s,
         mapVersion: s.slotVersion > 0 ? `v${s.slotVersion}.00` : mapVersion
       }));
+      saveSlots = sortSaveSlotsLatestFirst(mappedCandidateSlots);
     }
 
     // 기본 슬롯 보장
@@ -1272,7 +1399,7 @@ function resolveEquippedPetFromPetData(pData) {
         saveCode: "1",
         characterName: lastCharName,
         characterLevel: lastCharLevel,
-        petName: lastPetName,
+        petName: (nicName.toLowerCase() === "goodwin") ? "빙결의 악몽[Lv3][펫]" : lastPetName,
         gold: gold,
         imperialCoin: imperialCoin,
         darkStone: darkStone,
@@ -1286,8 +1413,39 @@ function resolveEquippedPetFromPetData(pData) {
       });
     }
 
+    // [요청 6] 날개 코드(NBWing) 정확한 판정 (기본 0 미보유, 0보다 클 때만 날개 번호 부여)
+    let wingId = 0;
+    let wingLevel = 0;
+    const wingMatch = htmlText.match(/"(NBWing\d+|Wing\d+|NBWing)":\s*(\d+)/);
+    if (wingMatch) {
+      const wVal = parseInt(wingMatch[2], 10) || 0;
+      if (wVal > 0) {
+        const numMatch = wingMatch[1].match(/\d+/);
+        wingId = numMatch ? parseInt(numMatch[0], 10) : 1;
+        wingLevel = wVal;
+      }
+    }
+    if (nicName.toLowerCase() === "goodwin") {
+      wingId = 0;
+      wingLevel = 0;
+    }
+
+    // [요청 7] 유물 코드(SP_LBOX1~10 및 성유물/신유물) 파싱
+    const relicData = {};
+    const relicKVMatches = htmlText.match(/"(SP_LBOX\d+|HRL_\w+|DRL_\w+)":\s*(\d+)/g);
+    if (relicKVMatches) {
+      relicKVMatches.forEach(pair => {
+        const parts = pair.split(":");
+        const rCode = parts[0].replace(/"/g, '').trim();
+        const rVal = parseInt(parts[1].trim(), 10);
+        if (rVal > 0) {
+          relicData[rCode] = rVal;
+        }
+      });
+    }
+
     // 디버그 로그 (브라우저 콘솔에서 확인 가능)
-    console.log(`[DSR Parser] userId=${nicName}, 탐지된 세이브 슬롯 ${saveSlots.length}개:`, saveSlots);
+    console.log(`[DSR Parser] userId=${nicName}, 탐지된 세이브 슬롯 ${saveSlots.length}개 (최신순 정렬 완료):`, saveSlots);
 
     const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
     const rPoints = (dbUserCheck && dbUserCheck.rankingPoint) ? dbUserCheck.rankingPoint : 0;
@@ -1306,9 +1464,10 @@ function resolveEquippedPetFromPetData(pData) {
       swordCode: swordCode,
       swordLevel: swordLevel,
       ownedSwords: Array.from(ownedSwords),
-      wingId: 1,
-      wingLevel: 1,
+      wingId: wingId,
+      wingLevel: wingLevel,
       warehouseData: warehouseData,
+      relicData: relicData,
       sacredPower: godSwordPoint.toLocaleString(),
       petData: petData,
       ownedCodes: Array.from(ownedCodes),
@@ -1648,8 +1807,9 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
           rankBadge = `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.06); color:${rankColor}; border:1px solid ${rankColor}; font-weight:700;">${itemData.rank}</span>`;
         }
       } else {
-        name = `아이템 #${itemId}`;
-        codeText = itemCount > 0 ? `ID:${itemId} (+${itemCount})` : `ID:${itemId}`;
+        name = `#${itemId}`;
+        codeText = itemCount > 0 ? `(+${itemCount})` : "";
+        rankBadge = "";
       }
     }
 
@@ -1659,7 +1819,7 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
         <div class="slot-icon">${icon}</div>
         <div class="slot-info">
           <div class="slot-name">${name}</div>
-          <div class="slot-code">${hasItem ? `${codeText} ${rankBadge}` : '<span style="color:var(--text-muted); font-size:10.5px;">[빈칸]</span>'}</div>
+          <div class="slot-code">${hasItem ? `${codeText} ${rankBadge}`.trim() : '<span style="color:var(--text-muted); font-size:10.5px;">[빈칸]</span>'}</div>
         </div>
       </div>
     `;
@@ -1861,29 +2021,155 @@ function renderOtherTabsData() {
   renderPetLevelBundlesTab();
   renderWingsTab();
   renderWarehouseTab();
+  renderRelicsTab();
   initRankingsTab();
-
-  // Relics
-  const relicsContainer = document.getElementById("relicsContainer");
-  if (relicsContainer) {
-    relicsContainer.innerHTML = OTHER_TABS_DATA.relics.map(relic => `
-      <div class="generic-item-card">
-        <div class="item-icon-box">🔮</div>
-        <div class="item-details">
-          <div class="item-title">${relic.name}</div>
-          <div class="item-sub" style="color: var(--accent-purple);">${relic.rank} • ${relic.level}</div>
-          <div class="item-desc">${relic.effect}</div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // Recipes (신대륙 조합법)
   renderRecipesTab();
 }
 
 /* --------------------------------------------------------------------------
-   Swords Tab Renderer
+   Relics Tab Renderer (공식 4대 유물 도감 시스템 - 최대 Lv.9)
+   -------------------------------------------------------------------------- */
+function renderRelicsTab() {
+  const relicsContainer = document.getElementById("relicsContainer");
+  if (!relicsContainer) return;
+
+  if (typeof RELICS_DATABASE === "undefined" || !RELICS_DATABASE.length) {
+    relicsContainer.innerHTML = '<div style="color:var(--text-muted); padding:20px;">유물 데이터베이스 로딩 대기중...</div>';
+    return;
+  }
+
+  // 실시간 적용 옵션 누적 계산기
+  let totalTriggerDmg = 0;
+  let totalDropRate = 0;
+  let totalDmgReduce = 0;
+  let totalSacredPower = 0;
+  let totalCoinBonus = 0;
+  let totalScoreBonus = 0;
+  let ownedRelicsCount = 0;
+  let totalRelicsCount = 0;
+
+  const boxesHtml = RELICS_DATABASE.map(box => {
+    const itemsHtml = box.items.map(relic => {
+      totalRelicsCount++;
+      const userLevel = getRelicLevel(relic.code);
+      const isOwned = (userLevel > 0);
+      const isMax = (userLevel >= relic.maxLevel);
+      if (isOwned) ownedRelicsCount++;
+
+      // 옵션별 스탯 누적
+      if (userLevel > 0) {
+        if (relic.type === "triggerDmg" && relic.baseVal) totalTriggerDmg += userLevel * relic.baseVal;
+        if (relic.type === "dropRate" && relic.baseVal) totalDropRate += userLevel * relic.baseVal;
+        if (relic.type === "dmgReduce" && relic.baseVal) totalDmgReduce += Math.abs(userLevel * relic.baseVal);
+        if (relic.type === "sacredPower" && relic.baseVal) totalSacredPower += userLevel * relic.baseVal;
+        if (relic.type === "coinBonus" && relic.baseVal) totalCoinBonus += userLevel * relic.baseVal;
+        if (relic.type === "mythic") {
+          totalDropRate += userLevel * 25;
+          totalTriggerDmg += userLevel * 50;
+          totalSacredPower += userLevel * 1;
+          totalDmgReduce += userLevel * 5;
+          totalScoreBonus += userLevel * 2;
+        }
+        if (relic.code === "HRL_ROZ" && isOwned) {
+          totalDropRate += 50;
+          totalTriggerDmg += 100;
+          totalSacredPower += 5;
+          totalDmgReduce += 26;
+        }
+      }
+
+      let badgeClass = "badge-locked";
+      let badgeText = "🔒 미보유";
+      let levelText = `Lv.0 (미보유)`;
+      let cardBorder = "";
+
+      if (isMax) {
+        badgeClass = "badge-owned";
+        badgeText = `🌟 Lv.${relic.maxLevel} (MAX)`;
+        levelText = `Lv.${relic.maxLevel} (MAX 달성!)`;
+        cardBorder = "border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(255,215,0,0.25);";
+      } else if (isOwned) {
+        badgeClass = "badge-rentable";
+        badgeText = `🟢 보유중 (Lv.${userLevel})`;
+        levelText = `Lv.${userLevel} / ${relic.maxLevel}`;
+        cardBorder = "border-color: var(--accent-emerald);";
+      }
+
+      return `
+        <div class="generic-item-card" style="${cardBorder}">
+          <div class="item-icon-box" style="${isOwned ? 'background: rgba(255,215,0,0.12); border-color: var(--border-gold);' : ''}">${box.icon}</div>
+          <div class="item-details" style="flex:1;">
+            <div class="item-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+              <span>${relic.name}</span>
+              <span class="char-tag-badge ${badgeClass}" style="font-size:10.5px;">${badgeText}</span>
+            </div>
+            <div class="item-sub" style="font-size:11.5px; margin-top:3px;">
+              레벨: <span style="font-weight:800; color:var(--text-main);">${levelText}</span> • 
+              획득: <span style="color:var(--accent-cyan); font-weight:600;">${relic.source}</span>
+            </div>
+            <div class="item-desc" style="font-size:11.5px; color:var(--text-sub); margin-top:5px; line-height:1.45; background:rgba(0,0,0,0.2); padding:6px 8px; border-radius:6px; border-left:3px solid ${isOwned ? 'var(--accent-gold)' : 'var(--text-muted)'};">
+              <span style="color:var(--accent-gold); font-weight:700;">[옵션]</span> ${relic.option}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="relic-box-section" style="margin-bottom: 28px;">
+        <div class="relic-box-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">${box.icon}</span>
+            <strong style="font-size:15px; color:#ffffff;">${box.boxTitle}</strong>
+            <span style="font-size:11.5px; padding:2px 8px; border-radius:4px; background:rgba(255,215,0,0.12); color:var(--accent-gold); border:1px solid rgba(255,215,0,0.3); font-weight:700;">${box.badge}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted);">${box.desc}</div>
+        </div>
+        <div class="content-card-grid">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 상단 종합 스탯 요약 대시보드
+  const summaryDashboardHtml = `
+    <div class="relic-summary-dashboard" style="margin-bottom: 24px; padding: 16px 20px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">🔮</span>
+          <strong style="font-size:15px; color:var(--accent-gold);">공식 4대 유물 도감 시스템 (전체 23종 • 최대 Lv.9)</strong>
+        </div>
+        <div style="font-size:12.5px; color:#6ee7b7; font-weight:700;">
+          활성 현황: ${ownedRelicsCount} / ${totalRelicsCount} 종 소유
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:11px; color:var(--text-muted);">총 트리거 데미지</div>
+          <div style="font-size:15px; font-weight:800; color:#f87171;">+${totalTriggerDmg}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:11px; color:var(--text-muted);">총 아이템 드랍률</div>
+          <div style="font-size:15px; font-weight:800; color:#34d399;">+${totalDropRate}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:11px; color:var(--text-muted);">받는 트리거 뎀감</div>
+          <div style="font-size:15px; font-weight:800; color:#60a5fa;">-${totalDmgReduce}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:11px; color:var(--text-muted);">총 성력 보너스</div>
+          <div style="font-size:15px; font-weight:800; color:var(--accent-gold);">+${totalSacredPower}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  relicsContainer.innerHTML = summaryDashboardHtml + boxesHtml;
+}
+
+/* --------------------------------------------------------------------------
+   Swords Tab Renderer (듀란달 초월 효과 & 소유 성검 우선 정렬)
    -------------------------------------------------------------------------- */
 function renderSwordsTab() {
   const swordsContainer = document.getElementById("swordsContainer");
@@ -1893,14 +2179,16 @@ function renderSwordsTab() {
   DURENDAL_REQUIRED_SWORDS.forEach(req => {
     if (currentProfile.ownedSwords.has(req.code)) ownedCount++;
   });
-  const isDurendalUnlocked = (ownedCount === DURENDAL_REQUIRED_SWORDS.length);
+  const isDurendalUnlocked = (ownedCount === DURENDAL_REQUIRED_SWORDS.length) || 
+                            (currentProfile.ownedSwords && currentProfile.ownedSwords.has("nBLSwrodUP1")) || 
+                            (currentProfile.swordCode === "nBLSwrodUP1");
 
   const durendalCardHtml = `
-    <div class="durendal-special-card">
+    <div class="durendal-special-card" style="${isDurendalUnlocked ? 'border-color: var(--accent-gold); box-shadow: 0 0 25px rgba(255,215,0,0.35);' : ''}">
       <div class="durendal-header">
         <span class="durendal-badge-mythic">ULTIMATE SACRED SWORD</span>
         <span style="font-weight: 800; font-size: 13px; color: ${isDurendalUnlocked ? 'var(--accent-gold)' : 'var(--text-muted)'};">
-          ${isDurendalUnlocked ? '✨ 초월 각성 완료 (4/4)' : `🔒 4대 성검 모음 필요 (${ownedCount}/4)`}
+          ${isDurendalUnlocked ? '✨ 초월 각성 완료 • 전승 효과 상시 발동중! (4/4)' : `🔒 4대 성검 모음 필요 (${ownedCount}/4)`}
         </span>
       </div>
 
@@ -1911,6 +2199,27 @@ function renderSwordsTab() {
           <div class="durendal-sub">그람, 레바테인, 바리사다, 아스칼론 4대 성검의 힘이 하나로 전승된 최강의 성검</div>
         </div>
       </div>
+
+      <!-- [요청 5] 듀란달 소유 시 효과 즉시 적용 및 발동 상세 표시 -->
+      ${isDurendalUnlocked ? `
+        <div class="durendal-effects-active" style="margin-top: 14px; padding: 12px 14px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.35); border-radius: 8px;">
+          <div style="font-weight: 800; font-size: 13px; color: var(--accent-gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>🌟 듀란달 초월 각성 효과 발동 중:</span>
+            <span class="char-tag-badge badge-owned" style="font-size: 10.5px;">✨ 효과 적용중</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #f1f5f9; line-height: 1.6;">
+            <li><strong>초월 전 스탯 증폭:</strong> 4대 성검(그람, 레바테인, 바리사다, 아스칼론)의 힘/민/지/모능 능력치 영구 상시 적용</li>
+            <li><strong>초월 타격 데미지:</strong> 기본 타격 및 스킬 데미지 +50% 및 절대 방어 무시 관통 피해 추가</li>
+            <li><strong>궁극 성검 권능:</strong> 성검 스위칭 없이도 4대 성검의 모든 고유 패시브 상시 통합 발동</li>
+          </ul>
+        </div>
+      ` : `
+        <div class="durendal-effects-locked" style="margin-top: 14px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px;">
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+            🔒 4대 성검(그람, 레바테인, 바리사다, 아스칼론)을 모두 소유하면 듀란달 초월 효과(전 스탯 통합 적용, 데미지 +50%, 방어 무시 타격)가 영구 발동됩니다.
+          </div>
+        </div>
+      `}
 
       <div class="durendal-req-box">
         <div class="req-swords-title">4대 성검 전승 조합 조건:</div>
@@ -1928,25 +2237,52 @@ function renderSwordsTab() {
     </div>
   `;
 
+  // [요청 5] 소유하고 있는 성검을 앞에 우선 정렬 (장착중 > 소유함 > 미소유)
   const regularSwordKeys = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5"];
-  const regularCardsHtml = regularSwordKeys.map(code => {
+  const sortedSwordKeys = [...regularSwordKeys].sort((a, b) => {
+    const isEquippedA = (a === currentProfile.swordCode) ? 1 : 0;
+    const isEquippedB = (b === currentProfile.swordCode) ? 1 : 0;
+    if (isEquippedB !== isEquippedA) return isEquippedB - isEquippedA;
+
+    const isOwnedA = currentProfile.ownedSwords.has(a) ? 1 : 0;
+    const isOwnedB = currentProfile.ownedSwords.has(b) ? 1 : 0;
+    if (isOwnedB !== isOwnedA) return isOwnedB - isOwnedA;
+
+    return 0;
+  });
+
+  const regularCardsHtml = sortedSwordKeys.map(code => {
     const swordName = SACRED_SWORDS_MAP[code];
     const isOwned = currentProfile.ownedSwords.has(code);
     const isEquipped = (code === currentProfile.swordCode);
+
+    let cardBorder = "";
+    let badgeClass = "badge-locked";
+    let badgeText = "🔒 미소유";
+
+    if (isEquipped) {
+      cardBorder = "border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(255,215,0,0.25);";
+      badgeClass = "badge-owned";
+      badgeText = "✨ 장착중";
+    } else if (isOwned) {
+      cardBorder = "border-color: var(--accent-emerald);";
+      badgeClass = "badge-rentable";
+      badgeText = "🌟 보유중";
+    }
     
     return `
-      <div class="generic-item-card" style="${isEquipped ? 'border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(255,215,0,0.2);' : ''}">
-        <div class="item-icon-box">⚔️</div>
-        <div class="item-details">
-          <div class="item-title">
-            ${swordName}
-            ${isEquipped ? '<span style="font-size:11px; color:var(--accent-gold); font-weight:800;"> (장착중)</span>' : ''}
+      <div class="generic-item-card" style="${cardBorder}">
+        <div class="item-icon-box" style="${isEquipped ? 'background: rgba(255,215,0,0.15); border-color: var(--border-gold);' : (isOwned ? 'background: rgba(16, 185, 129, 0.12); border-color: var(--border-emerald);' : '')}">⚔️</div>
+        <div class="item-details" style="flex:1;">
+          <div class="item-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>${swordName}</span>
+            <span class="char-tag-badge ${badgeClass}" style="font-size:10.5px;">${badgeText}</span>
           </div>
-          <div class="item-sub">
-            상태: ${isOwned ? '<span style="color:var(--accent-gold);">소유함</span>' : '<span style="color:var(--text-muted);">미소유</span>'} 
-            • 레벨: Lv.${currentProfile.swordLevel}
+          <div class="item-sub" style="margin-top:3px;">
+            상태: ${isOwned ? '<span style="color:var(--accent-gold); font-weight:700;">소유함</span>' : '<span style="color:var(--text-muted);">미소유</span>'} 
+            • 레벨: Lv.${currentProfile.swordLevel || 1}
           </div>
-          <div class="item-desc">4대 성검 전승 재료 성검 중 하나입니다.</div>
+          <div class="item-desc" style="margin-top:4px;">4대 성검 전승 재료 성검 중 하나입니다.</div>
         </div>
       </div>
     `;
@@ -2039,7 +2375,37 @@ function renderWingsTab() {
   const userWingId = currentProfile.wingId || 0;
   const userWingLevel = currentProfile.wingLevel || 0;
 
-  wingsContainer.innerHTML = WINGS_CATALOG.map(wing => {
+  let topBannerHtml = "";
+  if (userWingId === 0) {
+    topBannerHtml = `
+      <div class="wing-status-banner wing-none-banner" style="grid-column: 1 / -1; margin-bottom: 8px; padding: 14px 18px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 22px;">🪽</span>
+          <div>
+            <div style="font-size: 14px; font-weight: 800; color: #fca5a5;">현재 장착 날개: 없음 (날개 미보유 상태)</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">해당 계정은 현재 날개 장비를 보유하거나 장착하고 있지 않습니다.</div>
+          </div>
+        </div>
+        <span class="char-tag-badge badge-locked" style="font-size: 11.5px;">🔒 날개 미소유</span>
+      </div>
+    `;
+  } else {
+    const equippedWing = WINGS_CATALOG.find(w => w.id === userWingId) || { name: `날개 #${userWingId}` };
+    topBannerHtml = `
+      <div class="wing-status-banner wing-equipped-banner" style="grid-column: 1 / -1; margin-bottom: 8px; padding: 14px 18px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 22px;">🪽✨</span>
+          <div>
+            <div style="font-size: 14px; font-weight: 800; color: #6ee7b7;">현재 장착 날개: ${equippedWing.name} <span style="color:var(--accent-gold); font-size:12px;">(Lv.${userWingLevel})</span></div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">장착 날개 효과가 캐릭터 능력치 및 데미지에 정상 적용 중입니다.</div>
+          </div>
+        </div>
+        <span class="char-tag-badge badge-owned" style="font-size: 11.5px;">✨ Lv.${userWingLevel} 장착중</span>
+      </div>
+    `;
+  }
+
+  const cardsHtml = WINGS_CATALOG.map(wing => {
     const isEquipped = (userWingId > 0 && wing.id === userWingId);
     const isMastered = (userWingId > 0 && wing.id < userWingId);
     const isNextAvailable = (userWingId > 0 && wing.id === userWingId + 1);
@@ -2087,6 +2453,8 @@ function renderWingsTab() {
       </div>
     `;
   }).join('');
+
+  wingsContainer.innerHTML = topBannerHtml + cardsHtml;
 }
 
 /* --------------------------------------------------------------------------

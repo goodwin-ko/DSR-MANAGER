@@ -1,6 +1,6 @@
 {
   "name": "dsr-manager",
-  "version": "37.3.3",
+  "version": "37.4.0",
   "description": "Continent RPG Season & Account Manager",
   "main": "server.js",
   "scripts": {
