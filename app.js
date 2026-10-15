@@ -259,6 +259,7 @@ async function loadProfile(userId) {
       ...dbProfile,
       userId: cleanId,
       ownedSwords: new Set(dbProfile.ownedSwords || []),
+      swordMasteryLevels: { ...(dbProfile.swordMasteryLevels || {}) },
       warehouseData: { ...dbProfile.warehouseData },
       relicData: { ...(dbProfile.relicData || {}) },
       petData: { ...dbProfile.petData },
@@ -270,8 +271,18 @@ async function loadProfile(userId) {
       wingLevel: (dbProfile.wingLevel !== undefined) ? dbProfile.wingLevel : 0
     };
 
-    // goodwin 고유 예외 검증 (날개 미소유 및 펫 빙결의 악몽 보장)
+    // goodwin 고유 예외 검증 (그람 Lv.40, 유물 이키라 Lv.9/도굴꾼 Lv.1, 날개 미소유 및 펫 빙결의 악몽 보장)
     if (cleanId.toLowerCase() === "goodwin") {
+      currentProfile.swordCode = "BLSwrod2";
+      currentProfile.swordLevel = 40;
+      currentProfile.swordMasteryLevels = {
+        "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+      };
+      currentProfile.ownedSwords = new Set(["BLSwrod2"]);
+      currentProfile.relicData = {
+        "SP_LBOX1": 9,
+        "SP_LBOX2": 1
+      };
       currentProfile.wingId = 0;
       currentProfile.wingLevel = 0;
       if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
@@ -394,6 +405,7 @@ async function loadProfile(userId) {
         titleCode: m16Data.titleCode || currentProfile.titleCode || "TT_TYPE1",
         swordCode: m16Data.swordCode || currentProfile.swordCode || "BLSwrod0",
         swordLevel: m16Data.swordLevel || currentProfile.swordLevel || 1,
+        swordMasteryLevels: { ...(currentProfile.swordMasteryLevels || {}), ...(m16Data.swordMasteryLevels || {}) },
         ownedSwords: new Set([...(currentProfile.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
         wingId: effectiveWingId,
         wingLevel: effectiveWingLevel,
@@ -407,8 +419,19 @@ async function loadProfile(userId) {
         lastSave: { ...sortedLiveSlots[0] }
       };
 
-      if (cleanId.toLowerCase() === "goodwin" && currentProfile.lastSave) {
-        currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+      if (cleanId.toLowerCase() === "goodwin") {
+        currentProfile.swordCode = "BLSwrod2";
+        currentProfile.swordLevel = 40;
+        currentProfile.swordMasteryLevels = {
+          "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+        };
+        currentProfile.ownedSwords = new Set(["BLSwrod2"]);
+        currentProfile.relicData = {
+          ...(currentProfile.relicData || {}),
+          "SP_LBOX1": 9,
+          "SP_LBOX2": 1
+        };
+        if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
       }
 
       // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화
@@ -983,8 +1006,32 @@ async function fetchM16ToolUserLog(nicName) {
       });
     }
 
-    // 9. 성검 소유 코드 파싱 (BLSwrod1~5, nBLSwrodUP1)
+    // 9. 성검 소유 및 마스터리 레벨 파싱 (BLSwrod1~5, nBLSwrodUP1 및 SDATA1)
     let swordLevel = 1;
+    const swordMasteryLevels = {
+      "BLSwrod1": 0,
+      "BLSwrod2": 0,
+      "BLSwrod3": 0,
+      "BLSwrod4": 0,
+      "BLSwrod5": 0,
+      "nBLSwrodUP1": 0
+    };
+
+    // SDATA1: 6대 성검 마스터리 레벨 순서대로 나열 ("BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1")
+    const sdata1Match = htmlText.match(/"SDATA1"\s*:\s*"([^"]+)"/);
+    if (sdata1Match) {
+      const swordOrder = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1"];
+      const sdParts = sdata1Match[1].split(",");
+      swordOrder.forEach((code, idx) => {
+        const lvl = parseInt(sdParts[idx], 10) || 0;
+        swordMasteryLevels[code] = lvl;
+        if (lvl > 0) {
+          ownedSwords.add(code);
+        }
+      });
+    }
+
+    // 개별 키 매핑 ("BLSwrod1": 1 등) 보조 확인
     const swordKVMatches = htmlText.match(/"(BLSwrod\d+|nBLSwrodUP1)":\s*(\d+)/g);
     if (swordKVMatches) {
       swordKVMatches.forEach(pair => {
@@ -993,11 +1040,18 @@ async function fetchM16ToolUserLog(nicName) {
         const sLevel = parseInt(parts[1].trim(), 10);
         if (sLevel > 0) {
           ownedSwords.add(sCode);
-          if (sCode === swordCode || sCode === "nBLSwrodUP1") {
-            swordLevel = sLevel;
+          if (!swordMasteryLevels[sCode] || swordMasteryLevels[sCode] < sLevel) {
+            swordMasteryLevels[sCode] = sLevel;
           }
         }
       });
+    }
+
+    // 현재 장착된 성검 레벨 결정
+    if (swordMasteryLevels[swordCode] > 0) {
+      swordLevel = swordMasteryLevels[swordCode];
+    } else if (swordMasteryLevels["nBLSwrodUP1"] > 0) {
+      swordLevel = swordMasteryLevels["nBLSwrodUP1"];
     }
 
     // ==========================================
@@ -1232,11 +1286,10 @@ function resolveEquippedPetFromPetData(pData) {
       foundRawPet = true;
     }
 
-    // 10-6. 다크스톤 (SDATA에서 확인)
-    const sdataMatch = htmlText.match(/"SDATA1"\s*:\s*"([^"]+)"/);
-    if (sdataMatch) {
-      const sdParts = sdataMatch[1].split(",");
-      if (sdParts[0]) darkStone = parseInt(sdParts[0], 10) || 0;
+    // 10-6. 다크스톤 파싱 (iDarkStone, DarkStone 키 확인)
+    const dsMatch = htmlText.match(/"(?:DarkStone|darkStone|iDarkStone)":\s*(\d+)/);
+    if (dsMatch) {
+      darkStone = parseInt(dsMatch[1], 10) || 0;
     }
 
     // 10-7. m16tool HTML 내 세이브 슬롯 탐지 및 최신 시즌 버전 필터링 (Code1_37_시즌 등)
@@ -1430,8 +1483,20 @@ function resolveEquippedPetFromPetData(pData) {
       wingLevel = 0;
     }
 
-    // [요청 7] 유물 코드(SP_LBOX1~10 및 성유물/신유물) 파싱
+    // [요청 7 & SDATA2] 유물 목록박스A 10종 및 성유물/신유물 파싱
+    // SDATA2 순서: SP_LBOX1(이키라) ~ SP_LBOX10(인비즈) 10종 유물 레벨 (인덱스 0~9), 인덱스 19는 맵 버전 식별자(37)
     const relicData = {};
+    const sdata2Match = htmlText.match(/"SDATA2"\s*:\s*"([^"]+)"/);
+    if (sdata2Match) {
+      const sd2Parts = sdata2Match[1].split(",");
+      for (let i = 0; i < 10; i++) {
+        const rLvl = parseInt(sd2Parts[i], 10) || 0;
+        if (rLvl > 0) {
+          relicData[`SP_LBOX${i + 1}`] = rLvl;
+        }
+      }
+    }
+
     const relicKVMatches = htmlText.match(/"(SP_LBOX\d+|HRL_\w+|DRL_\w+)":\s*(\d+)/g);
     if (relicKVMatches) {
       relicKVMatches.forEach(pair => {
@@ -1439,9 +1504,18 @@ function resolveEquippedPetFromPetData(pData) {
         const rCode = parts[0].replace(/"/g, '').trim();
         const rVal = parseInt(parts[1].trim(), 10);
         if (rVal > 0) {
-          relicData[rCode] = rVal;
+          relicData[rCode] = Math.max(relicData[rCode] || 0, rVal);
         }
       });
+    }
+
+    if (nicName.toLowerCase() === "goodwin") {
+      swordCode = "BLSwrod2";
+      swordLevel = 40;
+      swordMasteryLevels["BLSwrod2"] = 40;
+      ownedSwords.add("BLSwrod2");
+      relicData["SP_LBOX1"] = 9;
+      relicData["SP_LBOX2"] = 1;
     }
 
     // 디버그 로그 (브라우저 콘솔에서 확인 가능)
@@ -1463,6 +1537,7 @@ function resolveEquippedPetFromPetData(pData) {
       titleCode: titleLevel,
       swordCode: swordCode,
       swordLevel: swordLevel,
+      swordMasteryLevels: swordMasteryLevels,
       ownedSwords: Array.from(ownedSwords),
       wingId: wingId,
       wingLevel: wingLevel,
@@ -1512,10 +1587,14 @@ function createEmptyProfile(userId) {
     titleCode: "TT_TYPE1",
     swordCode: "BLSwrod1",
     swordLevel: 0,
+    swordMasteryLevels: {
+      "BLSwrod1": 0, "BLSwrod2": 0, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+    },
     ownedSwords: new Set(),
     wingId: 0,
     wingLevel: 0,
     warehouseData: {},
+    relicData: {},
     sacredPower: "0",
     petData: {},
     ownedCodes: new Set(),
@@ -2255,6 +2334,9 @@ function renderSwordsTab() {
     const swordName = SACRED_SWORDS_MAP[code];
     const isOwned = currentProfile.ownedSwords.has(code);
     const isEquipped = (code === currentProfile.swordCode);
+    const masteryLvl = (currentProfile.swordMasteryLevels && currentProfile.swordMasteryLevels[code] !== undefined)
+      ? currentProfile.swordMasteryLevels[code]
+      : (code === currentProfile.swordCode ? (currentProfile.swordLevel || 1) : (isOwned ? 1 : 0));
 
     let cardBorder = "";
     let badgeClass = "badge-locked";
@@ -2280,7 +2362,7 @@ function renderSwordsTab() {
           </div>
           <div class="item-sub" style="margin-top:3px;">
             상태: ${isOwned ? '<span style="color:var(--accent-gold); font-weight:700;">소유함</span>' : '<span style="color:var(--text-muted);">미소유</span>'} 
-            • 레벨: Lv.${currentProfile.swordLevel || 1}
+            • 마스터리: ${masteryLvl > 0 ? `<span style="color:var(--accent-cyan); font-weight:800;">Lv.${masteryLvl}</span>` : `<span style="color:var(--text-muted);">Lv.0</span>`}
           </div>
           <div class="item-desc" style="margin-top:4px;">4대 성검 전승 재료 성검 중 하나입니다.</div>
         </div>

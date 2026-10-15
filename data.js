@@ -2695,12 +2695,24 @@ const PLAYERS_DATABASE = {
     rankStanding: "1위 (상위 랭커)",
     titleCode: "TT_TYPE2", // 실버 칭호
     swordCode: "BLSwrod2", // 그람(모능)
-    swordLevel: 1,
-    ownedSwords: ["BLSwrod1", "BLSwrod2"],
+    swordLevel: 40,        // SDATA1 그람 마스터리 Lv.40
+    ownedSwords: ["BLSwrod2"],
+    swordMasteryLevels: {
+      "BLSwrod1": 0,
+      "BLSwrod2": 40,
+      "BLSwrod3": 0,
+      "BLSwrod4": 0,
+      "BLSwrod5": 0,
+      "nBLSwrodUP1": 0
+    },
     wingId: 0,
     wingLevel: 0,
     warehouseData: {
       "BLBox1": 1, "BLBox4": 1
+    },
+    relicData: {
+      "SP_LBOX1": 9, // 이키라의 석상 (Lv.9 Max - SDATA2[0])
+      "SP_LBOX2": 1  // 도굴꾼의 석상 (Lv.1 - SDATA2[1])
     },
     sacredPower: "10,671",
     petData: {
