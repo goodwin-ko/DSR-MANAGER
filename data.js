@@ -2707,6 +2707,10 @@ const PLAYERS_DATABASE = {
     },
     wingId: 0,
     wingLevel: 0,
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 3,
+    beans: { red: 0, blue: 0, grey: 3 },
     warehouseData: {
       "BLBox1": 1, "BLBox4": 1
     },
@@ -2728,8 +2732,8 @@ const PLAYERS_DATABASE = {
       characterLevel: 6000,
       petName: "빙결의 악몽[Lv3][펫]",
       petLevel: 6000,
-      gold: 670813,
-      imperialCoin: 673,
+      gold: 51601,
+      imperialCoin: 1416,
       darkStone: 0,
       str: 42073,
       agi: 42073,
@@ -2768,8 +2772,8 @@ const PLAYERS_DATABASE = {
         characterName: "페가수스 나이트",
         characterLevel: 6000,
         petName: "빙결의 악몽[Lv3][펫]",
-        gold: 670813,
-        imperialCoin: 673,
+        gold: 51601,
+        imperialCoin: 1416,
         darkStone: 0,
         str: 42073,
         agi: 42073,
@@ -2797,88 +2801,6 @@ const PLAYERS_DATABASE = {
           { id: 318, count: 0 },
           { id: 373, count: 0 },
           { id: 374, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_1",
-        saveCode: "1",
-        mapVersion: "v2.00",
-        saveDate: "2026-08-03 20:56:10",
-        characterName: "페가수스 나이트",
-        characterLevel: 6000,
-        petName: "서리정령[Lv2][펫]",
-        gold: 733202,
-        imperialCoin: 117838,
-        darkStone: 0,
-        str: 42073,
-        agi: 42073,
-        int: 72148,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 298, count: 0 },
-          { id: 279, count: 0 }, { id: 361, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 297, count: 0 },
-          { id: 318, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 304, count: 0 }, { id: 318, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_1_1",
-        saveCode: "2",
-        mapVersion: "v1.00",
-        saveDate: "2026-08-02 14:22:10",
-        characterName: "페가수스 나이트",
-        characterLevel: 6000,
-        petName: "서리정령[Lv2][펫]",
-        gold: 830200,
-        imperialCoin: 1114,
-        darkStone: 0,
-        str: 23733,
-        agi: 23733,
-        int: 40708,
-        heroItems: [
-          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 318, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        petItems: [
-          { id: 304, count: 0 }, { id: 297, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 318, count: 0 }, { id: 339, count: 0 }, { id: 0, count: 0 },
-          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
-        ]
-      },
-      {
-        slotKey: "Code1_2_2",
-        saveCode: "2",
-        mapVersion: "v36.00",
-        saveDate: "2026-08-03 20:32:22",
-        characterName: "『시즌』드래곤 프리스트",
-        characterLevel: 6000,
-        petName: "그레이트 씨 헌터[펫]",
-        petLevel: 5561,
-        gold: 851373,
-        imperialCoin: 1123,
-        darkStone: 0,
-        str: 42073,
-        agi: 42073,
-        int: 72148,
-        heroItems: [
-          { id: 324, count: 0 }, { id: 254, count: 0 }, { id: 263, count: 0 },
-          { id: 318, count: 0 }, { id: 0, count: 17 }, { id: 279, count: 0 }
-        ],
-        petItems: [
-          { id: 324, count: 0 }, { id: 272, count: 0 }, { id: 318, count: 0 },
-          { id: 323, count: 0 }, { id: 0, count: 8 }, { id: 263, count: 0 }
-        ],
-        warehouseItems: [
-          { id: 0, count: 1 }, { id: 0, count: 8 }, { id: 0, count: 0 },
-          { id: 237, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
         ]
       }
     ]
@@ -3857,6 +3779,10 @@ const PLAYERS_DATABASE = {
     ownedSwords: [],
     wingId: 0,
     wingLevel: 0,
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 0,
+    beans: { red: 0, blue: 0, grey: 0 },
     warehouseData: {},
     sacredPower: "0",
     petData: {
@@ -3865,56 +3791,83 @@ const PLAYERS_DATABASE = {
     ownedCodes: [],
     lastSave: {
       saveDate: "2026-10-15 12:00:00",
-      characterName: "[2차 전생]지천사",
+      characterName: "[2차 전생]신궁",
       characterLevel: 6000,
       petName: "켈자르맨서 코르[펫]",
       petLevel: 6000,
-      gold: 777037,
-      imperialCoin: 3,
+      gold: 1200,
+      imperialCoin: 406,
       darkStone: 0,
       str: 60150,
-      agi: 60150,
-      int: 108302,
-      heroItems: [],
-      petItems: [],
-      warehouseItems: []
+      agi: 108302,
+      int: 60150,
+      heroItems: [
+        { id: 376, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+        { id: 267, count: 0 }, { id: 0, count: 0 }, { id: 19, count: 0 }
+      ],
+      warehouseItems: [
+        { id: 192, count: 0 }, { id: 220, count: 0 }, { id: 220, count: 0 },
+        { id: 192, count: 0 }, { id: 242, count: 0 }, { id: 0, count: 0 }
+      ],
+      petItems: [
+        { id: 352, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+        { id: 203, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ]
     },
     saveSlots: [
-      {
-        slotKey: "Code1_37_1234",
-        saveCode: "1234",
-        mapVersion: "v37.00",
-        saveDate: "2026-10-15 12:00:00",
-        characterName: "[2차 전생]지천사",
-        characterLevel: 6000,
-        petName: "켈자르맨서 코르[펫]",
-        gold: 777037,
-        imperialCoin: 3,
-        darkStone: 0,
-        str: 60150,
-        agi: 60150,
-        int: 108302,
-        heroItems: [],
-        petItems: [],
-        warehouseItems: []
-      },
       {
         slotKey: "Code1_37_궁수",
         saveCode: "궁수",
         mapVersion: "v37.00",
-        saveDate: "2026-10-15 11:00:00",
+        saveDate: "2026-10-15 12:00:00",
         characterName: "[2차 전생]신궁",
         characterLevel: 6000,
         petName: "켈자르맨서 코르[펫]",
-        gold: 777037,
-        imperialCoin: 3,
+        gold: 1200,
+        imperialCoin: 406,
+        darkStone: 0,
+        str: 60150,
+        agi: 108302,
+        int: 60150,
+        heroItems: [
+          { id: 376, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+          { id: 267, count: 0 }, { id: 0, count: 0 }, { id: 19, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 192, count: 0 }, { id: 220, count: 0 }, { id: 220, count: 0 },
+          { id: 192, count: 0 }, { id: 242, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 352, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+          { id: 203, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ]
+      },
+      {
+        slotKey: "Code1_37_1234",
+        saveCode: "1234",
+        mapVersion: "v37.00",
+        saveDate: "2026-10-15 11:00:00",
+        characterName: "[2차 전생]지천사",
+        characterLevel: 6000,
+        petName: "켈자르맨서 코르[펫]",
+        gold: 565676,
+        imperialCoin: 20,
         darkStone: 0,
         str: 60150,
         agi: 60150,
         int: 108302,
-        heroItems: [],
-        petItems: [],
-        warehouseItems: []
+        heroItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+          { id: 267, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 208, count: 0 }, { id: 197, count: 0 }, { id: 260, count: 0 },
+          { id: 227, count: 0 }, { id: 260, count: 0 }, { id: 260, count: 0 }
+        ],
+        petItems: [
+          { id: 372, count: 0 }, { id: 370, count: 0 }, { id: 360, count: 0 },
+          { id: 195, count: 0 }, { id: 316, count: 0 }, { id: 215, count: 0 }
+        ]
       }
     ]
   }
@@ -4376,17 +4329,17 @@ const DSR_RANKINGS_DATA = {
       "tierScore": null,
       "seasonPoint": 0,
       "honorPoint": 0,
-      "coin": 3,
-      "gold": 777037,
+      "coin": 406,
+      "gold": 1200,
       "sacredPower": 0,
       "swordKind": 0,
       "titleLevel": 0,
       "totStats": 228602,
       "str": 60150,
-      "agi": 60150,
-      "int": 108302,
-      "charName": "[2차 전생]지천사",
-      "latestSlot": "Code1_37_1234"
+      "agi": 108302,
+      "int": 60150,
+      "charName": "[2차 전생]신궁",
+      "latestSlot": "Code1_37_궁수"
     },
     {
       "rank": 23,

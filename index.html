@@ -145,6 +145,19 @@
           </div>
           <div class="stat-value" id="valSacredPower">0</div>
         </div>
+
+        <!-- 8. 해금 재화 (콩 3종) -->
+        <div class="stat-card highlight-beans">
+          <div class="stat-header">
+            <span class="stat-label">해금 재화 (콩)</span>
+            <span class="stat-icon">🫘</span>
+          </div>
+          <div class="stat-value" id="valBeansOverview" style="font-size: 13px; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <span title="레드 빈 (캐릭터/펫 해금)" style="color: #f87171; font-weight: 800;">🔴 <span id="valRedBean">0</span></span>
+            <span title="블루 빈 (캐릭터/펫 해금)" style="color: #60a5fa; font-weight: 800;">🔵 <span id="valBlueBean">0</span></span>
+            <span title="그레이 빈 (캐릭터/펫 해금)" style="color: #cbd5e1; font-weight: 800;">⚪ <span id="valGreyBean">0</span></span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -209,6 +222,19 @@
           <div class="save-content">
             <span class="save-label">다크스톤</span>
             <span class="save-value" id="valDarkStone">0 개</span>
+          </div>
+        </div>
+
+        <!-- 6. 보유 콩 (해금 재화) -->
+        <div class="save-item highlight-beans">
+          <div class="save-icon">🫘</div>
+          <div class="save-content">
+            <span class="save-label">보유 콩 (해금 재화)</span>
+            <span class="save-value" style="font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <span style="color:#f87171; font-weight:700;">🔴 <strong id="valSaveRedBean">0</strong>개</span>
+              <span style="color:#60a5fa; font-weight:700;">🔵 <strong id="valSaveBlueBean">0</strong>개</span>
+              <span style="color:#cbd5e1; font-weight:700;">⚪ <strong id="valSaveGreyBean">0</strong>개</span>
+            </span>
           </div>
         </div>
 

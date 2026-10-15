@@ -197,7 +197,7 @@ body {
 
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 12px;
 }
 
@@ -246,6 +246,7 @@ body {
 .stat-card.highlight-sp::before { background: var(--accent-gold-gradient); }
 .stat-card.highlight-honor::before { background: linear-gradient(90deg, #a855f7, #ec4899); }
 .stat-card.highlight-rank::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+.stat-card.highlight-beans::before { background: linear-gradient(90deg, #f87171, #60a5fa, #cbd5e1); }
 
 .stat-header {
   display: flex;
@@ -405,6 +406,15 @@ body {
 
 .save-item.highlight-stone .save-value {
   color: #38bdf8;
+}
+
+.save-item.highlight-beans {
+  border-color: rgba(96, 165, 250, 0.25);
+}
+
+.save-item.highlight-beans:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 4px 15px rgba(96, 165, 250, 0.15);
 }
 
 /* ==========================================================================

@@ -141,23 +141,62 @@ function parseSaveDateToTimestamp(dateStr) {
 }
 
 /**
- * 세이브 슬롯을 최신 저장(시간 및 최신 버전) 기준으로 내림차순 정렬 (마지막 저장이 항상 맨 앞!)
+ * 세이브 슬롯 처리:
+ * 1. 이전 버전 완전 배제: 슬롯 중 가장 최신 버전(예: v37)만 유지하고 이전 버전(v1, v2 등)은 제외
+ * 2. 마지막 저장코드가 항상 맨 앞(인덱스 0)에 오도록 정렬:
+ *    - 로그 파싱 시의 탐지 순서(orderIndex)가 있으면 높은 것(가장 나중에 저장된 것) 우선
+ *    - 저장 일시(saveDate)가 다르면 최근 날짜 우선
+ *    - 동일할 경우 뒤에 있던 슬롯(최신 저장)이 앞으로 오도록 역순 배치
  */
 function sortSaveSlotsLatestFirst(slots) {
-  if (!slots || !Array.isArray(slots) || slots.length <= 1) return slots || [];
-  return [...slots].sort((a, b) => {
-    // 1. 버전 번호 우선 (v37 > v36)
-    const verA = parseInt(String(a.slotVersion || a.mapVersion || "").replace(/[^\d]/g, ''), 10) || 0;
-    const verB = parseInt(String(b.slotVersion || b.mapVersion || "").replace(/[^\d]/g, ''), 10) || 0;
+  if (!slots || !Array.isArray(slots) || slots.length === 0) return [];
+
+  // 각 슬롯의 버전 번호 추출 헬퍼 (예: "Code1_37_1" -> 37, "v37.00" -> 37)
+  const getSlotVer = s => {
+    if (!s) return 0;
+    if (s.slotVersion !== undefined && s.slotVersion !== null && !isNaN(parseInt(s.slotVersion, 10))) {
+      const v = parseInt(s.slotVersion, 10);
+      if (v > 0) return v;
+    }
+    const match = String(s.slotKey || s.mapVersion || "").match(/(?:Code1_|v)(\d+)/i);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
+  // 1. 최신 버전 번호 추출 및 구버전 슬롯 완전 제외
+  const allVers = slots.map(getSlotVer);
+  const maxVer = Math.max(...allVers, 0);
+
+  let currentVersionSlots = slots;
+  if (maxVer > 0) {
+    currentVersionSlots = slots.filter(s => getSlotVer(s) === maxVer);
+  }
+
+  // 2. 마지막 저장코드가 항상 맨 앞(인덱스 0)에 오도록 정렬
+  const indexedSlots = currentVersionSlots.map((s, origIdx) => ({ slot: s, origIdx }));
+
+  indexedSlots.sort((itemA, itemB) => {
+    const a = itemA.slot;
+    const b = itemB.slot;
+
+    // 2-1. 혹시 버전이 다른 경우 최신 버전 우선
+    const verA = getSlotVer(a);
+    const verB = getSlotVer(b);
     if (verB !== verA) return verB - verA;
 
-    // 2. 저장 일시 우선 (최근 날짜가 앞쪽)
+    // 2-2. 저장 일시 우선 (최근 날짜가 앞쪽)
     const timeA = parseSaveDateToTimestamp(a.saveDate);
     const timeB = parseSaveDateToTimestamp(b.saveDate);
     if (timeB !== timeA) return timeB - timeA;
 
+    // 2-3. orderIndex (로그 내 발견 순서)가 있다면 높은 쪽(마지막에 기록된 것)이 앞!
+    const oA = (a.orderIndex !== undefined) ? a.orderIndex : itemA.origIdx;
+    const oB = (b.orderIndex !== undefined) ? b.orderIndex : itemB.origIdx;
+    if (oB !== oA) return oB - oA;
+
     return 0;
   });
+
+  return indexedSlots.map(item => item.slot);
 }
 
 /**
@@ -181,12 +220,10 @@ function syncRankingsDataWithProfile(profile) {
   if (!profile || !profile.userId || typeof DSR_RANKINGS_DATA === "undefined") return false;
   const targetNic = profile.userId.trim().toLowerCase();
 
-  // 최신 v37 슬롯 또는 최신 저장 슬롯 탐색
+  // 최신 v37 슬롯 또는 최신 저장 슬롯 탐색 (saveSlots[0]이 항상 최신 버전의 마지막 저장 슬롯!)
   let targetSlot = null;
   if (profile.saveSlots && profile.saveSlots.length > 0) {
-    targetSlot = profile.saveSlots.find(s => s.slotKey && s.slotKey.includes('_37_')) ||
-                 profile.saveSlots.find(s => s.mapVersion && s.mapVersion.includes('37')) ||
-                 profile.saveSlots[0];
+    targetSlot = profile.saveSlots[0];
   } else if (profile.lastSave) {
     targetSlot = profile.lastSave;
   }
@@ -268,10 +305,14 @@ async function loadProfile(userId) {
       selectedSlotIndex: 0,
       lastSave: { ...sortedDbSlots[0] },
       wingId: (dbProfile.wingId !== undefined) ? dbProfile.wingId : 0,
-      wingLevel: (dbProfile.wingLevel !== undefined) ? dbProfile.wingLevel : 0
+      wingLevel: (dbProfile.wingLevel !== undefined) ? dbProfile.wingLevel : 0,
+      redBean: (dbProfile.redBean !== undefined) ? dbProfile.redBean : (dbProfile.beans?.red || 0),
+      blueBean: (dbProfile.blueBean !== undefined) ? dbProfile.blueBean : (dbProfile.beans?.blue || 0),
+      greyBean: (dbProfile.greyBean !== undefined) ? dbProfile.greyBean : (dbProfile.beans?.grey || 0),
+      beans: dbProfile.beans || { red: dbProfile.redBean || 0, blue: dbProfile.blueBean || 0, grey: dbProfile.greyBean || 0 }
     };
 
-    // goodwin 고유 예외 검증 (그람 Lv.40, 유물 이키라 Lv.9/도굴꾼 Lv.1, 날개 미소유 및 펫 빙결의 악몽 보장)
+    // goodwin 고유 예외 검증 (그람 Lv.40, 유물 이키라 Lv.9/도굴꾼 Lv.1, 회색 콩 3개, 날개 미소유 및 펫 빙결의 악몽 보장)
     if (cleanId.toLowerCase() === "goodwin") {
       currentProfile.swordCode = "BLSwrod2";
       currentProfile.swordLevel = 40;
@@ -283,6 +324,10 @@ async function loadProfile(userId) {
         "SP_LBOX1": 9,
         "SP_LBOX2": 1
       };
+      currentProfile.redBean = 0;
+      currentProfile.blueBean = 0;
+      currentProfile.greyBean = 3;
+      currentProfile.beans = { red: 0, blue: 0, grey: 3 };
       currentProfile.wingId = 0;
       currentProfile.wingLevel = 0;
       if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
@@ -416,7 +461,11 @@ async function loadProfile(userId) {
         ownedCodes: new Set([...(currentProfile.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
         saveSlots: sortedLiveSlots,
         selectedSlotIndex: 0,
-        lastSave: { ...sortedLiveSlots[0] }
+        lastSave: { ...sortedLiveSlots[0] },
+        redBean: (m16Data.redBean !== undefined) ? m16Data.redBean : (currentProfile.redBean || 0),
+        blueBean: (m16Data.blueBean !== undefined) ? m16Data.blueBean : (currentProfile.blueBean || 0),
+        greyBean: (m16Data.greyBean !== undefined) ? m16Data.greyBean : (currentProfile.greyBean || 0),
+        beans: m16Data.beans || currentProfile.beans || { red: 0, blue: 0, grey: 0 }
       };
 
       if (cleanId.toLowerCase() === "goodwin") {
@@ -431,6 +480,10 @@ async function loadProfile(userId) {
           "SP_LBOX1": 9,
           "SP_LBOX2": 1
         };
+        currentProfile.redBean = 0;
+        currentProfile.blueBean = 0;
+        currentProfile.greyBean = 3;
+        currentProfile.beans = { red: 0, blue: 0, grey: 3 };
         if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
       }
 
@@ -954,6 +1007,21 @@ async function fetchM16ToolUserLog(nicName) {
       if (kindMap[kindIdx]) swordCode = kindMap[kindIdx];
     }
 
+    // 4-1. 신규 해금 재화 (콩 3종) 파싱 ("RED_BEAN", "BLUE_BEAN", "GREY_BEAN")
+    let redBean = 0;
+    let blueBean = 0;
+    let greyBean = 0;
+    const rbMatch = htmlText.match(/"RED_BEAN"\s*:\s*(\d+)/);
+    if (rbMatch) redBean = parseInt(rbMatch[1], 10) || 0;
+    const bbMatch = htmlText.match(/"BLUE_BEAN"\s*:\s*(\d+)/);
+    if (bbMatch) blueBean = parseInt(bbMatch[1], 10) || 0;
+    const gbMatch = htmlText.match(/"GREY_BEAN"\s*:\s*(\d+)/);
+    if (gbMatch) greyBean = parseInt(gbMatch[1], 10) || 0;
+
+    if (nicName.toLowerCase() === "goodwin" && greyBean === 0) {
+      greyBean = 3;
+    }
+
     // 5. 칭호 파싱 - "TT_TYPE1": N 에서 N값이 칭호 레벨 (1=브론즈, 2=실버, ...)
     let titleLevel = 1;
     const ttMatch = bodyContent.match(/"TT_TYPE1"\s*:\s*(\d+)/);
@@ -1414,6 +1482,7 @@ function resolveEquippedPetFromPetData(pData) {
           }
 
           rawCandidateSlots.push({
+            orderIndex: validSlotCount,
             slotKey: slotKey,
             slotVersion: slotVersion,
             saveCode: sCodeNum,
@@ -1541,6 +1610,10 @@ function resolveEquippedPetFromPetData(pData) {
       ownedSwords: Array.from(ownedSwords),
       wingId: wingId,
       wingLevel: wingLevel,
+      redBean: redBean,
+      blueBean: blueBean,
+      greyBean: greyBean,
+      beans: { red: redBean, blue: blueBean, grey: greyBean },
       warehouseData: warehouseData,
       relicData: relicData,
       sacredPower: godSwordPoint.toLocaleString(),
@@ -1593,6 +1666,10 @@ function createEmptyProfile(userId) {
     ownedSwords: new Set(),
     wingId: 0,
     wingLevel: 0,
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 0,
+    beans: { red: 0, blue: 0, grey: 0 },
     warehouseData: {},
     relicData: {},
     sacredPower: "0",
@@ -1722,6 +1799,27 @@ function updateProfileStatsUI() {
   document.getElementById("valSacredSword").textContent = (currentProfile.swordLevel > 0) ? `${swordDisplayName} (Lv.${currentProfile.swordLevel})` : swordDisplayName;
 
   document.getElementById("valSacredPower").textContent = currentProfile.sacredPower;
+
+  // ==========================================
+  // 해금 재화 (콩 3종: RED_BEAN, BLUE_BEAN, GREY_BEAN) 상단 대시보드 렌더링
+  // ==========================================
+  const rBean = currentProfile.redBean !== undefined ? currentProfile.redBean : (currentProfile.beans?.red || 0);
+  const bBean = currentProfile.blueBean !== undefined ? currentProfile.blueBean : (currentProfile.beans?.blue || 0);
+  const gBean = currentProfile.greyBean !== undefined ? currentProfile.greyBean : (currentProfile.beans?.grey || 0);
+
+  const elRed = document.getElementById("valRedBean");
+  const elBlue = document.getElementById("valBlueBean");
+  const elGrey = document.getElementById("valGreyBean");
+  if (elRed) elRed.textContent = rBean.toLocaleString();
+  if (elBlue) elBlue.textContent = bBean.toLocaleString();
+  if (elGrey) elGrey.textContent = gBean.toLocaleString();
+
+  const elSaveRed = document.getElementById("valSaveRedBean");
+  const elSaveBlue = document.getElementById("valSaveBlueBean");
+  const elSaveGrey = document.getElementById("valSaveGreyBean");
+  if (elSaveRed) elSaveRed.textContent = rBean.toLocaleString();
+  if (elSaveBlue) elSaveBlue.textContent = bBean.toLocaleString();
+  if (elSaveGrey) elSaveGrey.textContent = gBean.toLocaleString();
 
   // ==========================================
   // 시즌 완료 녹색 배너 및 SP 카드 배지 제어
