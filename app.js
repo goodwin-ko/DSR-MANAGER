@@ -16,6 +16,9 @@ function resolveUserId(id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (typeof restoreCachedLiveRankings === "function") {
+    try { restoreCachedLiveRankings(); } catch (e) {}
+  }
   renderPatchNotesModal();
   initSearch();
   initSimulator();
@@ -40,6 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOtherTabsData();
     showApiNotice("m16tool 아이디를 입력한 후 '조회' 버튼을 눌러주세요.", false, 0);
   }
+
+  // 앱 시작 후 백그라운드에서 전체 랭커 최신 세이브 실시간 자동 동기화 실행
+  setTimeout(() => {
+    if (typeof syncAllRankersLive === "function") {
+      syncAllRankersLive(false);
+    }
+  }, 800);
 });
 
 /* ==========================================================================
@@ -216,7 +226,7 @@ function getRelicLevel(relicCode) {
 /**
  * 슬롯 키 간의 버전 및 저장코드 우선순위 판별 (예: Code1_37_2 >= Code1_37_1)
  */
-function isSlotNewerOrEqual(newSlotKey, existingSlotKey) {
+function isSlotNewerOrEqual(newSlotKey, existingSlotKey, isLive = false) {
   if (!existingSlotKey) return true;
   if (!newSlotKey) return false;
   if (newSlotKey === existingSlotKey) return true;
@@ -226,6 +236,8 @@ function isSlotNewerOrEqual(newSlotKey, existingSlotKey) {
   const verNew = parseInt(matchNew[1], 10) || 0;
   const verOld = parseInt(matchOld[1], 10) || 0;
   if (verNew !== verOld) return verNew >= verOld;
+  // 라이브 파싱 데이터는 이미 로그 순서(orderIndex) 기반으로 가장 마지막 저장 슬롯이 선택되었으므로 버전만 같거나 높으면 무조건 허용!
+  if (isLive) return true;
   const codeNew = parseInt(matchNew[2], 10);
   const codeOld = parseInt(matchOld[2], 10);
   if (!isNaN(codeNew) && !isNaN(codeOld)) {
@@ -237,9 +249,10 @@ function isSlotNewerOrEqual(newSlotKey, existingSlotKey) {
 /**
  * 프로필의 최신 세이브 슬롯 데이터를 DSR_RANKINGS_DATA에 양방향 실시간 동기화
  */
-function syncRankingsDataWithProfile(profile) {
+function syncRankingsDataWithProfile(profile, isLive = false) {
   if (!profile || !profile.userId || typeof DSR_RANKINGS_DATA === "undefined") return false;
   const targetNic = profile.userId.trim().toLowerCase();
+  const effectiveLive = Boolean(isLive || profile.isLiveFetched);
 
   // 최신 v37 슬롯 또는 최신 저장 슬롯 탐색 (saveSlots[0]이 항상 최신 버전의 마지막 저장 슬롯!)
   let targetSlot = null;
@@ -267,8 +280,11 @@ function syncRankingsDataWithProfile(profile) {
   const allRankRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
   allRankRows.forEach(row => {
     if (row.nicName && row.nicName.toLowerCase() === targetNic) {
-      // 이미 더 최신의 세이브 슬롯(예: Code1_37_2)이 반영되어 있다면 구슬롯(Code1_37_1 등)으로 다운그레이드 방지!
-      if (!isSlotNewerOrEqual(slotKey, row.latestSlot)) {
+      // 이미 라이브 연동된 랭킹 데이터를 정적 로컬 DB가 덮어쓰지 않도록 보호!
+      if (!effectiveLive && row.isLiveSynced) {
+        return;
+      }
+      if (!isSlotNewerOrEqual(slotKey, row.latestSlot, effectiveLive)) {
         return;
       }
       if (coinVal !== undefined) row.coin = coinVal;
@@ -284,6 +300,9 @@ function syncRankingsDataWithProfile(profile) {
       if (profile.sacredPower) {
         const spNum = parseInt(String(profile.sacredPower).replace(/,/g, ''), 10);
         if (!isNaN(spNum)) row.sacredPower = spNum;
+      }
+      if (effectiveLive) {
+        row.isLiveSynced = true;
       }
       updated = true;
     }
@@ -361,8 +380,10 @@ async function loadProfile(userId) {
       if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
     }
 
-    // 실시간 양방향 동기화: DB 프로필의 v37 실제 세이브 수치(673 주화 등)를 DSR_RANKINGS_DATA에 즉각 반영
-    syncRankingsDataWithProfile(currentProfile);
+    // 이미 라이브 동기화된 DB 프로필인 경우에만 DSR_RANKINGS_DATA에 즉시 반영 (정적 DB가 최신 랭킹 덮어쓰기 방지)
+    if (dbProfile.isLiveFetched) {
+      syncRankingsDataWithProfile(currentProfile, true);
+    }
 
     // DSR_RANKINGS_DATA에만 있고 프로필에는 없는 신규 슬롯인 경우에만 폴백 추가
     if (typeof DSR_RANKINGS_DATA !== "undefined") {
@@ -468,6 +489,7 @@ async function loadProfile(userId) {
 
       currentProfile = {
         userId: cleanId,
+        isLiveFetched: true,
         seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (currentProfile.seasonPoint || 0),
         honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (currentProfile.honorPoint || 0),
         isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : currentProfile.isSeasonCompleted,
@@ -521,13 +543,14 @@ async function loadProfile(userId) {
         PLAYERS_DATABASE[tKey] = {
           ...(PLAYERS_DATABASE[tKey] || {}),
           ...currentProfile,
+          isLiveFetched: true,
           saveSlots: currentProfile.saveSlots,
           lastSave: currentProfile.lastSave
         };
       }
 
       // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화
-      try { syncRankingsDataWithProfile(currentProfile); } catch (e) {}
+      try { syncRankingsDataWithProfile(currentProfile, true); } catch (e) {}
 
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
@@ -937,19 +960,25 @@ function calculateRankStanding(rp, honorPoint, dbRank) {
   return "순위 미등록 (일반 유저)";
 }
 
+// 로컬 API 서버(server.py) 가용 상태 캐시 (null: 미확인, true: 가용, false: 정적 호스팅/GitHub Pages)
+let localApiStatus = null;
+
 /**
  * m16tool.xyz RPGDetail Real-time Fetcher & Key-Value Level Parser
  * 각 유저별 독립된 동적 데이터 파싱
  */
 async function fetchM16ToolUserLog(nicName) {
   const targetUrl = `https://m16tool.xyz/Game/DSR/UserLog/RPGDetail?nicName=${encodeURIComponent(nicName)}&character=info1`;
-  const proxyList = [
-    `/api/m16log?nicName=${encodeURIComponent(nicName)}`,
+  const proxyList = [];
+  if (localApiStatus !== false) {
+    proxyList.push(`/api/m16log?nicName=${encodeURIComponent(nicName)}`);
+  }
+  proxyList.push(
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
     targetUrl
-  ];
+  );
 
   let htmlText = null;
 
@@ -964,6 +993,15 @@ async function fetchM16ToolUserLog(nicName) {
       });
       clearTimeout(timeoutId);
 
+      if (proxyUrl.startsWith("/api/m16log")) {
+        if (res.status === 404) {
+          localApiStatus = false;
+          continue;
+        } else if (res.ok) {
+          localApiStatus = true;
+        }
+      }
+
       if (res.ok) {
         const txt = await res.text();
         if (txt && txt.length > 300 && !txt.includes("해당 유저의 검색된 사항이 없습니다") && !txt.includes("검색 결과가 없습니다")) {
@@ -972,11 +1010,22 @@ async function fetchM16ToolUserLog(nicName) {
         }
       }
     } catch (e) {
+      if (proxyUrl.startsWith("/api/m16log") && localApiStatus === null) {
+        localApiStatus = false;
+      }
       console.warn(`Proxy fetch timeout/error for ${proxyUrl}`);
     }
   }
 
   if (!htmlText) return null;
+  return parseM16ToolHtml(nicName, htmlText);
+}
+
+/**
+ * m16tool HTML 원문을 파싱하여 프로필 데이터 객체로 반환
+ */
+function parseM16ToolHtml(nicName, htmlText) {
+  if (!htmlText || htmlText.length <= 300) return null;
 
   try {
     // HTML 파싱
@@ -2159,6 +2208,13 @@ function initTabs() {
       if (activeView) {
         activeView.classList.add("active");
       }
+
+      if (targetTabId === "rankings") {
+        renderRankingsTable();
+        if (typeof syncAllRankersLive === "function") {
+          syncAllRankersLive(false);
+        }
+      }
     });
   });
 }
@@ -3250,6 +3306,309 @@ let currentRankSort = 'rank';  // 'rank' | 'seasonPoint' | 'honorPoint' | 'coin'
 let rankSortAsc = true;        // 기본 순위는 1위부터 순서대로 나열 (true = 1위 -> 30위)
 let rankSearchQuery = '';
 
+// 실시간 전체 랭커 동기화 상태 관리
+let isRankingLiveSyncing = false;
+let rankLiveSyncProgress = { current: 0, total: 0, completedAt: null };
+let lastRankLiveSyncTime = 0;
+const RANK_LIVE_SYNC_COOLDOWN_MS = 45 * 1000;
+const RANK_LIVE_SYNC_CACHE_KEY = 'dsr_live_rankings_cache_v37_2';
+
+/**
+ * 로컬스토리지에 캐시된 최신 실시간 랭킹 데이터를 복원
+ */
+function restoreCachedLiveRankings() {
+  if (typeof DSR_RANKINGS_DATA === "undefined") return;
+  try {
+    const raw = localStorage.getItem(RANK_LIVE_SYNC_CACHE_KEY);
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    if (!cached || !cached.byNic) return;
+
+    const allRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
+    allRows.forEach(row => {
+      const key = (row.nicName || "").toLowerCase();
+      const item = cached.byNic[key];
+      if (item && isSlotNewerOrEqual(item.latestSlot, row.latestSlot, true)) {
+        if (item.coin !== undefined) row.coin = item.coin;
+        if (item.gold !== undefined) row.gold = item.gold;
+        if (item.str !== undefined) row.str = item.str;
+        if (item.agi !== undefined) row.agi = item.agi;
+        if (item.int !== undefined) row.int = item.int;
+        if (item.totStats !== undefined) row.totStats = item.totStats;
+        if (item.latestSlot) row.latestSlot = item.latestSlot;
+        if (item.charName) row.charName = item.charName;
+        if (item.seasonPoint !== undefined) row.seasonPoint = item.seasonPoint;
+        if (item.honorPoint !== undefined) row.honorPoint = item.honorPoint;
+        if (item.sacredPower !== undefined) row.sacredPower = item.sacredPower;
+        row.isLiveSynced = true;
+      }
+    });
+    if (cached.completedAt) {
+      rankLiveSyncProgress.completedAt = cached.completedAt;
+    }
+  } catch (e) {
+    console.warn("Failed to restore cached live rankings:", e);
+  }
+}
+
+/**
+ * 실시간 동기화된 전체 랭커 데이터를 로컬스토리지에 저장
+ */
+function saveCachedLiveRankings(completedAtStr) {
+  if (typeof DSR_RANKINGS_DATA === "undefined") return;
+  try {
+    const byNic = {};
+    const allRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
+    allRows.forEach(row => {
+      if (row.nicName) {
+        byNic[row.nicName.toLowerCase()] = {
+          coin: row.coin,
+          gold: row.gold,
+          str: row.str,
+          agi: row.agi,
+          int: row.int,
+          totStats: row.totStats,
+          latestSlot: row.latestSlot,
+          charName: row.charName,
+          seasonPoint: row.seasonPoint,
+          honorPoint: row.honorPoint,
+          sacredPower: row.sacredPower
+        };
+      }
+    });
+    localStorage.setItem(RANK_LIVE_SYNC_CACHE_KEY, JSON.stringify({
+      completedAt: completedAtStr,
+      byNic
+    }));
+  } catch (e) {}
+}
+
+/**
+ * 개별 랭커의 m16tool 파싱 결과를 PLAYERS_DATABASE 및 DSR_RANKINGS_DATA에 즉시 적용
+ */
+function applyLiveM16DataToRanker(nicName, m16Data) {
+  if (!nicName || !m16Data || !m16Data.found) return false;
+  const cleanId = nicName.trim();
+  const tKey = cleanId.toLowerCase();
+  const existingDb = (typeof PLAYERS_DATABASE !== "undefined" && PLAYERS_DATABASE[tKey]) ? PLAYERS_DATABASE[tKey] : {};
+
+  const safeLastSave = m16Data.lastSave || existingDb.lastSave || {
+    saveDate: "기록 없음",
+    characterName: "조회 정보 없음",
+    characterLevel: 6000,
+    petName: "없음",
+    gold: 0, imperialCoin: 0, darkStone: 0,
+    str: 0, agi: 0, int: 0,
+    heroItems: [], petItems: [], warehouseItems: []
+  };
+
+  const rawSlots = (m16Data.saveSlots && m16Data.saveSlots.length > 0)
+    ? m16Data.saveSlots
+    : (existingDb.saveSlots || [safeLastSave]);
+  const sortedLiveSlots = sortSaveSlotsLatestFirst(rawSlots);
+
+  let effectiveWingId = (m16Data.wingId !== undefined) ? m16Data.wingId : (existingDb.wingId || 0);
+  let effectiveWingLevel = (m16Data.wingLevel !== undefined) ? m16Data.wingLevel : (existingDb.wingLevel || 0);
+  if (tKey === "goodwin") {
+    effectiveWingId = 0;
+    effectiveWingLevel = 0;
+  }
+
+  const liveProfile = {
+    ...existingDb,
+    userId: cleanId,
+    isLiveFetched: true,
+    seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (existingDb.seasonPoint || 0),
+    honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (existingDb.honorPoint || 0),
+    isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : existingDb.isSeasonCompleted,
+    seasonVersionLabel: m16Data.seasonVersionLabel || existingDb.seasonVersionLabel || "v37",
+    seasonCompletedChar: m16Data.seasonCompletedChar || existingDb.seasonCompletedChar || "",
+    rankingPoint: (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : (existingDb.rankingPoint || 0),
+    rankStanding: m16Data.rankStanding || existingDb.rankStanding || "일반 유저",
+    titleCode: m16Data.titleCode || existingDb.titleCode || "TT_TYPE1",
+    swordCode: m16Data.swordCode || existingDb.swordCode || "BLSwrod0",
+    swordLevel: m16Data.swordLevel || existingDb.swordLevel || 1,
+    swordMasteryLevels: { ...(existingDb.swordMasteryLevels || {}), ...(m16Data.swordMasteryLevels || {}) },
+    ownedSwords: new Set([...(existingDb.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
+    wingId: effectiveWingId,
+    wingLevel: effectiveWingLevel,
+    warehouseData: { ...(existingDb.warehouseData || {}), ...(m16Data.warehouseData || {}) },
+    relicData: { ...(existingDb.relicData || {}), ...(m16Data.relicData || {}) },
+    sacredPower: m16Data.sacredPower || existingDb.sacredPower || "0",
+    petData: { ...(existingDb.petData || {}), ...(m16Data.petData || {}) },
+    ownedCodes: new Set([...(existingDb.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
+    saveSlots: sortedLiveSlots,
+    selectedSlotIndex: 0,
+    lastSave: { ...sortedLiveSlots[0] },
+    redBean: (m16Data.redBean !== undefined) ? m16Data.redBean : (existingDb.redBean || 0),
+    blueBean: (m16Data.blueBean !== undefined) ? m16Data.blueBean : (existingDb.blueBean || 0),
+    greyBean: (m16Data.greyBean !== undefined) ? m16Data.greyBean : (existingDb.greyBean || 0),
+    beans: m16Data.beans || existingDb.beans || { red: 0, blue: 0, grey: 0 }
+  };
+
+  if (tKey === "goodwin") {
+    liveProfile.swordCode = "BLSwrod2";
+    liveProfile.swordLevel = 40;
+    liveProfile.swordMasteryLevels = {
+      "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+    };
+    liveProfile.ownedSwords = new Set(["BLSwrod2"]);
+    liveProfile.relicData = {
+      ...(liveProfile.relicData || {}),
+      "SP_LBOX1": 9,
+      "SP_LBOX2": 1
+    };
+    liveProfile.redBean = 0;
+    liveProfile.blueBean = 0;
+    liveProfile.greyBean = 3;
+    liveProfile.beans = { red: 0, blue: 0, grey: 3 };
+    if (liveProfile.lastSave) liveProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+  }
+
+  if (typeof PLAYERS_DATABASE !== "undefined") {
+    PLAYERS_DATABASE[tKey] = liveProfile;
+  }
+
+  syncRankingsDataWithProfile(liveProfile, true);
+
+  // 만약 현재 상단에 조회 중인 유저와 동일하다면 상단 프로필도 자동 최신화
+  if (currentProfile && currentProfile.userId && currentProfile.userId.toLowerCase() === tKey) {
+    currentProfile = {
+      ...liveProfile,
+      selectedSlotIndex: currentProfile.selectedSlotIndex || 0
+    };
+    try { updateProfileStatsUI(); } catch (e) {}
+  }
+
+  return true;
+}
+
+/**
+ * 랭킹 분석실 전체 랭커 m16tool 실시간 세이브 일괄 자동 동기화
+ * - 아이디를 일일이 클릭하지 않아도 랭킹 분석실 진입 시 전체 랭커의 최신 v37 데이터를 자동 연동
+ */
+async function syncAllRankersLive(forceRefresh = false) {
+  if (typeof DSR_RANKINGS_DATA === "undefined") return;
+  if (isRankingLiveSyncing) return;
+
+  const now = Date.now();
+  if (!forceRefresh && lastRankLiveSyncTime > 0 && (now - lastRankLiveSyncTime < RANK_LIVE_SYNC_COOLDOWN_MS)) {
+    renderRankingsTable();
+    return;
+  }
+
+  // 현재 활성 탭의 랭커를 최우선 순위로 배열 구성
+  const primaryList = (currentRankBoard === 'tier')
+    ? (DSR_RANKINGS_DATA.tierRankings || [])
+    : (DSR_RANKINGS_DATA.userRankings || []);
+  const secondaryList = (currentRankBoard === 'tier')
+    ? (DSR_RANKINGS_DATA.userRankings || [])
+    : (DSR_RANKINGS_DATA.tierRankings || []);
+
+  const allNics = [];
+  const seen = new Set();
+  [...primaryList, ...secondaryList].forEach(row => {
+    if (row && row.nicName) {
+      const k = row.nicName.trim().toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        allNics.push(row.nicName.trim());
+      }
+    }
+  });
+
+  if (allNics.length === 0) return;
+
+  isRankingLiveSyncing = true;
+  rankLiveSyncProgress = {
+    current: 0,
+    total: allNics.length,
+    completedAt: rankLiveSyncProgress.completedAt
+  };
+  renderRankingsTable();
+
+  const remainingNics = [];
+
+  // 1단계: 로컬 서버(server.py)의 고속 병렬 배치 엔드포인트(/api/m16logs_batch) 시도
+  if (localApiStatus !== false) {
+    const CHUNK_SIZE = 15;
+    for (let i = 0; i < allNics.length; i += CHUNK_SIZE) {
+      const chunk = allNics.slice(i, i + CHUNK_SIZE);
+      if (localApiStatus === false) {
+        remainingNics.push(...chunk);
+        continue;
+      }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(`/api/m16logs_batch?nics=${encodeURIComponent(chunk.join(','))}`, {
+          method: "GET",
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.status === 404) {
+          localApiStatus = false;
+          remainingNics.push(...chunk);
+          continue;
+        }
+
+        if (res.ok) {
+          localApiStatus = true;
+          const data = await res.json();
+          const resultsMap = (data && data.results) ? data.results : {};
+          chunk.forEach(nic => {
+            const html = resultsMap[nic];
+            if (html) {
+              const parsed = parseM16ToolHtml(nic, html);
+              if (parsed && parsed.found) {
+                applyLiveM16DataToRanker(nic, parsed);
+              }
+            }
+            rankLiveSyncProgress.current++;
+          });
+          renderRankingsTable();
+        } else {
+          remainingNics.push(...chunk);
+        }
+      } catch (e) {
+        if (localApiStatus === null) localApiStatus = false;
+        remainingNics.push(...chunk);
+      }
+    }
+  } else {
+    remainingNics.push(...allNics);
+  }
+
+  // 2단계: 정적 호스팅(GitHub Pages 등)이거나 배치 미처리된 랭커들을 병렬(5명 단위) 실시간 연동
+  if (remainingNics.length > 0) {
+    const PARALLEL_SIZE = 5;
+    for (let i = 0; i < remainingNics.length; i += PARALLEL_SIZE) {
+      const batch = remainingNics.slice(i, i + PARALLEL_SIZE);
+      await Promise.all(batch.map(async (nic) => {
+        try {
+          const m16Data = await fetchM16ToolUserLog(nic);
+          if (m16Data && m16Data.found) {
+            applyLiveM16DataToRanker(nic, m16Data);
+          }
+        } catch (err) {}
+        rankLiveSyncProgress.current++;
+      }));
+      renderRankingsTable();
+    }
+  }
+
+  const d = new Date();
+  const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  isRankingLiveSyncing = false;
+  lastRankLiveSyncTime = Date.now();
+  rankLiveSyncProgress.completedAt = timeStr;
+  DSR_RANKINGS_DATA.updatedAt = `실시간 연동 완료 (${timeStr})`;
+
+  saveCachedLiveRankings(timeStr);
+  renderRankingsTable();
+}
+
 function initRankingsTab() {
   renderRankingsTable();
   renderRankingsFormula();
@@ -3281,6 +3640,7 @@ function switchRankBoard(boardType) {
     if (tableContainer) tableContainer.style.display = 'block';
     if (formulaContainer) formulaContainer.style.display = 'none';
     renderRankingsTable();
+    syncAllRankersLive(false);
   }
 }
 
@@ -3344,17 +3704,17 @@ function renderRankingsTable() {
   const container = document.getElementById("rankingsTableContainer");
   if (!container || typeof DSR_RANKINGS_DATA === "undefined") return;
 
-  // 1. PLAYERS_DATABASE 등록 유저들의 v37 최신 세이브 선제 동기화 (goodwin 등 최신 673 주화 보장)
+  // 1. PLAYERS_DATABASE 등록 유저들 중 실시간(Live) 패치된 프로필만 선제 동기화 (정적 DB로 인한 롤백 원천 차단)
   if (typeof PLAYERS_DATABASE !== "undefined") {
     Object.keys(PLAYERS_DATABASE).forEach(uid => {
       const p = PLAYERS_DATABASE[uid];
-      if (p) syncRankingsDataWithProfile(p);
+      if (p && p.isLiveFetched) syncRankingsDataWithProfile(p, true);
     });
   }
 
-  // 2. 현재 활성화된 프로필 최신 세이브 실시간 동기화
-  if (currentProfile && currentProfile.userId) {
-    syncRankingsDataWithProfile(currentProfile);
+  // 2. 현재 활성화된 프로필이 실시간 패치된 경우 최신 세이브 동기화
+  if (currentProfile && currentProfile.userId && currentProfile.isLiveFetched) {
+    syncRankingsDataWithProfile(currentProfile, true);
   }
 
   const rawList = (currentRankBoard === 'user') 
@@ -3431,6 +3791,12 @@ function renderRankingsTable() {
     ? (rankSortAsc ? "1위 ➔ 30위 순서 (기본)" : "30위 ➔ 1위 역순")
     : (rankSortAsc ? "낮은 순 ▲ (오름차순)" : "높은 순 ▼ (내림차순)");
 
+  const liveSyncBadgeHtml = isRankingLiveSyncing
+    ? `<span class="rank-v37-sync-badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-color: rgba(59, 130, 246, 0.45);">🔄 m16tool 실시간 연동 중... (${rankLiveSyncProgress.current}/${rankLiveSyncProgress.total}명)</span>`
+    : (rankLiveSyncProgress.completedAt
+      ? `<span class="rank-v37-sync-badge" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">🟢 전체 랭커 실시간 연동 완료 (${rankLiveSyncProgress.completedAt})</span>`
+      : `<span class="rank-v37-sync-badge">🛡️ v37 최신저장 실시간 연동 (Code1_37_...)</span>`);
+
   // 정렬 기준 안내 배너
   let bannerHtml = `
     <div class="rank-sort-info-bar">
@@ -3439,7 +3805,10 @@ function renderRankingsTable() {
         <span class="rank-sort-tip-text">💡 ${activeSortMeta.tip} — 강조된 열(컬럼)을 기준으로 정렬 중입니다. (테이블 제목을 눌러도 정렬됩니다)</span>
       </div>
       <div class="rank-sort-info-right">
-        <span class="rank-v37-sync-badge">🛡️ v37 최신저장 기준 (Code1_37_...)</span>
+        ${liveSyncBadgeHtml}
+        <button type="button" class="btn-reset-rank-sort" onclick="syncAllRankersLive(true)" ${isRankingLiveSyncing ? 'disabled' : ''} style="background: rgba(16, 185, 129, 0.16); color: #34d399; border-color: rgba(16, 185, 129, 0.4); cursor: pointer;" title="아이디를 일일이 클릭하지 않아도 전체 랭커의 최신 세이브 데이터를 즉시 동기화합니다">
+          ${isRankingLiveSyncing ? '⏳ 동기화 진행중...' : '🔄 실시간 전체 갱신'}
+        </button>
         ${(currentRankSort !== 'rank' || !rankSortAsc) ? `
           <button type="button" class="btn-reset-rank-sort" onclick="handleRankSort('rank'); if(!rankSortAsc) handleRankSort('rank');" title="기본 1위부터 보기로 초기화">
             👑 1위부터 보기 (초기화)
