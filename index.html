@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>대륙 RPG 매니저 | Continent RPG Manager</title>
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=37.4.0">
+  <link rel="stylesheet" href="styles.css?v=37.5.1">
 </head>
 <body>
 
@@ -21,7 +21,7 @@
           <div class="title-with-badge">
             <h1>대륙 RPG 매니저</h1>
             <button type="button" class="btn-version-badge" id="btnHeaderVersionBadge" onclick="openPatchNotesModal()" title="클릭하여 시스템 패치노트 확인">
-              <span class="badge-dot"></span> <span id="txtHeaderVersion">v37.4.0 패치노트 📋</span>
+              <span class="badge-dot"></span> <span id="txtHeaderVersion">v37.5.1 패치노트 📋</span>
             </button>
           </div>
           <p>Continent RPG Season & Account Manager</p>
@@ -51,7 +51,7 @@
         <div class="modal-header">
           <div class="modal-title">
             <span class="patch-badge" id="txtModalPatchBadge">UPDATE</span>
-            <span id="txtModalPatchTitle">📋 시스템 패치노트 (v37.3.3)</span>
+            <span id="txtModalPatchTitle">📋 시스템 패치노트 (v37.5.1)</span>
           </div>
           <button type="button" class="btn-modal-close" onclick="closePatchNotesModal()" aria-label="닫기">✕</button>
         </div>
@@ -66,7 +66,7 @@
 
     <!-- Season Complete Banner -->
     <div id="valSeasonCompleteBanner" style="display:none; background: linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; color: #34d399; font-weight: 800; font-size: 15px; text-align: center; box-shadow: 0 0 15px rgba(16,185,129,0.3);">
-      ✅ <span id="valSeasonCompleteLabel">v36 시즌포인트 완료</span>
+      ✅ <span id="valSeasonCompleteLabel">v37 시즌포인트 완료</span>
     </div>
 
     <!-- Loading / Status Notice Bar -->
@@ -297,7 +297,7 @@
       </button>
       <button type="button" class="nav-tab" data-tab="warehouse">
         <span>📦 창고</span>
-        <span class="tab-badge">16종 도감</span>
+        <span class="tab-badge">22종 도감</span>
       </button>
       <button type="button" class="nav-tab" data-tab="swords">
         <span>🗡️ 성검</span>
@@ -382,7 +382,7 @@
          ========================================== -->
     <section id="tab-warehouse" class="tab-view">
       <div class="season-row-title" style="margin-bottom: 20px;">
-        <span>📦 공식 창고 16종 도감 (9레벨 & 초월 조합 각성 트리)</span>
+        <span>📦 공식 창고 22종 도감 (9레벨 & 초월 조합 · 달토끼 · 각성 트리)</span>
       </div>
       <div id="warehouseContainer" class="content-card-grid"></div>
     </section>
@@ -537,7 +537,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=37.4.0"></script>
-  <script src="app.js?v=37.4.0"></script>
+  <script src="data.js?v=37.5.4"></script>
+  <script src="app.js?v=37.5.4"></script>
 </body>
 </html>

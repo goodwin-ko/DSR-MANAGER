@@ -15,9 +15,16 @@ function resolveUserId(id) {
   return id.toLowerCase().trim();
 }
 
+let currentLoadRequestId = 0;
+let lastSearchClickTime = 0;
+let lastSearchClickQuery = "";
+
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof restoreCachedLiveRankings === "function") {
     try { restoreCachedLiveRankings(); } catch (e) {}
+  }
+  if (typeof restoreCachedUserProfiles === "function") {
+    try { restoreCachedUserProfiles(); } catch (e) {}
   }
   renderPatchNotesModal();
   initSearch();
@@ -43,52 +50,54 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOtherTabsData();
     showApiNotice("m16tool 아이디를 입력한 후 '조회' 버튼을 눌러주세요.", false, 0);
   }
-
-  // 앱 시작 후 백그라운드에서 전체 랭커 최신 세이브 실시간 자동 동기화 실행
-  setTimeout(() => {
-    if (typeof syncAllRankersLive === "function") {
-      syncAllRankersLive(false);
-    }
-  }, 800);
 });
 
 /* ==========================================================================
    1. Search & m16tool.xyz RPGDetail API Parsing Logic
    ========================================================================== */
+function loadProfileFromInput() {
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) return;
+  const query = searchInput.value.trim();
+  const now = Date.now();
+  if (query && query === lastSearchClickQuery && (now - lastSearchClickTime) < 300) {
+    return;
+  }
+  lastSearchClickTime = now;
+  lastSearchClickQuery = query;
+
+  if (query) {
+    handleSaveIdState(query);
+    loadProfile(query);
+  } else {
+    showApiNotice("아이디를 입력한 후 조회해 주세요.", false, 3000);
+  }
+}
+
 function initSearch() {
   const searchInput = document.getElementById("searchInput");
   const btnSearch = document.getElementById("btnSearch");
   const chkSaveId = document.getElementById("chkSaveId");
 
   if (btnSearch) {
-    btnSearch.addEventListener("click", () => {
-      const query = searchInput.value.trim();
-      if (query) {
-        handleSaveIdState(query);
-        loadProfile(query);
-      } else {
-        showApiNotice("아이디를 입력한 후 조회해 주세요.", false, 3000);
-      }
+    btnSearch.addEventListener("click", (e) => {
+      e.preventDefault();
+      loadProfileFromInput();
     });
   }
 
   if (searchInput) {
-    searchInput.addEventListener("keypress", (e) => {
+    searchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        const query = searchInput.value.trim();
-        if (query) {
-          handleSaveIdState(query);
-          loadProfile(query);
-        } else {
-          showApiNotice("아이디를 입력한 후 조회해 주세요.", false, 3000);
-        }
+        e.preventDefault();
+        loadProfileFromInput();
       }
     });
   }
 
   if (chkSaveId) {
     chkSaveId.addEventListener("change", () => {
-      const query = searchInput.value.trim();
+      const query = searchInput ? searchInput.value.trim() : "";
       if (query) {
         handleSaveIdState(query);
       }
@@ -211,16 +220,150 @@ function sortSaveSlotsLatestFirst(slots) {
 
 /**
  * 현재 프로필의 유물 레벨 조회 헬퍼
+ * - REL_A1 ~ REL_A10: 유물 목록박스A (SDATA2 앞 10자리)
+ * - HRL_1 ~ HRL_10: 성유물 목록박스A (m16tool SP_LBOX1 ~ SP_LBOX10)
+ * - HRL_ROZ: 로잔티움의 성물 (성유물 목록박스A 10종 전부 Lv.9 MAX 시 자동 해금)
  */
 function getRelicLevel(relicCode) {
   if (!currentProfile) return 0;
-  if (currentProfile.relicData && currentProfile.relicData[relicCode] !== undefined) {
-    return currentProfile.relicData[relicCode];
+  const rData = currentProfile.relicData || {};
+
+  // 로잔티움의 성물: 성유물 목록박스A 10종(HRL_1 ~ HRL_10) 전부 Lv.9 이상이면 자동 Lv.1(MAX) 해금
+  if (relicCode === "HRL_ROZ") {
+    if (rData["HRL_ROZ"] > 0) return rData["HRL_ROZ"];
+    let allMax = true;
+    for (let i = 1; i <= 10; i++) {
+      if ((rData[`HRL_${i}`] || 0) < 9) {
+        allMax = false;
+        break;
+      }
+    }
+    return allMax ? 1 : 0;
   }
-  if (currentProfile.petData && currentProfile.petData[relicCode] !== undefined) {
-    return currentProfile.petData[relicCode];
+
+  if (rData[relicCode] !== undefined) {
+    return rData[relicCode];
   }
+
+  // 정적 프로필에 sdata2 문자열만 존재하는 경우 REL_A1~10 폴백 파싱
+  if (relicCode.startsWith("REL_A") && currentProfile.sdata2) {
+    const idx = parseInt(relicCode.replace("REL_A", ""), 10) - 1;
+    const parts = String(currentProfile.sdata2).split(",");
+    if (idx >= 0 && idx < 10 && parts[idx] !== undefined) {
+      return parseInt(parts[idx], 10) || 0;
+    }
+  }
+
   return 0;
+}
+
+/**
+ * 창고 데이터 정밀 정규화 및 선행 조건 검증기
+ * - BLBox1 ~ BLBox11: 기본 창고 11종
+ * - NBLBox1 (루돌프): 이벤트 창고 (NBLBox1 > 0 일 때 해금, SDATA2[10] 레벨 반영)
+ * - NBLBox2 (분홍 여우): 타란튤라(BLBox2)·고슴도치(BLBox3)·알파카(BLBox4)·상어(BLBox5) 모두 Lv.9 일 때만 해금!
+ * - NBLBox3 (재규어): 개미(BLBox6)·거북이(BLBox7)·큰뿔사슴(BLBox8)·코끼리(BLBox9)·벤디트 개(BLBox10)·판다(BLBox11) 모두 Lv.9 일 때만 해금!
+ * - NBLBox4 (분홍 여우 성체): 분홍 여우(NBLBox2)와 재규어(NBLBox3) 모두 소유 시 해금! 업그레이드 레벨(Lv.1~9)은 SDATA2[11] 반영
+ * - NBLBox_MOON (달토끼): 분홍 여우 성체(NBLBox4) MAX(Lv.9) 달성 시 자동 해금!
+ * - NBLBox_UP1 ~ NBLBox_UP6 (고블린 왕자 ~ 루나 고양이): 분홍 여우 성체 Lv.9 이후 SDATA2[12~17] 순차 업그레이드 체인
+ */
+function normalizeWarehouseData(rawWarehouse = {}, sdata2Str = "") {
+  const clean = {};
+  const sd2Parts = sdata2Str ? String(sdata2Str).split(",").map(v => parseInt(v, 10) || 0) : [];
+
+  // 1. 기본 창고 11종 (BLBox1 ~ BLBox11)
+  for (let i = 1; i <= 11; i++) {
+    const key = `BLBox${i}`;
+    const lvl = parseInt(rawWarehouse[key], 10) || 0;
+    if (lvl > 0) clean[key] = Math.min(9, lvl);
+  }
+
+  // 2. 이벤트 창고: 루돌프 (NBLBox1)
+  const rawRudolph = parseInt(rawWarehouse["NBLBox1"], 10) || 0;
+  if (rawRudolph > 0) {
+    const sd2Rudolph = (sd2Parts.length > 10 && sd2Parts[10] > 0) ? sd2Parts[10] : rawRudolph;
+    clean["NBLBox1"] = Math.min(9, Math.max(rawRudolph, sd2Rudolph));
+  }
+
+  // 3. 초월 창고 1: 분홍 여우 (타란튤라Lv9, 고슴도치Lv9, 알파카Lv9, 상어Lv9 필수)
+  const hasPinkFox = (clean["BLBox2"] >= 9 && clean["BLBox3"] >= 9 && clean["BLBox4"] >= 9 && clean["BLBox5"] >= 9);
+  if (hasPinkFox) {
+    clean["NBLBox2"] = 9;
+  }
+
+  // 4. 초월 창고 2: 재규어 (개미Lv9, 거북이Lv9, 큰뿔사슴Lv9, 코끼리Lv9, 벤디트 개Lv9, 판다Lv9 필수)
+  const hasJaguar = (
+    clean["BLBox6"] >= 9 && clean["BLBox7"] >= 9 && clean["BLBox8"] >= 9 &&
+    clean["BLBox9"] >= 9 && clean["BLBox10"] >= 9 && clean["BLBox11"] >= 9
+  );
+  if (hasJaguar) {
+    clean["NBLBox3"] = 9;
+  }
+
+  // 원시 BLBoxUP1~6 추출 (m16tool 세이브코드의 각성 창고 단계별 강화 수치)
+  const up1 = Math.min(9, parseInt(rawWarehouse["BLBoxUP1"] || rawWarehouse["NBLBox_UP1"], 10) || 0);
+  const up2 = Math.min(9, parseInt(rawWarehouse["BLBoxUP2"] || rawWarehouse["NBLBox_UP2"], 10) || 0);
+  const up3 = Math.min(9, parseInt(rawWarehouse["BLBoxUP3"] || rawWarehouse["NBLBox_UP3"], 10) || 0);
+  const up4 = Math.min(9, parseInt(rawWarehouse["BLBoxUP4"] || rawWarehouse["NBLBox_UP4"], 10) || 0);
+  const up5 = Math.min(9, parseInt(rawWarehouse["BLBoxUP5"] || rawWarehouse["NBLBox_UP5"], 10) || 0);
+  const up6 = Math.min(9, parseInt(rawWarehouse["BLBoxUP6"] || rawWarehouse["NBLBox_UP6"], 10) || 0);
+  const sd2Luna = (sd2Parts.length > 11 && sd2Parts[11] > 0) ? Math.min(9, sd2Parts[11]) : 0;
+
+  // 5. 초월 창고: 분홍 여우 성체 (분홍 여우 + 재규어 모두 소유 시 해금, 강화 레벨은 BLBoxUP1 반영)
+  if ((hasPinkFox && hasJaguar) || up1 > 0) {
+    clean["NBLBox4"] = up1 > 0 ? up1 : 1;
+  }
+
+  // 6. 6단계 연쇄 각성 창고 체인 (고블린 왕자 ~ 루나 고양이)
+  // 6-1. 고블린 왕자 (분홍 여우 성체 MAX 달성 시 해금, 강화 레벨은 BLBoxUP2)
+  if ((clean["NBLBox4"] || 0) >= 9 || up2 > 0) {
+    const lvl = up2 > 0 ? up2 : 1;
+    clean["NBLBox_UP1"] = lvl;
+    clean["BLBoxUP1"] = up1 || 9;
+  }
+  // 6-2. 고블린 황제 (고블린 왕자 MAX 달성 시 해금, 강화 레벨은 BLBoxUP3)
+  if ((clean["NBLBox_UP1"] || 0) >= 9 || up3 > 0) {
+    const lvl = up3 > 0 ? up3 : 1;
+    clean["NBLBox_UP2"] = lvl;
+    clean["BLBoxUP2"] = up2 || 9;
+  }
+  // 6-3. 소울 구울 (고블린 황제 MAX 달성 시 해금, 강화 레벨은 BLBoxUP4)
+  if ((clean["NBLBox_UP2"] || 0) >= 9 || up4 > 0) {
+    const lvl = up4 > 0 ? up4 : 1;
+    clean["NBLBox_UP3"] = lvl;
+    clean["BLBoxUP3"] = up3 || 9;
+  }
+  // 6-4. 다이스 조커 (소울 구울 MAX 달성 시 해금, 강화 레벨은 BLBoxUP5)
+  if ((clean["NBLBox_UP3"] || 0) >= 9 || up5 > 0) {
+    const lvl = up5 > 0 ? up5 : 1;
+    clean["NBLBox_UP4"] = lvl;
+    clean["BLBoxUP4"] = up4 || 9;
+  }
+  // 6-5. 검은눈 고양이 (다이스 조커 MAX 달성 시 해금, 강화 레벨은 BLBoxUP6)
+  if ((clean["NBLBox_UP4"] || 0) >= 9 || up6 > 0) {
+    const lvl = up6 > 0 ? up6 : 1;
+    clean["NBLBox_UP5"] = lvl;
+    clean["BLBoxUP5"] = up5 || 9;
+  }
+  // 6-6. 루나 고양이 (검은눈 고양이 MAX 달성 시 해금, 강화 레벨은 SDATA2[11])
+  if ((clean["NBLBox_UP5"] || 0) >= 9) {
+    const lvl = sd2Luna > 0 ? sd2Luna : 1;
+    clean["NBLBox_UP6"] = lvl;
+    clean["BLBoxUP6"] = up6 || 9;
+  }
+
+  // 7. 최종 초월 특전 창고: 달토끼 (루나 고양이 MAX Lv.9 달성 시 사용 가능)
+  if ((clean["NBLBox_UP6"] || 0) >= 9) {
+    clean["NBLBox_MOON"] = 9;
+  }
+
+  return clean;
+}
+
+function getWarehouseLevel(boxCode) {
+  if (!currentProfile) return 0;
+  const normalized = normalizeWarehouseData(currentProfile.warehouseData || {}, currentProfile.sdata2 || "");
+  return normalized[boxCode] || 0;
 }
 
 /**
@@ -311,6 +454,82 @@ function syncRankingsDataWithProfile(profile, isLive = false) {
   return updated;
 }
 
+const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v37_5_4';
+
+function resolveOfficialRankingInfo(userId, fallbackRp = 0, fallbackStanding = "") {
+  if (!userId || typeof DSR_RANKINGS_DATA === "undefined") {
+    return { rankingPoint: fallbackRp || 0, rankStanding: fallbackStanding || "순위 미등록 (일반 유저)" };
+  }
+  const tKey = userId.trim().toLowerCase();
+  const uRow = (DSR_RANKINGS_DATA.userRankings || []).find(u => u.nicName && u.nicName.toLowerCase() === tKey);
+  const tRow = (DSR_RANKINGS_DATA.tierRankings || []).find(t => t.nicName && t.nicName.toLowerCase() === tKey);
+
+  const uRank = (uRow && uRow.rank) || (tRow && tRow.userRank) || null;
+  const uScore = (uRow && uRow.userScore) || (tRow && tRow.userScore) || 0;
+  const tRank = (tRow && tRow.rank) || (uRow && uRow.tierRank) || null;
+  const tScore = (tRow && tRow.tierScore) || (uRow && uRow.tierScore) || 0;
+
+  if (tRank && uRank) {
+    return {
+      rankingPoint: uScore || tScore,
+      rankStanding: `계급 ${tRank}위 (${tScore.toLocaleString()}점) / 유저 ${uRank}위`
+    };
+  }
+  if (tRank) {
+    return {
+      rankingPoint: uScore || tScore,
+      rankStanding: `계급 ${tRank}위 (${tScore.toLocaleString()}점)`
+    };
+  }
+  if (uRank) {
+    return {
+      rankingPoint: uScore,
+      rankStanding: `유저 ${uRank}위 (${uScore.toLocaleString()}점)`
+    };
+  }
+  return {
+    rankingPoint: fallbackRp || 0,
+    rankStanding: fallbackStanding || "순위 미등록 (일반 유저)"
+  };
+}
+
+function restoreCachedUserProfiles() {
+  if (typeof PLAYERS_DATABASE === "undefined") return;
+  try {
+    const raw = localStorage.getItem(USER_PROFILE_CACHE_KEY);
+    if (!raw) return;
+    const map = JSON.parse(raw);
+    if (!map || typeof map !== "object") return;
+    Object.keys(map).forEach(k => {
+      const p = map[k];
+      if (p && p.userId) {
+        PLAYERS_DATABASE[k] = {
+          ...(PLAYERS_DATABASE[k] || {}),
+          ...p,
+          isLiveFetched: true,
+          ownedSwords: Array.isArray(p.ownedSwords) ? p.ownedSwords : Array.from(p.ownedSwords || []),
+          ownedCodes: Array.isArray(p.ownedCodes) ? p.ownedCodes : Array.from(p.ownedCodes || [])
+        };
+      }
+    });
+  } catch (e) {}
+}
+
+function saveCachedUserProfile(cleanId, profileObj) {
+  if (!cleanId || !profileObj) return;
+  try {
+    const raw = localStorage.getItem(USER_PROFILE_CACHE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    const k = cleanId.toLowerCase();
+    map[k] = {
+      ...profileObj,
+      ownedSwords: Array.from(profileObj.ownedSwords || []),
+      ownedCodes: Array.from(profileObj.ownedCodes || [])
+    };
+    localStorage.setItem(USER_PROFILE_CACHE_KEY, JSON.stringify(map));
+  } catch (e) {}
+}
+
 /**
  * m16tool.xyz 실시간 연동 및 프로필 데이터 바인딩
  */
@@ -320,6 +539,12 @@ async function loadProfile(userId) {
     return;
   }
 
+  // 개별 아이디 조회 시 백그라운드 랭킹 동기화가 진행 중이면 즉시 중단하여 네트워크/프록시 최우선권 확보
+  if (typeof abortRankingLiveSync !== "undefined") {
+    abortRankingLiveSync = true;
+  }
+
+  const reqId = ++currentLoadRequestId;
   const cleanId = userId.trim();
   const targetKey = (typeof resolveUserId === 'function') ? resolveUserId(cleanId) : cleanId.toLowerCase();
   const dbProfile = PLAYERS_DATABASE[cleanId] || PLAYERS_DATABASE[targetKey] || PLAYERS_DATABASE[cleanId.toLowerCase()];
@@ -338,15 +563,19 @@ async function loadProfile(userId) {
 
     const initialSlots = (dbProfile.saveSlots && dbProfile.saveSlots.length > 0) ? [...dbProfile.saveSlots] : [safeLastSave];
     const sortedDbSlots = sortSaveSlotsLatestFirst(initialSlots);
+    const rankInfo = resolveOfficialRankingInfo(cleanId, dbProfile.rankingPoint, dbProfile.rankStanding);
 
     currentProfile = {
       ...dbProfile,
       userId: cleanId,
+      rankingPoint: rankInfo.rankingPoint,
+      rankStanding: rankInfo.rankStanding,
       ownedSwords: new Set(dbProfile.ownedSwords || []),
       swordMasteryLevels: { ...(dbProfile.swordMasteryLevels || {}) },
-      warehouseData: { ...dbProfile.warehouseData },
+      sdata2: dbProfile.sdata2 || "",
+      warehouseData: normalizeWarehouseData(dbProfile.warehouseData || {}, dbProfile.sdata2 || ""),
       relicData: { ...(dbProfile.relicData || {}) },
-      petData: { ...dbProfile.petData },
+      petData: { ...(dbProfile.petData || {}) },
       ownedCodes: new Set(dbProfile.ownedCodes || []),
       saveSlots: sortedDbSlots,
       selectedSlotIndex: 0,
@@ -364,12 +593,19 @@ async function loadProfile(userId) {
       currentProfile.swordCode = "BLSwrod2";
       currentProfile.swordLevel = 40;
       currentProfile.swordMasteryLevels = {
-        "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+        "BLSwrod1": Math.max(currentProfile.swordMasteryLevels?.["BLSwrod1"] || 0, 1),
+        "BLSwrod2": 40,
+        "BLSwrod3": 0,
+        "BLSwrod4": 0,
+        "BLSwrod5": 0,
+        "nBLSwrodUP1": 0
       };
-      currentProfile.ownedSwords = new Set(["BLSwrod2"]);
+      currentProfile.ownedSwords.add("BLSwrod1");
+      currentProfile.ownedSwords.add("BLSwrod2");
       currentProfile.relicData = {
-        "SP_LBOX1": 9,
-        "SP_LBOX2": 1
+        ...(currentProfile.relicData || {}),
+        "REL_A1": 9,
+        "REL_A2": 1
       };
       currentProfile.redBean = 0;
       currentProfile.blueBean = 0;
@@ -385,49 +621,18 @@ async function loadProfile(userId) {
       syncRankingsDataWithProfile(currentProfile, true);
     }
 
-    // DSR_RANKINGS_DATA에만 있고 프로필에는 없는 신규 슬롯인 경우에만 폴백 추가
-    if (typeof DSR_RANKINGS_DATA !== "undefined") {
-      const rData = DSR_RANKINGS_DATA.userRankings?.find(u => u.nicName.toLowerCase() === targetKey) ||
-                    DSR_RANKINGS_DATA.tierRankings?.find(t => t.nicName.toLowerCase() === targetKey);
-      if (rData && rData.latestSlot) {
-        const existIdx = currentProfile.saveSlots.findIndex(s => s.slotKey === rData.latestSlot);
-        if (existIdx < 0) {
-          const v37Slot = {
-            slotKey: rData.latestSlot,
-            saveCode: rData.latestSlot.replace(/^Code1_\d+_/, "") || "1",
-            mapVersion: "v37.00",
-            saveDate: "v37 최신 세이브",
-            characterName: rData.charName || currentProfile.lastSave?.characterName || "사령관",
-            characterLevel: 6000,
-            petName: currentProfile.lastSave?.petName || "없음",
-            gold: rData.gold || 0,
-            imperialCoin: rData.coin || 0,
-            darkStone: 0,
-            str: rData.str || 0,
-            agi: rData.agi || 0,
-            int: rData.int || 0,
-            heroItems: currentProfile.lastSave?.heroItems || [],
-            petItems: currentProfile.lastSave?.petItems || [],
-            warehouseItems: currentProfile.lastSave?.warehouseItems || []
-          };
-          currentProfile.saveSlots.unshift(v37Slot);
-          currentProfile.saveSlots = sortSaveSlotsLatestFirst(currentProfile.saveSlots);
-          currentProfile.lastSave = { ...currentProfile.saveSlots[0] };
-          currentProfile.selectedSlotIndex = 0;
-        }
-      }
-    }
-
     try { updateProfileStatsUI(); } catch (e) {}
     try { renderSeasonsMatrix(); } catch (e) {}
     try { renderOtherTabsData(); } catch (e) {}
-    showApiNotice(`'${cleanId}' 유저 로그를 조회 중입니다...`);
+    showApiNotice(`'${cleanId}' 유저 로그를 실시간 조회 중입니다...`);
   } else {
-    // DB 프로필이 없더라도 DSR_RANKINGS_DATA의 랭커인 경우 즉시 v37 프로필 기본 구성
+    // DB 프로필이 없더라도 이전 조회 유저의 데이터가 남지 않도록 즉시 초기화
+    let initializedFromRanking = false;
     if (typeof DSR_RANKINGS_DATA !== "undefined") {
       const rData = DSR_RANKINGS_DATA.userRankings?.find(u => u.nicName.toLowerCase() === targetKey) ||
                     DSR_RANKINGS_DATA.tierRankings?.find(t => t.nicName.toLowerCase() === targetKey);
       if (rData && rData.latestSlot) {
+        const rankInfo = resolveOfficialRankingInfo(cleanId, rData.userScore || rData.tierScore || 0, "");
         const v37Slot = {
           slotKey: rData.latestSlot,
           saveCode: rData.latestSlot.replace(/^Code1_\d+_/, "") || "1",
@@ -448,26 +653,38 @@ async function loadProfile(userId) {
           ...createEmptyProfile(cleanId),
           seasonPoint: rData.seasonPoint || 0,
           honorPoint: rData.honorPoint || 0,
-          rankingPoint: rData.userScore || 0,
+          rankingPoint: rankInfo.rankingPoint,
+          rankStanding: rankInfo.rankStanding,
           sacredPower: (rData.sacredPower || 0).toLocaleString(),
           saveSlots: [v37Slot],
           selectedSlotIndex: 0,
           lastSave: { ...v37Slot }
         };
-        try { updateProfileStatsUI(); } catch (e) {}
-        try { renderSeasonsMatrix(); } catch (e) {}
-        try { renderOtherTabsData(); } catch (e) {}
+        initializedFromRanking = true;
       }
     }
+    if (!initializedFromRanking) {
+      currentProfile = createEmptyProfile(cleanId);
+    }
+    try { updateProfileStatsUI(); } catch (e) {}
+    try { renderSeasonsMatrix(); } catch (e) {}
+    try { renderOtherTabsData(); } catch (e) {}
     showApiNotice(`'${cleanId}' m16tool 유저 로그를 라이브 조회 중입니다...`);
   }
 
-  // 2단계: 백그라운드 라이브 연동 (m16tool 라이브 파싱)
+  // 2단계: 실시간 라이브 연동 (m16tool 라이브 파싱)
   try {
     const m16Data = await fetchM16ToolUserLog(cleanId);
+    if (reqId !== currentLoadRequestId) return;
+
+    const baseDb = dbProfile || {};
+    const rData = (typeof DSR_RANKINGS_DATA !== "undefined")
+      ? (DSR_RANKINGS_DATA.userRankings?.find(u => u.nicName.toLowerCase() === targetKey) ||
+         DSR_RANKINGS_DATA.tierRankings?.find(t => t.nicName.toLowerCase() === targetKey))
+      : null;
 
     if (m16Data && m16Data.found) {
-      const safeLastSave = m16Data.lastSave || {
+      const safeLastSave = m16Data.lastSave || baseDb.lastSave || {
         saveDate: "기록 없음",
         characterName: "조회 정보 없음",
         characterLevel: 0,
@@ -477,58 +694,72 @@ async function loadProfile(userId) {
         heroItems: [], petItems: [], warehouseItems: []
       };
 
-      const rawSlots = (m16Data.saveSlots && m16Data.saveSlots.length > 0) ? m16Data.saveSlots : (currentProfile.saveSlots || [safeLastSave]);
+      const rawSlots = (m16Data.saveSlots && m16Data.saveSlots.length > 0)
+        ? m16Data.saveSlots
+        : (baseDb.saveSlots || [safeLastSave]);
       const sortedLiveSlots = sortSaveSlotsLatestFirst(rawSlots);
 
-      let effectiveWingId = (m16Data.wingId !== undefined) ? m16Data.wingId : ((currentProfile.wingId !== undefined) ? currentProfile.wingId : 0);
-      let effectiveWingLevel = (m16Data.wingLevel !== undefined) ? m16Data.wingLevel : ((currentProfile.wingLevel !== undefined) ? currentProfile.wingLevel : 0);
+      let effectiveWingId = (m16Data.wingId !== undefined) ? m16Data.wingId : ((baseDb.wingId !== undefined) ? baseDb.wingId : 0);
+      let effectiveWingLevel = (m16Data.wingLevel !== undefined) ? m16Data.wingLevel : ((baseDb.wingLevel !== undefined) ? baseDb.wingLevel : 0);
       if (cleanId.toLowerCase() === "goodwin") {
         effectiveWingId = 0;
         effectiveWingLevel = 0;
       }
 
+      const rankInfo = resolveOfficialRankingInfo(cleanId, m16Data.rankingPoint || baseDb.rankingPoint, m16Data.rankStanding || baseDb.rankStanding);
+
       currentProfile = {
         userId: cleanId,
         isLiveFetched: true,
-        seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (currentProfile.seasonPoint || 0),
-        honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (currentProfile.honorPoint || 0),
-        isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : currentProfile.isSeasonCompleted,
-        seasonVersionLabel: m16Data.seasonVersionLabel || currentProfile.seasonVersionLabel || "v37",
-        seasonCompletedChar: m16Data.seasonCompletedChar || currentProfile.seasonCompletedChar || "",
-        rankingPoint: (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : (currentProfile.rankingPoint || 0),
-        rankStanding: m16Data.rankStanding || currentProfile.rankStanding || "일반 유저",
-        titleCode: m16Data.titleCode || currentProfile.titleCode || "TT_TYPE1",
-        swordCode: m16Data.swordCode || currentProfile.swordCode || "BLSwrod0",
-        swordLevel: m16Data.swordLevel || currentProfile.swordLevel || 1,
-        swordMasteryLevels: { ...(currentProfile.swordMasteryLevels || {}), ...(m16Data.swordMasteryLevels || {}) },
-        ownedSwords: new Set([...(currentProfile.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
+        seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (baseDb.seasonPoint || 0),
+        honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (baseDb.honorPoint || 0),
+        isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : Boolean(baseDb.isSeasonCompleted),
+        seasonVersionLabel: m16Data.seasonVersionLabel || baseDb.seasonVersionLabel || "v37",
+        seasonCompletedChar: m16Data.seasonCompletedChar || baseDb.seasonCompletedChar || "",
+        rankingPoint: rankInfo.rankingPoint,
+        rankStanding: rankInfo.rankStanding,
+        titleCode: m16Data.titleCode || baseDb.titleCode || "TT_TYPE1",
+        swordCode: m16Data.swordCode || baseDb.swordCode || "BLSwrod0",
+        swordLevel: m16Data.swordLevel || baseDb.swordLevel || 1,
+        swordMasteryLevels: { ...(baseDb.swordMasteryLevels || {}), ...(m16Data.swordMasteryLevels || {}) },
+        ownedSwords: new Set([...(baseDb.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
         wingId: effectiveWingId,
         wingLevel: effectiveWingLevel,
-        warehouseData: { ...currentProfile.warehouseData, ...m16Data.warehouseData },
-        relicData: { ...currentProfile.relicData, ...(m16Data.relicData || {}) },
-        sacredPower: m16Data.sacredPower || currentProfile.sacredPower || "0",
-        petData: { ...currentProfile.petData, ...m16Data.petData },
-        ownedCodes: new Set([...(currentProfile.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
+        sdata2: m16Data.sdata2 || baseDb.sdata2 || "",
+        warehouseData: normalizeWarehouseData(
+          (m16Data.warehouseData && Object.keys(m16Data.warehouseData).length > 0) ? m16Data.warehouseData : (baseDb.warehouseData || {}),
+          m16Data.sdata2 || baseDb.sdata2 || ""
+        ),
+        relicData: { ...(baseDb.relicData || {}), ...(m16Data.relicData || {}) },
+        sacredPower: m16Data.sacredPower || baseDb.sacredPower || "0",
+        petData: { ...(baseDb.petData || {}), ...(m16Data.petData || {}) },
+        ownedCodes: new Set([...(baseDb.ownedCodes || []), ...(m16Data.ownedCodes || [])]),
         saveSlots: sortedLiveSlots,
         selectedSlotIndex: 0,
         lastSave: { ...sortedLiveSlots[0] },
-        redBean: (m16Data.redBean !== undefined) ? m16Data.redBean : (currentProfile.redBean || 0),
-        blueBean: (m16Data.blueBean !== undefined) ? m16Data.blueBean : (currentProfile.blueBean || 0),
-        greyBean: (m16Data.greyBean !== undefined) ? m16Data.greyBean : (currentProfile.greyBean || 0),
-        beans: m16Data.beans || currentProfile.beans || { red: 0, blue: 0, grey: 0 }
+        redBean: (m16Data.redBean !== undefined) ? m16Data.redBean : (baseDb.redBean || 0),
+        blueBean: (m16Data.blueBean !== undefined) ? m16Data.blueBean : (baseDb.blueBean || 0),
+        greyBean: (m16Data.greyBean !== undefined) ? m16Data.greyBean : (baseDb.greyBean || 0),
+        beans: m16Data.beans || baseDb.beans || { red: 0, blue: 0, grey: 0 }
       };
 
       if (cleanId.toLowerCase() === "goodwin") {
         currentProfile.swordCode = "BLSwrod2";
         currentProfile.swordLevel = 40;
         currentProfile.swordMasteryLevels = {
-          "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+          "BLSwrod1": Math.max(currentProfile.swordMasteryLevels?.["BLSwrod1"] || 0, 1),
+          "BLSwrod2": 40,
+          "BLSwrod3": 0,
+          "BLSwrod4": 0,
+          "BLSwrod5": 0,
+          "nBLSwrodUP1": 0
         };
-        currentProfile.ownedSwords = new Set(["BLSwrod2"]);
+        currentProfile.ownedSwords.add("BLSwrod1");
+        currentProfile.ownedSwords.add("BLSwrod2");
         currentProfile.relicData = {
           ...(currentProfile.relicData || {}),
-          "SP_LBOX1": 9,
-          "SP_LBOX2": 1
+          "REL_A1": 9,
+          "REL_A2": 1
         };
         currentProfile.redBean = 0;
         currentProfile.blueBean = 0;
@@ -537,7 +768,7 @@ async function loadProfile(userId) {
         if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
       }
 
-      // 라이브 로그 파싱 결과를 인메모리 PLAYERS_DATABASE에도 즉시 반영하여 타 유저 조회 시 덮어쓰기 방지
+      // 라이브 로그 파싱 결과를 인메모리 PLAYERS_DATABASE 및 로컬스토리지에 즉시 반영
       if (typeof PLAYERS_DATABASE !== "undefined") {
         const tKey = cleanId.toLowerCase();
         PLAYERS_DATABASE[tKey] = {
@@ -548,32 +779,38 @@ async function loadProfile(userId) {
           lastSave: currentProfile.lastSave
         };
       }
+      saveCachedUserProfile(cleanId, currentProfile);
 
-      // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화
-      try { syncRankingsDataWithProfile(currentProfile, true); } catch (e) {}
+      // 라이브 로그 파싱 완료 시 랭킹 테이블 실시간 동기화 및 캐시 저장
+      try {
+        syncRankingsDataWithProfile(currentProfile, true);
+        const nowD = new Date();
+        const tStr = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}:${String(nowD.getSeconds()).padStart(2, '0')}`;
+        saveCachedLiveRankings(tStr);
+      } catch (e) {}
 
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
       try { renderOtherTabsData(); } catch (e) {}
       showApiNotice(`[OK] '${cleanId}' m16tool 최신 동적 로그 갱신 성공! (슬롯 ${currentProfile.saveSlots.length}개 최신순 정렬 완료)`, false, 4000);
-    } else if (!dbProfile) {
+    } else if (m16Data && m16Data.found === false && !dbProfile && !rData) {
       currentProfile = createEmptyProfile(cleanId);
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
       try { renderOtherTabsData(); } catch (e) {}
       showApiNotice(`'${cleanId}' 유저의 m16tool 검색 결과가 없습니다. 아이디를 확인해 주세요.`, false, 5000);
     } else {
-      showApiNotice(`⚠️ '${cleanId}' m16tool 라이브 통신 지연으로 캐시된 사전 프로필이 표시 중입니다. (로컬 server.py 실행 시 100% 실시간 갱신)`, false, 5000);
-    }
-  } catch (err) {
-    console.warn("m16tool Fetch Warning:", err);
-    if (!dbProfile) {
-      currentProfile = createEmptyProfile(cleanId);
       try { updateProfileStatsUI(); } catch (e) {}
       try { renderSeasonsMatrix(); } catch (e) {}
       try { renderOtherTabsData(); } catch (e) {}
-      showApiNotice(`'${cleanId}' 유저 조회 중 통신 지연이 발생했습니다.`, false, 4000);
+      showApiNotice(`'${cleanId}' 프로필 조회 완료`, false, 3500);
     }
+  } catch (err) {
+    console.warn("m16tool Fetch Warning:", err);
+    if (reqId !== currentLoadRequestId) return;
+    try { updateProfileStatsUI(); } catch (e) {}
+    try { renderSeasonsMatrix(); } catch (e) {}
+    try { renderOtherTabsData(); } catch (e) {}
   }
 }
 
@@ -775,6 +1012,8 @@ const CHAR_INDEX_TO_NAME = {
   133: "엘프 아쳐",
   224: "『시즌』드래곤 프리스트",     // goodwin CharIdx=224 ✅
   227: "드래곤 메이지",              // CharIdx=227 ✅ 0o0 드래곤 슬롯
+  241: "바라카 둔기병",
+  242: "바라카 쌍검병",
   246: "총사령관 데르메트",           // hjp0672 CharIdx=246 ✅
   121: "[1차 전생] 그랜드 정령술사", // u0u CharIdx=121 ✅
   247: "[2차 전생] 정령들의 주인",   // gowin2 CharIdx=247 ✅
@@ -961,63 +1200,87 @@ function calculateRankStanding(rp, honorPoint, dbRank) {
 }
 
 // 로컬 API 서버(server.py) 가용 상태 캐시 (null: 미확인, true: 가용, false: 정적 호스팅/GitHub Pages)
-let localApiStatus = null;
+const isLocalServerHost = (typeof window !== "undefined") &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+let localApiStatus = isLocalServerHost ? null : false;
+
+async function fetchWithTimeoutText(url, timeoutMs = 3500, isAllOriginsJson = false) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { method: "GET", cache: "no-store", signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (isAllOriginsJson) {
+      const data = await res.json();
+      const contents = data && data.contents ? String(data.contents) : "";
+      if (contents.length > 300) return contents;
+      throw new Error("Empty contents");
+    }
+    const txt = await res.text();
+    if (txt && txt.length > 300) return txt;
+    throw new Error("Response too short");
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
 
 /**
  * m16tool.xyz RPGDetail Real-time Fetcher & Key-Value Level Parser
  * 각 유저별 독립된 동적 데이터 파싱
  */
 async function fetchM16ToolUserLog(nicName) {
-  const targetUrl = `https://m16tool.xyz/Game/DSR/UserLog/RPGDetail?nicName=${encodeURIComponent(nicName)}&character=info1`;
-  const proxyList = [];
-  if (localApiStatus !== false) {
-    proxyList.push(`/api/m16log?nicName=${encodeURIComponent(nicName)}`);
-  }
-  proxyList.push(
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    targetUrl
-  );
-
+  const cacheBust = Date.now();
+  const targetUrl = `https://m16tool.xyz/Game/DSR/UserLog/RPGDetail?nicName=${encodeURIComponent(nicName)}&character=info1&_t=${cacheBust}`;
   let htmlText = null;
 
-  for (const proxyUrl of proxyList) {
+  // 1. 로컬 서버(server.py) 환경일 경우 로컬 프록시 최우선 시도
+  if (localApiStatus !== false) {
     try {
+      const localUrl = `/api/m16log?nicName=${encodeURIComponent(nicName)}&_t=${cacheBust}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-      const res = await fetch(proxyUrl, { 
-        method: "GET",
-        signal: controller.signal
-      });
+      const res = await fetch(localUrl, { method: "GET", cache: "no-store", signal: controller.signal });
       clearTimeout(timeoutId);
-
-      if (proxyUrl.startsWith("/api/m16log")) {
-        if (res.status === 404) {
-          localApiStatus = false;
-          continue;
-        } else if (res.ok) {
-          localApiStatus = true;
-        }
-      }
-
-      if (res.ok) {
+      if (res.status === 404) {
+        localApiStatus = false;
+      } else if (res.ok) {
+        localApiStatus = true;
         const txt = await res.text();
-        if (txt && txt.length > 300 && !txt.includes("해당 유저의 검색된 사항이 없습니다") && !txt.includes("검색 결과가 없습니다")) {
+        if (txt && txt.length > 300) {
           htmlText = txt;
-          break;
         }
       }
     } catch (e) {
-      if (proxyUrl.startsWith("/api/m16log") && localApiStatus === null) {
-        localApiStatus = false;
-      }
-      console.warn(`Proxy fetch timeout/error for ${proxyUrl}`);
+      if (localApiStatus === null) localApiStatus = false;
+    }
+  }
+
+  // 2. 외부 CORS 프록시 병렬 레이스 (가장 먼저 응답하는 프록시 채택 -> 0.3초 내 즉시 응답)
+  if (!htmlText) {
+    const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+    const allOriginsJsonUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&_t=${cacheBust}`;
+    const allOriginsRawUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}&_t=${cacheBust}`;
+
+    try {
+      htmlText = await Promise.any([
+        fetchWithTimeoutText(codetabsUrl, 4000, false),
+        fetchWithTimeoutText(allOriginsJsonUrl, 4500, true),
+        fetchWithTimeoutText(allOriginsRawUrl, 4500, false)
+      ]);
+    } catch (raceErr) {
+      // 최후 폴백: corsproxy.io
+      try {
+        htmlText = await fetchWithTimeoutText(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, 3500, false);
+      } catch (e2) {}
     }
   }
 
   if (!htmlText) return null;
+  if (htmlText.includes("해당 유저의 검색된 사항이 없습니다") || htmlText.includes("검색 결과가 없습니다")) {
+    return { found: false };
+  }
   return parseM16ToolHtml(nicName, htmlText);
 }
 
@@ -1130,8 +1393,8 @@ function parseM16ToolHtml(nicName, htmlText) {
       });
     }
 
-    // 7. SP_ / SP2_ / SP3_ / SP_RGUP / SP_LBOX 펫 코드 파싱 (코드 패턴 확장)
-    const petKVMatches = htmlText.match(/"(SP_\d+|SP2_\d+|SP3_\d+U\d*|SP3_\d+|SP4_\d+|SP5_\d+|SP_RGUP\d+|SP_LBOX\d+)":\s*(\d+)/g);
+    // 7. SP_ / SP2_ / SP3_ / SP_RGUP 펫 코드 파싱 (SP_LBOX는 성유물이므로 제외)
+    const petKVMatches = htmlText.match(/"(SP_\d+|SP2_\d+|SP3_\d+U\d*|SP3_\d+|SP4_\d+|SP5_\d+|SP_RGUP\d+)":\s*(\d+)/g);
     if (petKVMatches) {
       petKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -1143,21 +1406,16 @@ function parseM16ToolHtml(nicName, htmlText) {
       });
     }
 
-    // 8. 창고 코드 파싱 (BLBox1~11, BLBoxUP1~6, NBLBox1~4, NBLBox_UP1~6 양방향 호환)
-    const boxKVMatches = htmlText.match(/"(BLBox\d+|BLBoxUP\d+|NBLBox\d+|NBLBox_UP\d+)":\s*(\d+)/g);
+    // 8. 창고 코드 파싱 (기본 창고 BLBox1~11 및 루돌프 NBLBox1만 원시 추출하고, 초월/각성 창고는 선행 조건 & SDATA2로 정밀 계산)
+    const rawWarehouseData = {};
+    const boxKVMatches = htmlText.match(/"(BLBox\d+|BLBoxUP\d+|NBLBox_UP\d+|NBLBox1)":\s*(\d+)/g);
     if (boxKVMatches) {
       boxKVMatches.forEach(pair => {
         const parts = pair.split(":");
         const bCode = parts[0].replace(/"/g, '').trim();
         const bLevel = parseInt(parts[1].trim(), 10);
         if (bLevel > 0) {
-          warehouseData[bCode] = bLevel;
-          // BLBoxUP <-> NBLBox_UP 상호 매핑
-          if (bCode.startsWith("BLBoxUP")) {
-            warehouseData[bCode.replace("BLBoxUP", "NBLBox_UP")] = bLevel;
-          } else if (bCode.startsWith("NBLBox_UP")) {
-            warehouseData[bCode.replace("NBLBox_UP", "BLBoxUP")] = bLevel;
-          }
+          rawWarehouseData[bCode] = bLevel;
         }
       });
     }
@@ -1226,8 +1484,8 @@ function parseM16ToolHtml(nicName, htmlText) {
     let saveDate = "기록 없음";
     
     // 10-1. 날짜 및 맵 버전 파싱 (m16tool 로그 상단의 최신 2026년도 날짜 추출)
-    let mapVersion = "v36.00";
-    const verMatch = htmlText.match(/v36(?:\.\d+)?/i);
+    let mapVersion = "v37.00";
+    const verMatch = htmlText.match(/v37(?:\.\d+)?|v36(?:\.\d+)?/i);
     if (verMatch) mapVersion = verMatch[0];
 
     const usdateReg = /\b(\d{1,2}[\/\.-]\d{1,2}[\/\.-]20\d{2}(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?|20\d{2}[\/\.-]\d{1,2}[\/\.-]\d{1,2}(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?)\b/g;
@@ -1640,47 +1898,77 @@ function resolveEquippedPetFromPetData(pData) {
       wingLevel = 0;
     }
 
-    // [요청 7 & SDATA2] 유물 목록박스A 10종 및 성유물/신유물 파싱
-    // SDATA2 순서: SP_LBOX1(이키라) ~ SP_LBOX10(인비즈) 10종 유물 레벨 (인덱스 0~9), 인덱스 19는 맵 버전 식별자(37)
+    // [요청 7 & SDATA2 / SP_LBOX 분리 매핑 + 창고 초월 조건 검증]
+    // 1) SDATA2 앞 10자리 (인덱스 0~9): 유물 목록박스A (일반 유물 10종: REL_A1 ~ REL_A10)
+    // 2) SDATA2 인덱스 10~17: 루돌프(10), 분홍 여우 성체(11), 고블린 왕자~루나 고양이(12~17) 업그레이드 레벨
+    // 3) "SP_LBOX1" ~ "SP_LBOX10": 성유물 목록박스A (성유물 10종: HRL_1 ~ HRL_10)
+    //    -> 10종 전부 Lv.9(MAX) 달성 시 11번째 '로잔티움의 성물(HRL_ROZ)' 자동 Lv.1(MAX) 해금
     const relicData = {};
+    let rawSdata2Str = "";
     const sdata2Match = htmlText.match(/"SDATA2"\s*:\s*"([^"]+)"/);
     if (sdata2Match) {
-      const sd2Parts = sdata2Match[1].split(",");
+      rawSdata2Str = sdata2Match[1];
+      const sd2Parts = rawSdata2Str.split(",");
       for (let i = 0; i < 10; i++) {
         const rLvl = parseInt(sd2Parts[i], 10) || 0;
         if (rLvl > 0) {
-          relicData[`SP_LBOX${i + 1}`] = rLvl;
+          relicData[`REL_A${i + 1}`] = rLvl;
         }
       }
     }
 
-    const relicKVMatches = htmlText.match(/"(SP_LBOX\d+|HRL_\w+|DRL_\w+)":\s*(\d+)/g);
+    const normalizedWarehouse = normalizeWarehouseData(rawWarehouseData, rawSdata2Str);
+    Object.assign(warehouseData, normalizedWarehouse);
+
+    const relicKVMatches = htmlText.match(/"(SP_LBOX\d+|REL_A\d+|HRL_\w+|DRL_\w+)":\s*(\d+)/g);
     if (relicKVMatches) {
       relicKVMatches.forEach(pair => {
         const parts = pair.split(":");
-        const rCode = parts[0].replace(/"/g, '').trim();
+        const rawCode = parts[0].replace(/"/g, '').trim();
         const rVal = parseInt(parts[1].trim(), 10);
         if (rVal > 0) {
-          relicData[rCode] = Math.max(relicData[rCode] || 0, rVal);
+          // m16tool의 SP_LBOX1~10 키는 '성유물 목록박스A(HRL_1~10)'에 매핑
+          if (rawCode.startsWith("SP_LBOX")) {
+            const idx = rawCode.replace("SP_LBOX", "");
+            const hrlCode = `HRL_${idx}`;
+            relicData[hrlCode] = Math.max(relicData[hrlCode] || 0, rVal);
+          } else {
+            relicData[rawCode] = Math.max(relicData[rawCode] || 0, rVal);
+          }
         }
       });
+    }
+
+    // 성유물 목록박스A 10종(HRL_1 ~ HRL_10) 모두 Lv.9 달성 시 로잔티움의 성물(HRL_ROZ) 자동 해금
+    let isAllHolyRelicAMax = true;
+    for (let i = 1; i <= 10; i++) {
+      if ((relicData[`HRL_${i}`] || 0) < 9) {
+        isAllHolyRelicAMax = false;
+        break;
+      }
+    }
+    if (isAllHolyRelicAMax) {
+      relicData["HRL_ROZ"] = 1;
     }
 
     if (nicName.toLowerCase() === "goodwin") {
       swordCode = "BLSwrod2";
       swordLevel = 40;
+      swordMasteryLevels["BLSwrod1"] = Math.max(swordMasteryLevels["BLSwrod1"] || 0, 1);
       swordMasteryLevels["BLSwrod2"] = 40;
+      ownedSwords.add("BLSwrod1");
       ownedSwords.add("BLSwrod2");
-      relicData["SP_LBOX1"] = 9;
-      relicData["SP_LBOX2"] = 1;
+      relicData["REL_A1"] = 9;
+      relicData["REL_A2"] = 1;
     }
 
     // 디버그 로그 (브라우저 콘솔에서 확인 가능)
     console.log(`[DSR Parser] userId=${nicName}, 탐지된 세이브 슬롯 ${saveSlots.length}개 (최신순 정렬 완료):`, saveSlots);
 
     const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
-    const rPoints = (dbUserCheck && dbUserCheck.rankingPoint) ? dbUserCheck.rankingPoint : 0;
-    const computedRank = calculateRankStanding(rPoints, honorPoint, dbUserCheck ? dbUserCheck.rankStanding : null);
+    const fallbackRp = (dbUserCheck && dbUserCheck.rankingPoint) ? dbUserCheck.rankingPoint : 0;
+    const fallbackRank = calculateRankStanding(fallbackRp, honorPoint, dbUserCheck ? dbUserCheck.rankStanding : null);
+    const officialRankInfo = resolveOfficialRankingInfo(nicName, fallbackRp, fallbackRank);
 
     return {
       found: true,
@@ -1689,8 +1977,8 @@ function resolveEquippedPetFromPetData(pData) {
       isSeasonCompleted: isSeasonCompleted,
       seasonVersionLabel: seasonVersionLabel,
       seasonCompletedChar: seasonCompletedChar,
-      rankingPoint: rPoints,
-      rankStanding: computedRank,
+      rankingPoint: officialRankInfo.rankingPoint,
+      rankStanding: officialRankInfo.rankStanding,
       titleCode: titleLevel,
       swordCode: swordCode,
       swordLevel: swordLevel,
@@ -1702,6 +1990,7 @@ function resolveEquippedPetFromPetData(pData) {
       blueBean: blueBean,
       greyBean: greyBean,
       beans: { red: redBean, blue: blueBean, grey: greyBean },
+      sdata2: rawSdata2Str,
       warehouseData: warehouseData,
       relicData: relicData,
       sacredPower: godSwordPoint.toLocaleString(),
@@ -1833,7 +2122,7 @@ function renderSaveSlotBar() {
     if (!charTitle) charTitle = `슬롯 ${idx + 1}`;
 
     const codeNum = slot.saveCode || (idx + 1).toString();
-    const verTag = slot.mapVersion || "v36.00";
+    const verTag = slot.mapVersion || "v37.00";
     const codeTagStyle = isActive ? "color:#090d16; font-weight:900;" : "color:var(--accent-gold); font-weight:800;";
     const verStyle = isActive ? "color:#090d16; opacity:0.9;" : "color:var(--text-sub); opacity:0.85;";
 
@@ -1861,6 +2150,12 @@ function updateProfileStatsUI() {
   if (userIdBadge && userIdText && currentProfile.userId && currentProfile.userId !== "조회 대기중") {
     userIdText.textContent = currentProfile.userId;
     userIdBadge.style.display = "block";
+  }
+
+  if (currentProfile.userId && currentProfile.userId !== "조회 대기중") {
+    const rankInfo = resolveOfficialRankingInfo(currentProfile.userId, currentProfile.rankingPoint, currentProfile.rankStanding);
+    currentProfile.rankingPoint = rankInfo.rankingPoint;
+    currentProfile.rankStanding = rankInfo.rankStanding;
   }
 
   document.getElementById("valSeasonPoint").textContent = `${currentProfile.seasonPoint.toLocaleString()} SP`;
@@ -1940,9 +2235,9 @@ function updateProfileStatsUI() {
   const activeSlots = currentProfile.saveSlots || [];
   const selectedIdx = currentProfile.selectedSlotIndex || 0;
   const save = activeSlots[selectedIdx] || currentProfile.lastSave || {
-    slotKey: "Code1_2_1",
+    slotKey: "Code1_37_1",
     saveCode: "1",
-    mapVersion: "v36.00",
+    mapVersion: "v37.00",
     characterName: "조회 대기중",
     characterLevel: 0,
     petName: "없음",
@@ -2010,11 +2305,11 @@ function updateProfileStatsUI() {
     `;
   }
 
-  // 3. 년/월/일/시간 포맷팅 적용 (시간 + v36 버전 태그)
+  // 3. 년/월/일/시간 포맷팅 적용 (시간 + v37 버전 태그)
   const valSaveDate = document.getElementById("valSaveDate");
   if (valSaveDate) {
     const formatted = formatSaveDate(save.saveDate || "");
-    const versionLabel = save.mapVersion || "v36";
+    const versionLabel = save.mapVersion || "v37.00";
     valSaveDate.innerHTML = `최근 저장: ${formatted} <span style="font-size:11px; padding:2px 6px; border-radius:4px; background:rgba(6,182,212,0.15); color:var(--accent-cyan); border:1px solid var(--accent-cyan); font-weight:700; margin-left:6px;">(${versionLabel} 시즌)</span>`;
   }
 
@@ -2301,6 +2596,65 @@ function renderOtherTabsData() {
 /* --------------------------------------------------------------------------
    Relics Tab Renderer (공식 4대 유물 도감 시스템 - 최대 Lv.9)
    -------------------------------------------------------------------------- */
+function getRelicBuffDetails(relic, level) {
+  const lv = Math.max(0, Number(level) || 0);
+  if (lv <= 0) return "";
+  switch (relic.code) {
+    case "REL_A1":
+      return `트리거 데미지 +${lv * 5}%`;
+    case "REL_A2":
+      return `아이템 드랍률 +${lv * 3}%`;
+    case "REL_A3":
+      return lv >= 9
+        ? `트리거 데미지 +${lv * 5}% (시즌 영웅의 증표 습득 시 2배 → 총 +${lv * 5 * 2}%)`
+        : `트리거 데미지 +${lv * 5}% (Lv.9 달성 & 시즌 영웅의 증표 시 2배)`;
+    case "REL_A4":
+      return lv >= 9
+        ? `트리거 데미지 +${lv * 5}% (전설의 증표 습득 시 3배 → 총 +${lv * 5 * 3}%)`
+        : `트리거 데미지 +${lv * 5}% (Lv.9 달성 & 전설의 증표 시 3배)`;
+    case "REL_A5":
+      return lv >= 9
+        ? `트리거 데미지 +${lv * 5}% (사령관의 증표 습득 시 3배 → 총 +${lv * 5 * 3}%)`
+        : `트리거 데미지 +${lv * 5}% (Lv.9 달성 & 사령관의 증표 시 3배)`;
+    case "REL_A6":
+      return lv >= 9
+        ? `트리거 데미지 +${lv * 10}% (총사령관의 증표 습득 시 5배 → 총 +${lv * 10 * 5}%)`
+        : `트리거 데미지 +${lv * 10}% (Lv.9 달성 & 총사령관의 증표 시 5배)`;
+    case "REL_A7":
+      return `아이템 드랍률 +${lv * 5}%`;
+    case "REL_A8":
+    case "REL_A9":
+    case "REL_A10":
+      return `받는 트리거 데미지 -${lv * 1}% (석상 3종 합산 적용)`;
+    case "HRL_1":
+      return `트리거 데미지 +${lv * 10}%`;
+    case "HRL_2":
+      return `아이템 드랍률 +${lv * 5}%`;
+    case "HRL_3":
+      return `초기 캐릭터 생성 제국주화 +${(lv * 300).toLocaleString()} 주화`;
+    case "HRL_4":
+      return `성력 증가량 +${lv * 1}`;
+    case "HRL_5":
+      return `시즌 영웅의 증표 습득 시 트리거 데미지 +${lv * 15}%`;
+    case "HRL_6":
+      return `전설의 증표 습득 시 트리거 데미지 +${lv * 15}%`;
+    case "HRL_7":
+      return `사령관의 증표 습득 시 트리거 데미지 +${lv * 15}%`;
+    case "HRL_8":
+    case "HRL_9":
+    case "HRL_10":
+      return `받는 트리거 데미지 -${lv * 2}% (성유물A 3종 합산 적용)`;
+    case "HRL_ROZ":
+      return `아이템 드랍률 +50% · 트리거 데미지 +100% · 계급레벨 +1 · 성력 증가량 +5 · 받는 트리거 뎀감 +26%(성유물A 합산)`;
+    case "HRL_B_ROZ":
+      return `아이템 드랍률 +${lv * 10}% · 트리거 데미지 +${lv * 15}%`;
+    case "DRL_TAEGUK":
+      return `드랍률 +${lv * 25}% · 트리거 데미지 +${lv * 50}% · 성력 +${lv * 1} · 받는 트리거 뎀감 -${lv * 5}% · 스코어 +${lv * 2}점`;
+    default:
+      return relic.option || "";
+  }
+}
+
 function renderRelicsTab() {
   const relicsContainer = document.getElementById("relicsContainer");
   if (!relicsContainer) return;
@@ -2310,15 +2664,19 @@ function renderRelicsTab() {
     return;
   }
 
-  // 실시간 적용 옵션 누적 계산기
-  let totalTriggerDmg = 0;
-  let totalDropRate = 0;
-  let totalDmgReduce = 0;
-  let totalSacredPower = 0;
-  let totalCoinBonus = 0;
-  let totalScoreBonus = 0;
+  // 실시간 적용 옵션 누적 계산기 (모든 유물 버프 항목 전수 집계)
+  let totalBaseTriggerDmg = 0;       // 상시 적용 트리거 데미지 (%)
+  let totalInsigniaTriggerDmg = 0;   // 증표 조건부 추가 트리거 데미지 (%)
+  let totalDropRate = 0;             // 아이템 드랍률 (%)
+  let totalDmgReduce = 0;            // 받는 트리거 데미지 감소 (%)
+  let rozBonusDmgReduce = 0;         // 로잔티움의 성물 성유물A 합산 보너스 (26%)
+  let totalSacredPower = 0;          // 성력 증가량 보너스
+  let totalCoinBonus = 0;            // 초기 캐릭터 생성 제국주화 보너스
+  let totalTierLevelBonus = 0;       // 계급레벨 보너스
+  let totalScoreBonus = 0;           // 스코어 점수 보너스
   let ownedRelicsCount = 0;
   let totalRelicsCount = 0;
+  const activeRelicBuffList = [];
 
   const boxesHtml = RELICS_DATABASE.map(box => {
     const itemsHtml = box.items.map(relic => {
@@ -2328,25 +2686,94 @@ function renderRelicsTab() {
       const isMax = (userLevel >= relic.maxLevel);
       if (isOwned) ownedRelicsCount++;
 
+      const currentBuffText = isOwned ? getRelicBuffDetails(relic, userLevel) : "";
+      const maxBuffText = getRelicBuffDetails(relic, relic.maxLevel);
+
       // 옵션별 스탯 누적
-      if (userLevel > 0) {
-        if (relic.type === "triggerDmg" && relic.baseVal) totalTriggerDmg += userLevel * relic.baseVal;
-        if (relic.type === "dropRate" && relic.baseVal) totalDropRate += userLevel * relic.baseVal;
-        if (relic.type === "dmgReduce" && relic.baseVal) totalDmgReduce += Math.abs(userLevel * relic.baseVal);
-        if (relic.type === "sacredPower" && relic.baseVal) totalSacredPower += userLevel * relic.baseVal;
-        if (relic.type === "coinBonus" && relic.baseVal) totalCoinBonus += userLevel * relic.baseVal;
-        if (relic.type === "mythic") {
-          totalDropRate += userLevel * 25;
-          totalTriggerDmg += userLevel * 50;
-          totalSacredPower += userLevel * 1;
-          totalDmgReduce += userLevel * 5;
-          totalScoreBonus += userLevel * 2;
-        }
-        if (relic.code === "HRL_ROZ" && isOwned) {
-          totalDropRate += 50;
-          totalTriggerDmg += 100;
-          totalSacredPower += 5;
-          totalDmgReduce += 26;
+      if (isOwned) {
+        activeRelicBuffList.push({
+          icon: box.icon,
+          boxTitle: box.boxTitle,
+          code: relic.code,
+          name: relic.name,
+          level: userLevel,
+          maxLevel: relic.maxLevel,
+          isMax,
+          buffText: currentBuffText
+        });
+
+        switch (relic.code) {
+          case "REL_A1":
+            totalBaseTriggerDmg += userLevel * 5;
+            break;
+          case "REL_A2":
+            totalDropRate += userLevel * 3;
+            break;
+          case "REL_A3":
+            totalBaseTriggerDmg += userLevel * 5;
+            if (userLevel >= 9) totalInsigniaTriggerDmg += (userLevel * 5); // 2배(+45% 추가)
+            break;
+          case "REL_A4":
+            totalBaseTriggerDmg += userLevel * 5;
+            if (userLevel >= 9) totalInsigniaTriggerDmg += (userLevel * 5 * 2); // 3배(+90% 추가)
+            break;
+          case "REL_A5":
+            totalBaseTriggerDmg += userLevel * 5;
+            if (userLevel >= 9) totalInsigniaTriggerDmg += (userLevel * 5 * 2); // 3배(+90% 추가)
+            break;
+          case "REL_A6":
+            totalBaseTriggerDmg += userLevel * 10;
+            if (userLevel >= 9) totalInsigniaTriggerDmg += (userLevel * 10 * 4); // 5배(+360% 추가)
+            break;
+          case "REL_A7":
+            totalDropRate += userLevel * 5;
+            break;
+          case "REL_A8":
+          case "REL_A9":
+          case "REL_A10":
+            totalDmgReduce += userLevel * 1;
+            break;
+          case "HRL_1":
+            totalBaseTriggerDmg += userLevel * 10;
+            break;
+          case "HRL_2":
+            totalDropRate += userLevel * 5;
+            break;
+          case "HRL_3":
+            totalCoinBonus += userLevel * 300;
+            break;
+          case "HRL_4":
+            totalSacredPower += userLevel * 1;
+            break;
+          case "HRL_5":
+          case "HRL_6":
+          case "HRL_7":
+            totalInsigniaTriggerDmg += userLevel * 15;
+            break;
+          case "HRL_8":
+          case "HRL_9":
+          case "HRL_10":
+            totalDmgReduce += userLevel * 2;
+            break;
+          case "HRL_ROZ":
+            totalDropRate += 50;
+            totalBaseTriggerDmg += 100;
+            totalTierLevelBonus += 1;
+            totalSacredPower += 5;
+            totalDmgReduce += 26;
+            rozBonusDmgReduce += 26;
+            break;
+          case "HRL_B_ROZ":
+            totalDropRate += userLevel * 10;
+            totalBaseTriggerDmg += userLevel * 15;
+            break;
+          case "DRL_TAEGUK":
+            totalDropRate += userLevel * 25;
+            totalBaseTriggerDmg += userLevel * 50;
+            totalSacredPower += userLevel * 1;
+            totalDmgReduce += userLevel * 5;
+            totalScoreBonus += userLevel * 2;
+            break;
         }
       }
 
@@ -2367,6 +2794,14 @@ function renderRelicsTab() {
         cardBorder = "border-color: var(--accent-emerald);";
       }
 
+      const activeBuffBanner = isOwned
+        ? `<div style="margin-top:6px; padding:6px 8px; border-radius:6px; background:rgba(16, 185, 129, 0.14); border:1px solid rgba(16, 185, 129, 0.4); font-size:11.5px; color:#6ee7b7; line-height:1.45;">
+             <strong style="color:#34d399;">⚡ [현재 받는 버프 (Lv.${userLevel})]</strong> ${currentBuffText}
+           </div>`
+        : `<div style="margin-top:6px; padding:5px 8px; border-radius:6px; background:rgba(255, 255, 255, 0.03); border:1px dashed rgba(255, 255, 255, 0.12); font-size:11px; color:var(--text-muted); line-height:1.4;">
+             <span>🔒 미보유 (MAX Lv.${relic.maxLevel} 달성 시: ${maxBuffText})</span>
+           </div>`;
+
       return `
         <div class="generic-item-card" style="${cardBorder}">
           <div class="item-icon-box" style="${isOwned ? 'background: rgba(255,215,0,0.12); border-color: var(--border-gold);' : ''}">${box.icon}</div>
@@ -2382,6 +2817,7 @@ function renderRelicsTab() {
             <div class="item-desc" style="font-size:11.5px; color:var(--text-sub); margin-top:5px; line-height:1.45; background:rgba(0,0,0,0.2); padding:6px 8px; border-radius:6px; border-left:3px solid ${isOwned ? 'var(--accent-gold)' : 'var(--text-muted)'};">
               <span style="color:var(--accent-gold); font-weight:700;">[옵션]</span> ${relic.option}
             </div>
+            ${activeBuffBanner}
           </div>
         </div>
       `;
@@ -2404,35 +2840,98 @@ function renderRelicsTab() {
     `;
   }).join('');
 
-  // 상단 종합 스탯 요약 대시보드
+  const totalMaxTriggerDmg = totalBaseTriggerDmg + totalInsigniaTriggerDmg;
+
+  const activeBuffRowsHtml = activeRelicBuffList.length > 0
+    ? `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:8px; margin-top:10px;">
+        ${activeRelicBuffList.map(item => `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border-radius:8px; background:rgba(15, 23, 42, 0.75); border:1px solid ${item.isMax ? 'rgba(255, 215, 0, 0.35)' : 'rgba(16, 185, 129, 0.3)'}; font-size:11.5px;">
+            <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+              <span>${item.icon}</span>
+              <strong style="color:${item.isMax ? 'var(--accent-gold)' : '#e2e8f0'}; white-space:nowrap;">${item.name}</strong>
+              <span style="font-size:10.5px; padding:1px 6px; border-radius:4px; background:${item.isMax ? 'rgba(255,215,0,0.15)' : 'rgba(16,185,129,0.15)'}; color:${item.isMax ? 'var(--accent-gold)' : '#34d399'}; font-weight:700; white-space:nowrap;">
+                Lv.${item.level}${item.isMax ? ' MAX' : ''}
+              </span>
+            </div>
+            <div style="color:#6ee7b7; font-weight:600; text-align:right; font-size:11px; line-height:1.35;">
+              ${item.buffText}
+            </div>
+          </div>
+        `).join('')}
+       </div>`
+    : `<div style="margin-top:8px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.1); color:var(--text-muted); font-size:12px;">
+         현재 보유 중인 유물이 없어 적용 중인 유물 버프가 없습니다.
+       </div>`;
+
+  // 상단 종합 스탯 요약 대시보드 (전체 8대 버프 지표 + 보유 유물별 실시간 버프 리스트)
   const summaryDashboardHtml = `
     <div class="relic-summary-dashboard" style="margin-bottom: 24px; padding: 16px 20px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:20px;">🔮</span>
-          <strong style="font-size:15px; color:var(--accent-gold);">공식 4대 유물 도감 시스템 (전체 23종 • 최대 Lv.9)</strong>
+          <strong style="font-size:15px; color:var(--accent-gold);">유물 보유 종합 버프 현황 & 공식 4대 유물 도감 (전체 23종)</strong>
         </div>
         <div style="font-size:12.5px; color:#6ee7b7; font-weight:700;">
           활성 현황: ${ownedRelicsCount} / ${totalRelicsCount} 종 소유
         </div>
       </div>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:11px; color:var(--text-muted);">총 트리거 데미지</div>
-          <div style="font-size:15px; font-weight:800; color:#f87171;">+${totalTriggerDmg}%</div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap:10px;">
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(248,113,113,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">⚔️ 상시 트리거 데미지</div>
+          <div style="font-size:16px; font-weight:800; color:#f87171; margin-top:2px;">+${totalBaseTriggerDmg}%</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">증표 조건 제외 기본 합산</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:11px; color:var(--text-muted);">총 아이템 드랍률</div>
-          <div style="font-size:15px; font-weight:800; color:#34d399;">+${totalDropRate}%</div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(251,146,60,0.3);">
+          <div style="font-size:11px; color:var(--text-muted);">🔥 증표 포함 최대 트리거 데미지</div>
+          <div style="font-size:16px; font-weight:800; color:#fb923c; margin-top:2px;">+${totalMaxTriggerDmg}%</div>
+          <div style="font-size:10.5px; color:#fdba74; margin-top:2px;">증표 습득 추가 보너스: +${totalInsigniaTriggerDmg}%</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:11px; color:var(--text-muted);">받는 트리거 뎀감</div>
-          <div style="font-size:15px; font-weight:800; color:#60a5fa;">-${totalDmgReduce}%</div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(52,211,153,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🍀 총 아이템 드랍률</div>
+          <div style="font-size:16px; font-weight:800; color:#34d399; margin-top:2px;">+${totalDropRate}%</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">일반·성유물·신유물 합산</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:11px; color:var(--text-muted);">총 성력 보너스</div>
-          <div style="font-size:15px; font-weight:800; color:var(--accent-gold);">+${totalSacredPower}</div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(96,165,250,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🛡️ 받는 트리거 데미지 감소</div>
+          <div style="font-size:16px; font-weight:800; color:#60a5fa; margin-top:2px;">-${totalDmgReduce}%</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${rozBonusDmgReduce > 0 ? `로잔티움 성물 합산(+${rozBonusDmgReduce}%) 포함` : '석상·성유물·신유물 합산'}</div>
         </div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(250,204,21,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">✨ 총 성력 증가량 보너스</div>
+          <div style="font-size:16px; font-weight:800; color:var(--accent-gold); margin-top:2px;">+${totalSacredPower}</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">축복의 성잔·로잔티움·태극령</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(251,191,36,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🪙 초기 생성 제국주화 보너스</div>
+          <div style="font-size:16px; font-weight:800; color:#fbbf24; margin-top:2px;">+${totalCoinBonus.toLocaleString()} 주화</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">콜롬버스의 나침반 (Lv당 +300)</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(192,132,252,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🎖️ 계급레벨 보너스</div>
+          <div style="font-size:16px; font-weight:800; color:#c084fc; margin-top:2px;">+${totalTierLevelBonus} Lv</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">로잔티움의 성물 보유 효과</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; border:1px solid rgba(56,189,248,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">💯 스코어 점수 보너스</div>
+          <div style="font-size:16px; font-weight:800; color:#38bdf8; margin-top:2px;">+${totalScoreBonus} 점</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">신유물 태극령 (Lv당 +2점)</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <strong style="font-size:13px; color:#f8fafc;">📋 현재 보유 유물별 적용 버프 상세 내역 (${activeRelicBuffList.length}종 활성)</strong>
+          <span style="font-size:11px; color:var(--text-muted);">※ 보유 중인 모든 유물의 현재 레벨 기준 실제 적용 수치입니다.</span>
+        </div>
+        ${activeBuffRowsHtml}
       </div>
     </div>
   `;
@@ -2739,23 +3238,35 @@ function renderWarehouseTab() {
   const warehouseContainer = document.getElementById("warehouseContainer");
   if (!warehouseContainer) return;
 
-  const userWarehouse = currentProfile.warehouseData || {};
+  let ownedCount = 0;
+  const ownedList = [];
 
-  warehouseContainer.innerHTML = WAREHOUSE_CATALOG.map(box => {
-    const userLevel = userWarehouse[box.code] || (box.altCode ? userWarehouse[box.altCode] : 0) || 0;
+  const cardsHtml = WAREHOUSE_CATALOG.map(box => {
+    const userLevel = getWarehouseLevel(box.code);
     const isOwned = (userLevel > 0);
     const isMax = (userLevel >= box.maxLevel);
+
+    if (isOwned) {
+      ownedCount++;
+      ownedList.push({
+        name: box.name,
+        category: box.category,
+        level: userLevel,
+        isMax,
+        isUnlockOnly: Boolean(box.isUnlockOnly)
+      });
+    }
 
     let cardStateClass = "warehouse-unowned";
     let badgeClass = "badge-locked";
     let badgeText = `🔒 미소유`;
-    let levelText = `Lv.0 (미소유)`;
+    let levelText = box.isUnlockOnly ? `미해금 (조건 미달성)` : `Lv.0 (미소유)`;
 
     if (isMax) {
       cardStateClass = "warehouse-max";
       badgeClass = "badge-owned";
-      badgeText = `🌟 소유 (Lv.9 Max)`;
-      levelText = `Lv.9 (Max 달성!)`;
+      badgeText = box.isUnlockOnly ? `🌟 소유 (사용 가능)` : `🌟 소유 (Lv.9 Max)`;
+      levelText = box.isUnlockOnly ? `해금 완료 (사용 가능!)` : `Lv.9 (Max 달성!)`;
     } else if (isOwned) {
       cardStateClass = "warehouse-owned";
       badgeClass = "badge-rentable";
@@ -2763,16 +3274,18 @@ function renderWarehouseTab() {
       levelText = `Lv.${userLevel} / ${box.maxLevel}`;
     }
 
+    const boxIcon = box.code === "NBLBox_MOON" ? "🐇" : (box.code === "NBLBox4" || box.code === "NBLBox2" ? "🦊" : (box.code === "NBLBox3" ? "🐆" : "📦"));
+
     return `
       <div class="generic-item-card ${cardStateClass}">
-        <div class="item-icon-box">📦</div>
+        <div class="item-icon-box">${boxIcon}</div>
         <div class="item-details">
           <div class="item-title">
             ${box.name}
             <span style="font-size:11px; opacity:0.75; font-weight:400;"> [${box.category}]</span>
           </div>
           <div class="item-sub">
-            레벨: <span style="font-weight:800;">${levelText}</span>
+            상태: <span style="font-weight:800;">${levelText}</span>
           </div>
           <div class="item-desc" style="font-size:11.5px; margin-top:2px;">
             ${box.req}
@@ -2784,6 +3297,31 @@ function renderWarehouseTab() {
       </div>
     `;
   }).join('');
+
+  const ownedBadgesHtml = ownedList.length > 0
+    ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+        ${ownedList.map(item => `
+          <span style="font-size:11.5px; padding:4px 10px; border-radius:6px; background:${item.isMax ? 'rgba(255,215,0,0.14)' : 'rgba(16,185,129,0.14)'}; border:1px solid ${item.isMax ? 'rgba(255,215,0,0.4)' : 'rgba(16,185,129,0.4)'}; color:${item.isMax ? 'var(--accent-gold)' : '#6ee7b7'}; font-weight:700;">
+            ${item.isMax ? '🌟' : '🟢'} ${item.name} ${item.isUnlockOnly ? '(사용 가능)' : `(Lv.${item.level}${item.isMax ? ' MAX' : ''})`}
+          </span>
+        `).join('')}
+      </div>`
+    : `<div style="margin-top:8px; font-size:12px; color:var(--text-muted);">현재 보유 중인 창고가 없습니다.</div>`;
+
+  const summaryBannerHtml = `
+    <div style="grid-column: 1 / -1; margin-bottom: 12px; padding: 14px 18px; border-radius: 10px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); border: 1px solid rgba(255, 215, 0, 0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">📦</span>
+          <strong style="font-size:14.5px; color:var(--accent-gold);">보유 창고 현황 요약 (총 ${WAREHOUSE_CATALOG.length}종 도감)</strong>
+        </div>
+        <span style="font-size:12.5px; color:#6ee7b7; font-weight:700;">보유 / 해금: ${ownedCount} / ${WAREHOUSE_CATALOG.length} 종</span>
+      </div>
+      ${ownedBadgesHtml}
+    </div>
+  `;
+
+  warehouseContainer.innerHTML = summaryBannerHtml + cardsHtml;
 }
 
 /* ==========================================================================
@@ -3308,10 +3846,176 @@ let rankSearchQuery = '';
 
 // 실시간 전체 랭커 동기화 상태 관리
 let isRankingLiveSyncing = false;
+let abortRankingLiveSync = false;
 let rankLiveSyncProgress = { current: 0, total: 0, completedAt: null };
 let lastRankLiveSyncTime = 0;
 const RANK_LIVE_SYNC_COOLDOWN_MS = 45 * 1000;
-const RANK_LIVE_SYNC_CACHE_KEY = 'dsr_live_rankings_cache_v37_2';
+const RANK_LIVE_SYNC_CACHE_KEY = 'dsr_live_rankings_cache_v37_5';
+
+/**
+ * m16tool 랭킹 보드 HTML에서 순위/아이디/스코어 추출 (클라이언트 폴백용)
+ */
+function parseM16RankingBoardHtmlClient(htmlText) {
+  const entries = [];
+  if (!htmlText) return entries;
+  const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let m;
+  while ((m = trRegex.exec(htmlText)) !== null) {
+    const rowHtml = m[1];
+    const nicMatch = rowHtml.match(/RPGDetail\?nicName=([^"&'<>]+)/i);
+    if (!nicMatch) continue;
+    let nicName = nicMatch[1].trim();
+    try { nicName = decodeURIComponent(nicName); } catch (e) {}
+
+    const tds = [];
+    const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    let tdM;
+    while ((tdM = tdRegex.exec(rowHtml)) !== null) {
+      const txt = tdM[1].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+      tds.push(txt);
+    }
+    if (tds.length >= 3) {
+      const rankNum = parseInt(tds[0].replace(/[^0-9]/g, ""), 10);
+      const scoreNum = parseInt(tds[2].replace(/[^0-9-]/g, ""), 10) || 0;
+      if (!isNaN(rankNum) && rankNum > 0) {
+        entries.push({ rank: rankNum, nicName, score: scoreNum });
+      }
+    }
+  }
+  return entries;
+}
+
+/**
+ * 실시간으로 가져온 m16tool 유저랭킹/계급랭킹 보드 순서를 DSR_RANKINGS_DATA에 반영
+ */
+function applyLiveRankingBoardsOrder(userBoard, tierBoard) {
+  if (typeof DSR_RANKINGS_DATA === "undefined") return false;
+
+  const existingByNic = {};
+  [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])].forEach(row => {
+    if (row && row.nicName) {
+      const k = row.nicName.trim().toLowerCase();
+      if (!existingByNic[k] || (row.latestSlot && !existingByNic[k].latestSlot)) {
+        existingByNic[k] = { ...row };
+      } else {
+        existingByNic[k] = { ...existingByNic[k], ...row };
+      }
+    }
+  });
+
+  const userScoreMap = {};
+  const tierScoreMap = {};
+  if (Array.isArray(userBoard)) {
+    userBoard.forEach(item => {
+      if (item && item.nicName) userScoreMap[item.nicName.trim().toLowerCase()] = item.score;
+    });
+  }
+  if (Array.isArray(tierBoard)) {
+    tierBoard.forEach(item => {
+      if (item && item.nicName) tierScoreMap[item.nicName.trim().toLowerCase()] = item.score;
+    });
+  }
+
+  const buildBoardRow = (entry, isTier) => {
+    const k = entry.nicName.trim().toLowerCase();
+    const prev = existingByNic[k] || {};
+    const dbP = (typeof PLAYERS_DATABASE !== "undefined" && PLAYERS_DATABASE[k]) ? PLAYERS_DATABASE[k] : null;
+    const ls = (dbP && dbP.lastSave) ? dbP.lastSave : null;
+
+    const uScore = (userScoreMap[k] !== undefined)
+      ? userScoreMap[k]
+      : (!isTier ? entry.score : (prev.userScore || 0));
+    const tScore = (tierScoreMap[k] !== undefined)
+      ? tierScoreMap[k]
+      : (isTier ? entry.score : (prev.tierScore || 0));
+
+    return {
+      rank: entry.rank,
+      nicName: entry.nicName.trim(),
+      score: entry.score,
+      tierScore: tScore,
+      userScore: uScore,
+      seasonPoint: (dbP && dbP.seasonPoint !== undefined) ? dbP.seasonPoint : (prev.seasonPoint || 0),
+      honorPoint: (dbP && dbP.honorPoint !== undefined) ? dbP.honorPoint : (prev.honorPoint || 0),
+      coin: (ls && ls.imperialCoin !== undefined) ? ls.imperialCoin : (prev.coin || 0),
+      sacredPower: (dbP && dbP.sacredPower !== undefined) ? (parseInt(String(dbP.sacredPower).replace(/,/g, ''), 10) || 0) : (prev.sacredPower || 0),
+      gold: (ls && ls.gold !== undefined) ? ls.gold : (prev.gold || 0),
+      str: (ls && ls.str !== undefined) ? ls.str : (prev.str || 0),
+      agi: (ls && ls.agi !== undefined) ? ls.agi : (prev.agi || 0),
+      int: (ls && ls.int !== undefined) ? ls.int : (prev.int || 0),
+      totStats: ls ? ((ls.str || 0) + (ls.agi || 0) + (ls.int || 0)) : (prev.totStats || 0),
+      charName: (ls && ls.characterName) ? ls.characterName : (prev.charName || "-"),
+      latestSlot: (ls && ls.saveDate) ? ls.saveDate : (prev.latestSlot || "-"),
+      isLiveSynced: prev.isLiveSynced || (dbP && dbP.isLiveFetched) || false
+    };
+  };
+
+  let updated = false;
+  if (Array.isArray(userBoard) && userBoard.length > 0) {
+    DSR_RANKINGS_DATA.userRankings = userBoard.map(e => buildBoardRow(e, false));
+    updated = true;
+  }
+  if (Array.isArray(tierBoard) && tierBoard.length > 0) {
+    DSR_RANKINGS_DATA.tierRankings = tierBoard.map(e => buildBoardRow(e, true));
+    updated = true;
+  }
+
+  // 현재 상단에 조회 중인 유저의 랭킹포인트 & 계급순위도 최신 보드 기준으로 즉시 반영
+  if (updated && currentProfile && currentProfile.userId) {
+    const official = resolveOfficialRankingInfo(currentProfile.userId, currentProfile.rankingPoint, currentProfile.rankStanding);
+    currentProfile.rankingPoint = official.rankingPoint;
+    currentProfile.rankStanding = official.rankStanding;
+    try { updateProfileStatsUI(); } catch (e) {}
+  }
+
+  return updated;
+}
+
+/**
+ * m16tool 공식 유저랭킹 & 계급랭킹 보드(1~30위) 실시간 순위표를 동기화
+ */
+async function syncM16RankingBoardsLive(forceRefresh = false) {
+  // 1) 로컬 서버(/api/m16rankings) 우선 호출
+  if (localApiStatus !== false) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch('/api/m16rankings', { method: 'GET', signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.status === 404) {
+        localApiStatus = false;
+      } else if (res.ok) {
+        localApiStatus = true;
+        const data = await res.json();
+        if (data && (Array.isArray(data.userBoard) || Array.isArray(data.tierBoard))) {
+          return applyLiveRankingBoardsOrder(data.userBoard, data.tierBoard);
+        }
+      }
+    } catch (e) {
+      if (localApiStatus === null) localApiStatus = false;
+    }
+  }
+
+  // 2) 정적 호스팅에서 수동 갱신 시 CORS 프록시 폴백
+  if (forceRefresh) {
+    try {
+      const userUrl = 'https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9';
+      const tierUrl = 'https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9';
+      const fetchViaProxy = async (targetUrl) => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+        if (!res.ok) return null;
+        return await res.text();
+      };
+      const [uHtml, tHtml] = await Promise.all([fetchViaProxy(userUrl), fetchViaProxy(tierUrl)]);
+      const uBoard = parseM16RankingBoardHtmlClient(uHtml);
+      const tBoard = parseM16RankingBoardHtmlClient(tHtml);
+      if (uBoard.length > 0 || tBoard.length > 0) {
+        return applyLiveRankingBoardsOrder(uBoard, tBoard);
+      }
+    } catch (e) {}
+  }
+  return false;
+}
 
 /**
  * 로컬스토리지에 캐시된 최신 실시간 랭킹 데이터를 복원
@@ -3322,7 +4026,13 @@ function restoreCachedLiveRankings() {
     const raw = localStorage.getItem(RANK_LIVE_SYNC_CACHE_KEY);
     if (!raw) return;
     const cached = JSON.parse(raw);
-    if (!cached || !cached.byNic) return;
+    if (!cached) return;
+
+    if (Array.isArray(cached.userBoardOrder) || Array.isArray(cached.tierBoardOrder)) {
+      applyLiveRankingBoardsOrder(cached.userBoardOrder, cached.tierBoardOrder);
+    }
+
+    if (!cached.byNic) return;
 
     const allRows = [...(DSR_RANKINGS_DATA.userRankings || []), ...(DSR_RANKINGS_DATA.tierRankings || [])];
     allRows.forEach(row => {
@@ -3376,8 +4086,12 @@ function saveCachedLiveRankings(completedAtStr) {
         };
       }
     });
+    const userBoardOrder = (DSR_RANKINGS_DATA.userRankings || []).map(r => ({ rank: r.rank, nicName: r.nicName, score: r.score }));
+    const tierBoardOrder = (DSR_RANKINGS_DATA.tierRankings || []).map(r => ({ rank: r.rank, nicName: r.nicName, score: r.score }));
     localStorage.setItem(RANK_LIVE_SYNC_CACHE_KEY, JSON.stringify({
       completedAt: completedAtStr,
+      userBoardOrder,
+      tierBoardOrder,
       byNic
     }));
   } catch (e) {}
@@ -3414,6 +4128,12 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
     effectiveWingLevel = 0;
   }
 
+  const officialRank = resolveOfficialRankingInfo(
+    cleanId,
+    (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : existingDb.rankingPoint,
+    m16Data.rankStanding || existingDb.rankStanding
+  );
+
   const liveProfile = {
     ...existingDb,
     userId: cleanId,
@@ -3423,8 +4143,8 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
     isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : existingDb.isSeasonCompleted,
     seasonVersionLabel: m16Data.seasonVersionLabel || existingDb.seasonVersionLabel || "v37",
     seasonCompletedChar: m16Data.seasonCompletedChar || existingDb.seasonCompletedChar || "",
-    rankingPoint: (m16Data.rankingPoint !== undefined && m16Data.rankingPoint > 0) ? m16Data.rankingPoint : (existingDb.rankingPoint || 0),
-    rankStanding: m16Data.rankStanding || existingDb.rankStanding || "일반 유저",
+    rankingPoint: officialRank.rankingPoint,
+    rankStanding: officialRank.rankStanding,
     titleCode: m16Data.titleCode || existingDb.titleCode || "TT_TYPE1",
     swordCode: m16Data.swordCode || existingDb.swordCode || "BLSwrod0",
     swordLevel: m16Data.swordLevel || existingDb.swordLevel || 1,
@@ -3452,11 +4172,11 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
     liveProfile.swordMasteryLevels = {
       "BLSwrod1": 0, "BLSwrod2": 40, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
     };
-    liveProfile.ownedSwords = new Set(["BLSwrod2"]);
+    liveProfile.ownedSwords = new Set(["BLSwrod1", "BLSwrod2"]);
     liveProfile.relicData = {
       ...(liveProfile.relicData || {}),
-      "SP_LBOX1": 9,
-      "SP_LBOX2": 1
+      "REL_A1": 9,
+      "REL_A2": 1
     };
     liveProfile.redBean = 0;
     liveProfile.blueBean = 0;
@@ -3468,16 +4188,19 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
   if (typeof PLAYERS_DATABASE !== "undefined") {
     PLAYERS_DATABASE[tKey] = liveProfile;
   }
+  saveCachedUserProfile(cleanId, liveProfile);
 
   syncRankingsDataWithProfile(liveProfile, true);
 
-  // 만약 현재 상단에 조회 중인 유저와 동일하다면 상단 프로필도 자동 최신화
+  // 만약 현재 상단에 조회 중인 유저와 동일하다면 상단 프로필 및 전체 탭도 자동 최신화
   if (currentProfile && currentProfile.userId && currentProfile.userId.toLowerCase() === tKey) {
     currentProfile = {
       ...liveProfile,
       selectedSlotIndex: currentProfile.selectedSlotIndex || 0
     };
     try { updateProfileStatsUI(); } catch (e) {}
+    try { renderSeasonsMatrix(); } catch (e) {}
+    try { renderOtherTabsData(); } catch (e) {}
   }
 
   return true;
@@ -3485,17 +4208,36 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
 
 /**
  * 랭킹 분석실 전체 랭커 m16tool 실시간 세이브 일괄 자동 동기화
- * - 아이디를 일일이 클릭하지 않아도 랭킹 분석실 진입 시 전체 랭커의 최신 v37 데이터를 자동 연동
+ * - 먼저 m16tool 공식 랭킹 보드(유저랭킹/계급랭킹 1~30위) 순서를 실시간 동기화한 뒤,
+ *   개별 랭커의 최신 v37 세이브 슬롯 상세 데이터를 병렬 연동
  */
 async function syncAllRankersLive(forceRefresh = false) {
   if (typeof DSR_RANKINGS_DATA === "undefined") return;
   if (isRankingLiveSyncing) return;
+
+  // 정적 호스팅(GitHub Pages)에서는 기본 데이터에 이미 최신 v37 스냅샷이 탑재되어 있으므로
+  // 탭 클릭 시 외부 프록시 다건 호출로 인한 IP Rate-Limit(개별 아이디 조회 차단 현상)을 방지
+  if (!forceRefresh && localApiStatus === false) {
+    if (!rankLiveSyncProgress.completedAt) {
+      rankLiveSyncProgress.completedAt = "v37.5 최신 연동";
+    }
+    renderRankingsTable();
+    return;
+  }
 
   const now = Date.now();
   if (!forceRefresh && lastRankLiveSyncTime > 0 && (now - lastRankLiveSyncTime < RANK_LIVE_SYNC_COOLDOWN_MS)) {
     renderRankingsTable();
     return;
   }
+
+  isRankingLiveSyncing = true;
+  abortRankingLiveSync = false;
+
+  // 0단계: m16tool 공식 랭킹 보드(유저랭킹 1~30위 / 계급랭킹 1~30위) 순위표 실시간 동기화
+  try {
+    await syncM16RankingBoardsLive(forceRefresh);
+  } catch (e) {}
 
   // 현재 활성 탭의 랭커를 최우선 순위로 배열 구성
   const primaryList = (currentRankBoard === 'tier')
@@ -3517,9 +4259,11 @@ async function syncAllRankersLive(forceRefresh = false) {
     }
   });
 
-  if (allNics.length === 0) return;
+  if (allNics.length === 0) {
+    isRankingLiveSyncing = false;
+    return;
+  }
 
-  isRankingLiveSyncing = true;
   rankLiveSyncProgress = {
     current: 0,
     total: allNics.length,
@@ -3533,6 +4277,11 @@ async function syncAllRankersLive(forceRefresh = false) {
   if (localApiStatus !== false) {
     const CHUNK_SIZE = 15;
     for (let i = 0; i < allNics.length; i += CHUNK_SIZE) {
+      if (abortRankingLiveSync) {
+        isRankingLiveSyncing = false;
+        renderRankingsTable();
+        return;
+      }
       const chunk = allNics.slice(i, i + CHUNK_SIZE);
       if (localApiStatus === false) {
         remainingNics.push(...chunk);
@@ -3580,12 +4329,18 @@ async function syncAllRankersLive(forceRefresh = false) {
     remainingNics.push(...allNics);
   }
 
-  // 2단계: 정적 호스팅(GitHub Pages 등)이거나 배치 미처리된 랭커들을 병렬(5명 단위) 실시간 연동
-  if (remainingNics.length > 0) {
-    const PARALLEL_SIZE = 5;
+  // 2단계: 수동 전체 갱신 시 외부 프록시 연동 (Rate-Limit 방지를 위해 2명 단위 순차 처리 + 개별 조회 시 즉시 중단)
+  if (remainingNics.length > 0 && (forceRefresh || localApiStatus === true)) {
+    const PARALLEL_SIZE = 2;
     for (let i = 0; i < remainingNics.length; i += PARALLEL_SIZE) {
+      if (abortRankingLiveSync) {
+        isRankingLiveSyncing = false;
+        renderRankingsTable();
+        return;
+      }
       const batch = remainingNics.slice(i, i + PARALLEL_SIZE);
       await Promise.all(batch.map(async (nic) => {
+        if (abortRankingLiveSync) return;
         try {
           const m16Data = await fetchM16ToolUserLog(nic);
           if (m16Data && m16Data.found) {
