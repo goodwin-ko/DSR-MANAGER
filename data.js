@@ -6,12 +6,12 @@
 // ==========================================
 // 0. 시스템 버전 및 패치 히스토리 관리 (패치 시마다 버전 업 & 내용 반영)
 // ==========================================
-const APP_VERSION = "v37.5.4";
+const APP_VERSION = "v37.5.5";
 const APP_RELEASE_DATE = "2026.10.20";
 
 const PATCH_HISTORY = [
   {
-    version: "v37.5.4",
+    version: "v37.5.5",
     date: "2026.10.20",
     badge: "LATEST",
     title: "창고 초월 해금 조건(분홍여우·재규어·분홍여우 성체) & 각성 체인(고블린 왕자~루나 고양이) 및 '달토끼' 정밀 매핑",
@@ -3724,6 +3724,81 @@ const PLAYERS_DATABASE = {
           { id: 374, count: 0 }, // 5. 치프틴 그람의 목걸이[조합체]
           { id: 0, count: 0 }
         ]
+      }
+    ]
+  },
+  "tinymong": {
+    userId: "Tinymong",
+    seasonPoint: 0,
+    honorPoint: 3,
+    rankingPoint: 0,
+    rankStanding: "일반 유저",
+    titleCode: 1,
+    swordCode: "BLSwrod0",
+    swordLevel: 1,
+    ownedSwords: [],
+    wingId: 0,
+    wingLevel: 0,
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 0,
+    beans: { red: 0, blue: 0, grey: 0 },
+    warehouseData: {},
+    sacredPower: "0",
+    petData: {},
+    ownedCodes: [],
+    lastSave: {
+      saveDate: "2026-10-15 12:00:00",
+      characterName: "[2차 전생]신궁 - 빛의 활의명수",
+      characterLevel: 6000,
+      petName: "없음",
+      petLevel: 0,
+      gold: 1000000,
+      imperialCoin: 1018,
+      darkStone: 0,
+      str: 60150,
+      agi: 108302,
+      int: 60150,
+      heroItems: [],
+      warehouseItems: [],
+      petItems: []
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_37_2222",
+        saveCode: "2222",
+        mapVersion: "v37.00",
+        saveDate: "v37 세이브",
+        characterName: "[2차 전생]신궁 - 빛의 활의명수",
+        characterLevel: 6000,
+        petName: "없음",
+        gold: 1000000,
+        imperialCoin: 1018,
+        darkStone: 0,
+        str: 60150,
+        agi: 108302,
+        int: 60150,
+        heroItems: [],
+        warehouseItems: [],
+        petItems: []
+      },
+      {
+        slotKey: "Code1_37_1111",
+        saveCode: "1111",
+        mapVersion: "v37.00",
+        saveDate: "v37 세이브",
+        characterName: "캐릭터",
+        characterLevel: 6000,
+        petName: "없음",
+        gold: 934370,
+        imperialCoin: 8,
+        darkStone: 0,
+        str: 32692,
+        agi: 19057,
+        int: 19057,
+        heroItems: [],
+        warehouseItems: [],
+        petItems: []
       }
     ]
   },

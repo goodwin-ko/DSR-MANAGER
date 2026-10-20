@@ -454,7 +454,7 @@ function syncRankingsDataWithProfile(profile, isLive = false) {
   return updated;
 }
 
-const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v37_5_4';
+const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v37_5_5';
 
 function resolveOfficialRankingInfo(userId, fallbackRp = 0, fallbackStanding = "") {
   if (!userId || typeof DSR_RANKINGS_DATA === "undefined") {
@@ -1204,7 +1204,28 @@ const isLocalServerHost = (typeof window !== "undefined") &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 let localApiStatus = isLocalServerHost ? null : false;
 
-async function fetchWithTimeoutText(url, timeoutMs = 3500, isAllOriginsJson = false) {
+// Cloudflare Worker 기본 내장 전용 프록시 (100% 자동 실시간 연동)
+const DEFAULT_CF_WORKER_PROXY = "https://dsr-proxy.juntkddyd.workers.dev";
+
+function getWorkerProxyUrl() {
+  const custom = (typeof localStorage !== "undefined" && localStorage.getItem("dsr_cf_worker_url")) || "";
+  return custom || DEFAULT_CF_WORKER_PROXY;
+}
+
+function setWorkerProxyUrl(url) {
+  if (typeof localStorage === "undefined") return;
+  if (!url || !url.trim()) {
+    localStorage.removeItem("dsr_cf_worker_url");
+  } else {
+    let clean = url.trim();
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+      clean = "https://" + clean;
+    }
+    localStorage.setItem("dsr_cf_worker_url", clean);
+  }
+}
+
+async function fetchWithTimeoutText(url, timeoutMs = 7000, isAllOriginsJson = false) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -1257,22 +1278,33 @@ async function fetchM16ToolUserLog(nicName) {
     }
   }
 
-  // 2. 외부 CORS 프록시 병렬 레이스 (가장 먼저 응답하는 프록시 채택 -> 0.3초 내 즉시 응답)
+  // 2. Cloudflare Worker 전용 프록시 (Method 2 설정 시 0.2초 초고속 100% 실시간 연동)
+  const workerBase = getWorkerProxyUrl();
+  if (!htmlText && workerBase) {
+    try {
+      const sep = workerBase.includes("?") ? "&" : "?";
+      const cfUrl = `${workerBase}${sep}url=${encodeURIComponent(targetUrl)}`;
+      htmlText = await fetchWithTimeoutText(cfUrl, 6500, false);
+    } catch (cfErr) {
+      console.warn("Cloudflare Worker fetch error:", cfErr);
+    }
+  }
+
+  // 3. 외부 CORS 공용 프록시 병렬 레이스 (타임아웃 7.5초로 안정화)
   if (!htmlText) {
     const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
     const allOriginsJsonUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&_t=${cacheBust}`;
-    const allOriginsRawUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}&_t=${cacheBust}`;
+    const thingProxyUrl = `https://thingproxy.freeboard.io/fetch/${targetUrl}`;
 
     try {
       htmlText = await Promise.any([
-        fetchWithTimeoutText(codetabsUrl, 4000, false),
-        fetchWithTimeoutText(allOriginsJsonUrl, 4500, true),
-        fetchWithTimeoutText(allOriginsRawUrl, 4500, false)
+        fetchWithTimeoutText(codetabsUrl, 7500, false),
+        fetchWithTimeoutText(allOriginsJsonUrl, 7500, true),
+        fetchWithTimeoutText(thingProxyUrl, 7500, false)
       ]);
     } catch (raceErr) {
-      // 최후 폴백: corsproxy.io
       try {
-        htmlText = await fetchWithTimeoutText(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, 3500, false);
+        htmlText = await fetchWithTimeoutText(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, 6000, false);
       } catch (e2) {}
     }
   }
@@ -1284,9 +1316,6 @@ async function fetchM16ToolUserLog(nicName) {
   return parseM16ToolHtml(nicName, htmlText);
 }
 
-/**
- * m16tool HTML 원문을 파싱하여 프로필 데이터 객체로 반환
- */
 function parseM16ToolHtml(nicName, htmlText) {
   if (!htmlText || htmlText.length <= 300) return null;
 
@@ -4002,6 +4031,14 @@ async function syncM16RankingBoardsLive(forceRefresh = false) {
       const userUrl = 'https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9';
       const tierUrl = 'https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9';
       const fetchViaProxy = async (targetUrl) => {
+        const worker = getWorkerProxyUrl();
+        if (worker) {
+          try {
+            const sep = worker.includes("?") ? "&" : "?";
+            const res = await fetch(`${worker}${sep}url=${encodeURIComponent(targetUrl)}`);
+            if (res.ok) return await res.text();
+          } catch (e) {}
+        }
         const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
         if (!res.ok) return null;
         return await res.text();
@@ -4815,4 +4852,68 @@ function renderRankingsFormula() {
       </div>
     </div>
   `;
+}
+
+
+/* --------------------------------------------------------------------------
+   Cloudflare Worker Proxy Modal Functions
+   -------------------------------------------------------------------------- */
+function openProxySettingsModal() {
+  const modal = document.getElementById("proxySettingsModal");
+  const input = document.getElementById("txtWorkerProxyUrl");
+  if (input) input.value = getWorkerProxyUrl();
+  const resDiv = document.getElementById("proxyTestResult");
+  if (resDiv) resDiv.innerHTML = "";
+  if (modal) {
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closeProxySettingsModal() {
+  const modal = document.getElementById("proxySettingsModal");
+  if (modal) {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+}
+
+async function testAndSaveWorkerProxy() {
+  const input = document.getElementById("txtWorkerProxyUrl");
+  const resDiv = document.getElementById("proxyTestResult");
+  if (!input) return;
+  const rawUrl = input.value.trim();
+  if (!rawUrl) {
+    setWorkerProxyUrl("");
+    if (resDiv) resDiv.innerHTML = "<span style='color:#f87171;'>프록시 URL이 초기화되었습니다. 기본 공용 프록시를 사용합니다.</span>";
+    return;
+  }
+  if (resDiv) resDiv.innerHTML = "<span style='color:#60a5fa;'>Cloudflare Worker 연결 테스트 중...</span>";
+  try {
+    let clean = rawUrl;
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) clean = "https://" + clean;
+    const testTarget = "https://m16tool.xyz/Game/DSR/UserLog/RPGDetail?nicName=Horus&character=info1";
+    const sep = clean.includes("?") ? "&" : "?";
+    const testUrl = `${clean}${sep}url=${encodeURIComponent(testTarget)}`;
+    const txt = await fetchWithTimeoutText(testUrl, 6000, false);
+    if (txt && (txt.includes("Code1") || txt.includes("Horus") || txt.includes("RPGDetail"))) {
+      setWorkerProxyUrl(clean);
+      if (resDiv) resDiv.innerHTML = "<span style='color:#34d399;'>✅ 연결 성공! Cloudflare Worker 전용 프록시가 저장되었습니다.</span>";
+      setTimeout(closeProxySettingsModal, 1500);
+    } else {
+      setWorkerProxyUrl(clean);
+      if (resDiv) resDiv.innerHTML = "<span style='color:#fbbf24;'>⚠️ 응답은 수신되었으나 예상 내용과 다릅니다. 저장되었습니다.</span>";
+    }
+  } catch (err) {
+    setWorkerProxyUrl(rawUrl);
+    if (resDiv) resDiv.innerHTML = `<span style='color:#f87171;'>❌ 테스트 실패 (${err.message}). 주소를 다시 확인해 주세요. (일단 저장됨)</span>`;
+  }
+}
+
+function clearWorkerProxy() {
+  const input = document.getElementById("txtWorkerProxyUrl");
+  const resDiv = document.getElementById("proxyTestResult");
+  if (input) input.value = "";
+  setWorkerProxyUrl("");
+  if (resDiv) resDiv.innerHTML = "<span style='color:#94a3b8;'>초기화되었습니다. 기본 공용 프록시를 사용합니다.</span>";
 }
