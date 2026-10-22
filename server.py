@@ -43,6 +43,30 @@ def parse_ranking_board_html(html_text):
 class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == '/api/m16rankings_top100':
+            anchors = ['Horus', 'DallDall', 'Jonas', 'kk2103']
+            base_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9&nicname="
+            all_rows = {}
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {executor.submit(fetch_url_html, f"{base_url}{urllib.parse.quote(nic)}"): nic for nic in anchors}
+                for fut in as_completed(futures):
+                    try:
+                        html = fut.result()
+                        rows = parse_ranking_board_html(html)
+                        for r in rows:
+                            if r["rank"] <= 100:
+                                all_rows[r["rank"]] = r
+                    except Exception:
+                        pass
+            sorted_rows = [all_rows[k] for k in sorted(all_rows.keys())]
+            payload = json.dumps({"rankings": sorted_rows}, ensure_ascii=False).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
         if parsed.path == '/api/m16rankings':
             user_board_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9"
             tier_board_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9"

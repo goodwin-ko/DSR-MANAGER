@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대륙 RPG 매니저 | 내부 테스트용 일반 랭킹 TOP 100 분석실</title>
+  <link rel="stylesheet" href="styles.css?v=37.5.5">
+  <style>
+    /* Internal Rank Analyzer Dedicated Styles */
+    .internal-badge-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 20px;
+      color: #fca5a5;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .internal-control-panel {
+      background: rgba(18, 24, 38, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 22px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .insight-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .insight-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .insight-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+    .insight-card.coin::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+    .insight-card.sacred::before { background: linear-gradient(90deg, #38bdf8, #0284c7); }
+    .insight-card.score::before { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+    .insight-card.gold::before { background: linear-gradient(90deg, #34d399, #059669); }
+
+    .insight-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+    .insight-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .insight-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .delta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+    }
+    .delta-badge.pos {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .delta-badge.neg {
+      background: rgba(244, 63, 94, 0.18);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+    .delta-badge.zero {
+      color: #64748b;
+    }
+
+    /* Rank 100 Table */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 23, 42, 0.85);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .internal-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+    .internal-table th {
+      background: rgba(30, 41, 59, 0.95);
+      color: #94a3b8;
+      font-weight: 700;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .internal-table th:hover {
+      color: #f1f5f9;
+      background: rgba(51, 65, 85, 0.95);
+    }
+    .internal-table th.active {
+      color: #ffd700;
+      border-bottom-color: #ffd700;
+    }
+    .internal-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+      white-space: nowrap;
+    }
+    .internal-table tbody tr {
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    .internal-table tbody tr:hover {
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .rank-num-cell {
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .rank-top1 { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
+    .rank-top2 { color: #cbd5e1; }
+    .rank-top3 { color: #f97316; }
+
+    .sync-progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+    .sync-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      transition: width 0.2s ease;
+    }
+
+    /* Modal for hourly history */
+    .detail-history-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .detail-history-dialog {
+      background: #0f172a;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 14px;
+      max-width: 780px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 22px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container" style="padding-top: 24px;">
+
+    <!-- Top Header -->
+    <header class="app-header" style="margin-bottom: 20px;">
+      <div class="logo-area">
+        <span class="logo-icon">📊</span>
+        <div>
+          <div class="internal-badge-header">
+            <span>🔒 내부 테스트 전용</span>
+            <span style="opacity: 0.6;">•</span>
+            <span>일반 랭킹 1위~100위 시계열 증감 분석기</span>
+          </div>
+          <div class="title-with-badge">
+            <h1 style="font-size: 24px;">일반 랭킹 TOP 100 시간별 증감 분석실</h1>
+            <span class="patch-badge" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);">INTERNAL v37.5.5</span>
+          </div>
+          <p style="color: var(--text-sub); font-size: 13px; margin-top: 4px;">
+            m16tool 일반랭킹 100위 랭커의 <strong style="color: #fbbf24;">제국주화</strong>, <strong style="color: #38bdf8;">성력</strong>, <strong style="color: #c084fc;">스코어</strong>, <strong style="color: #34d399;">골드</strong>의 시간 단위 변동폭(Δ)을 실시간 추적합니다.
+          </p>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="index.html" class="btn-search" style="text-decoration: none; padding: 10px 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #cbd5e1; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          <span>🏠</span> 메인 매니저로 돌아가기
+        </a>
+      </div>
+    </header>
+
+    <!-- Top 4 Insight Cards (최근 변동 급상승 랭커 TOP 5) -->
+    <div class="insight-cards-grid">
+      <!-- 1. 주화 급상승 TOP 5 -->
+      <div class="insight-card coin">
+        <div class="insight-card-header">
+          <span>🪙 최근 주화 획득 TOP 5</span>
+          <span id="txtInsightCoinTime" style="font-size: 11px; color: #94a3b8; font-weight: 500;">시간 대비</span>
+        </div>
+        <div class="insight-list" id="listTopCoinDelta">
+          <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
+        </div>
+      </div>
+
+      <!-- 2. 성력 급상승 TOP 5 -->
+      <div class="insight-card sacred">
+        <div class="insight-card-header">
+          <span>⚡ 최근 성력 급상승 TOP 5</span>
+          <span id="txtInsightSacredTime" style="font-size: 11px; color: #94a3b8; font-weight: 500;">시간 대비</span>
+        </div>
+        <div class="insight-list" id="listTopSacredDelta">
+          <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
+        </div>
+      </div>
+
+      <!-- 3. 스코어 증가 TOP 5 -->
+      <div class="insight-card score">
+        <div class="insight-card-header">
+          <span>💯 최근 스코어 증가 TOP 5</span>
+          <span id="txtInsightScoreTime" style="font-size: 11px; color: #94a3b8; font-weight: 500;">시간 대비</span>
+        </div>
+        <div class="insight-list" id="listTopScoreDelta">
+          <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
+        </div>
+      </div>
+
+      <!-- 4. 골드 변동 TOP 5 -->
+      <div class="insight-card gold">
+        <div class="insight-card-header">
+          <span>💰 최근 골드 변동 TOP 5</span>
+          <span id="txtInsightGoldTime" style="font-size: 11px; color: #94a3b8; font-weight: 500;">시간 대비</span>
+        </div>
+        <div class="insight-list" id="listTopGoldDelta">
+          <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control & Filter Toolbar -->
+    <div class="internal-control-panel">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="btnSyncTop100Live" onclick="triggerFullTop100Sync(true)" class="btn-search" style="padding: 10px 18px; font-size: 13px; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            🔄 실시간 TOP 100 전수 갱신 & 새 스냅샷 기록
+          </button>
+
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #cbd5e1; cursor: pointer; background: rgba(255, 255, 255, 0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <input type="checkbox" id="chkAutoHourlySync" onchange="toggleAutoHourlySync(this.checked)">
+            <span>⏱️ 1시간마다 자동 스냅샷 수집</span>
+          </label>
+
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #fbbf24; cursor: pointer; background: rgba(251, 191, 36, 0.08); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25);">
+            <input type="checkbox" id="chkOnlyChanged" onchange="applyFiltersAndRender()">
+            <span style="font-weight: 700;">🎯 변동 랭커만 보기 (Δ ≠ 0)</span>
+          </label>
+        </div>
+
+        <!-- Comparison Target Selector -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12.5px; color: #94a3b8; font-weight: 700;">증감 비교 기준:</span>
+          <select id="selCompareTarget" onchange="handleCompareTargetChange(this.value)" style="background: #1e293b; color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; outline: none; cursor: pointer;">
+            <option value="prev">⚡ 직전 측정치 대비 (Latest Sync)</option>
+            <option value="1h" selected>⏱️ 1시간 전 대비</option>
+            <option value="3h">🕒 3시간 전 대비</option>
+            <option value="6h">🕕 6시간 전 대비</option>
+            <option value="24h">📅 24시간 전 (어제) 대비</option>
+            <option value="baseline">🏛️ 최초 기준치(Baseline) 대비</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter pills, Search, Export -->
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.1);">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: #64748b; margin-right: 4px;">구간:</span>
+          <button type="button" class="cat-pill active" data-range="all" onclick="setRankRangeFilter('all', this)">전체 (1~100위)</button>
+          <button type="button" class="cat-pill" data-range="1-30" onclick="setRankRangeFilter('1-30', this)">1위 ~ 30위</button>
+          <button type="button" class="cat-pill" data-range="31-60" onclick="setRankRangeFilter('31-60', this)">31위 ~ 60위</button>
+          <button type="button" class="cat-pill" data-range="61-100" onclick="setRankRangeFilter('61-100', this)">61위 ~ 100위</button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <!-- Search input -->
+          <div class="rank-search-box" style="margin: 0;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="internalRankSearch" placeholder="닉네임 검색..." oninput="handleInternalSearch(this.value)" style="width: 170px;">
+          </div>
+
+          <button type="button" onclick="exportAnalysisCsv()" class="cat-pill" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
+            📥 CSV 내보내기
+          </button>
+          <button type="button" onclick="clearSnapshotHistory()" class="cat-pill" style="border-color: rgba(244, 63, 94, 0.3); color: #fb7185;">
+            🗑️ 기록 초기화
+          </button>
+        </div>
+      </div>
+
+      <!-- Sync Progress Bar -->
+      <div id="syncProgressBarContainer" class="sync-progress-bar-container">
+        <div id="syncProgressBar" class="sync-progress-bar"></div>
+      </div>
+      <div id="syncStatusText" style="display: none; font-size: 11.5px; color: #38bdf8; margin-top: 6px; text-align: right;"></div>
+    </div>
+
+    <!-- Active Summary Bar -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 12.5px; color: #94a3b8; flex-wrap: wrap; gap: 8px;">
+      <div>
+        <span>📋 표시 유저: <strong id="txtDisplayCount" style="color: #f1f5f9;">100</strong>명</span>
+        <span style="margin: 0 8px; opacity: 0.4;">|</span>
+        <span>최근 동기화: <strong id="txtLastSyncTime" style="color: #34d399;">기록 없음</strong></span>
+        <span style="margin: 0 8px; opacity: 0.4;">|</span>
+        <span>보유 스냅샷: <strong id="txtSnapshotCount" style="color: #60a5fa;">1</strong>개</span>
+      </div>
+      <div style="font-size: 11.5px; color: #64748b;">
+        💡 열 제목(헤더)을 클릭하면 해당 지표 증감(Δ) 순으로 즉시 정렬됩니다. 행을 클릭하면 시간대별 상세 이력을 확인합니다.
+      </div>
+    </div>
+
+    <!-- Main TOP 100 Table -->
+    <div class="table-responsive">
+      <table class="internal-table" id="internalTop100Table">
+        <thead>
+          <tr>
+            <th data-sort="rank" onclick="handleSortColumn('rank')" class="active" style="width: 70px;">순위 👑</th>
+            <th data-sort="nicName" onclick="handleSortColumn('nicName')">닉네임 (ID)</th>
+            <th data-sort="userScore" onclick="handleSortColumn('userScore')">스코어 (Score)</th>
+            <th data-sort="deltaScore" onclick="handleSortColumn('deltaScore')" style="color: #c084fc;">스코어 증감(Δ)</th>
+            <th data-sort="coin" onclick="handleSortColumn('coin')">제국주화 (Coin)</th>
+            <th data-sort="deltaCoin" onclick="handleSortColumn('deltaCoin')" style="color: #fbbf24;">주화 증감(Δ)</th>
+            <th data-sort="sacredPower" onclick="handleSortColumn('sacredPower')">성력 (Sacred)</th>
+            <th data-sort="deltaSacred" onclick="handleSortColumn('deltaSacred')" style="color: #38bdf8;">성력 증감(Δ)</th>
+            <th data-sort="gold" onclick="handleSortColumn('gold')">골드 (Gold)</th>
+            <th data-sort="deltaGold" onclick="handleSortColumn('deltaGold')" style="color: #34d399;">골드 증감(Δ)</th>
+            <th data-sort="seasonPoint" onclick="handleSortColumn('seasonPoint')">시즌P</th>
+            <th data-sort="honorPoint" onclick="handleSortColumn('honorPoint')">명예P</th>
+            <th data-sort="totStats" onclick="handleSortColumn('totStats')">3대 스탯</th>
+            <th>최신 세이브</th>
+          </tr>
+        </thead>
+        <tbody id="internalTableBody">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Detail History Modal (시간대별 추이 상세 보기) -->
+  <div id="detailHistoryModal" class="detail-history-modal" style="display: none;" onclick="if(event.target.id==='detailHistoryModal') closeDetailHistoryModal();">
+    <div class="detail-history-dialog">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 22px;">📈</span>
+          <div>
+            <h3 id="modalRankerTitle" style="color: #ffd700; font-size: 17px; margin: 0;">랭커 시간대별 변동 추이</h3>
+            <span id="modalRankerSub" style="font-size: 12px; color: #94a3b8;">Hourly Snapshot History</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeDetailHistoryModal()" class="btn-modal-close" style="background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer;">✕</button>
+      </div>
+
+      <div id="modalHistoryContent">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="data_internal_100.js?v=37.5.5"></script>
+  <script src="rank_internal.js?v=37.5.5"></script>
+</body>
+</html>

@@ -82,6 +82,37 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // 1-1. Server-side TOP 100 Rankings Endpoint (/api/m16rankings_top100)
+  if (pathname === '/api/m16rankings_top100') {
+    const anchors = ['Horus', 'DallDall', 'Jonas', 'kk2103'];
+    const baseUrl = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9&nicname=";
+    try {
+      const htmls = await Promise.all(
+        anchors.map(nic => fetchUrlText(`${baseUrl}${encodeURIComponent(nic)}`).catch(() => ""))
+      );
+      const allRows = {};
+      htmls.forEach(html => {
+        const rows = parseRankingBoardHtml(html);
+        rows.forEach(r => {
+          if (r.rank <= 100) allRows[r.rank] = r;
+        });
+      });
+      const sortedRows = Object.keys(allRows)
+        .map(k => parseInt(k, 10))
+        .sort((a, b) => a - b)
+        .map(k => allRows[k]);
+
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      });
+      return res.end(JSON.stringify({ rankings: sortedRows }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      return res.end(JSON.stringify({ error: 'Failed to fetch top 100 rankings' }));
+    }
+  }
+
   // 2. Server-side Official Rankings Endpoint (/api/m16rankings)
   if (pathname === '/api/m16rankings') {
     const userBoardUrl = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9";
