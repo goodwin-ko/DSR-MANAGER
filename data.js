@@ -593,12 +593,204 @@ const TITLES_MAP = TITLES_LEVEL_MAP;
 
 // 3. 성검 (Sacred Swords Code Map)
 const SACRED_SWORDS_MAP = {
+  "BLSwrod0": "기본 검",
   "BLSwrod1": "클라인(모능-이벤트)",
   "BLSwrod2": "그람(모능)",
   "BLSwrod3": "레바테인(지능)",
   "BLSwrod4": "바리사다(민첩)",
   "BLSwrod5": "아스칼론(힘)",
-  "nBLSwrodUP1": "듀란달"
+  "nBLSwrodUP1": "듀란달",
+  "nBLSwrodUP2": "칼라드볼그",
+  "nBLSwrodUP3": "솔라리스",
+  "nBLSwrodUP4": "엑스칼리버"
+};
+
+// V38 세분화 성검 시스템 데이터베이스 (1~9번 성검 도감, 마스터리, 정령 3대 시스템)
+const SWORD_SYSTEM_V38 = {
+  swords: [
+    {
+      id: 1,
+      code: "BLSwrod1",
+      kind: 0,
+      name: "클라인",
+      icon: "🗡️",
+      rank: "성검 1호",
+      category: "기초 성검",
+      desc: "모든 성검의 기원이 되는 기초 성검",
+      spiritModel: "기초 정령 (소형)",
+      spiritCoeff: 60,
+      stats: "기본 공격력 및 트리거 데미지 증가",
+      req: "기초 획득"
+    },
+    {
+      id: 2,
+      code: "BLSwrod2",
+      kind: 1,
+      name: "그람",
+      icon: "⚔️",
+      rank: "4대 성검 (모능)",
+      category: "4대 전승 성검",
+      desc: "모든 능력치를 고르게 강화하는 균형의 성검",
+      spiritModel: "빛의 정령",
+      spiritCoeff: 100,
+      stats: "올스탯 증가 및 4대 성검 전승 재료",
+      req: "성검 상점 구매"
+    },
+    {
+      id: 3,
+      code: "BLSwrod3",
+      kind: 0,
+      name: "레바테인",
+      icon: "🔥",
+      rank: "4대 성검 (지능)",
+      category: "4대 전승 성검",
+      desc: "타오르는 지혜의 화염으로 마법력을 극대화하는 성검",
+      spiritModel: "화염의 정령",
+      spiritCoeff: 80,
+      stats: "지능 대폭 증가 및 마법 추가타",
+      req: "성검 상점 구매"
+    },
+    {
+      id: 4,
+      code: "BLSwrod4",
+      kind: 0,
+      name: "바리사다",
+      icon: "⚡",
+      rank: "4대 성검 (민첩)",
+      category: "4대 전승 성검",
+      desc: "질풍 같은 속도로 치명타와 공격속도를 지배하는 성검",
+      spiritModel: "번개의 정령",
+      spiritCoeff: 80,
+      stats: "민첩 대폭 증가 및 연속 타격",
+      req: "성검 상점 구매"
+    },
+    {
+      id: 5,
+      code: "BLSwrod5",
+      kind: 0,
+      name: "아스칼론",
+      icon: "🛡️",
+      rank: "4대 성검 (힘)",
+      category: "4대 전승 성검",
+      desc: "용을 베어 넘기는 파괴적인 물리력의 성검",
+      spiritModel: "대지의 정령",
+      spiritCoeff: 80,
+      stats: "힘 대폭 증가 및 방어 관통",
+      req: "성검 상점 구매"
+    },
+    {
+      id: 6,
+      code: "nBLSwrodUP1",
+      kind: 2,
+      name: "듀란달",
+      icon: "🌟",
+      rank: "초월 성검 (4대 전승)",
+      category: "궁극 전승",
+      desc: "그람·레바테인·바리사다·아스칼론 4대 성검의 힘이 하나로 전승된 최강의 성검",
+      spiritModel: "얼음 천사",
+      spiritCoeff: 100,
+      stats: "4대 성검 올스탯 상시 적용, 데미지 +50%, 방어 무시 관통 타격",
+      req: "4대 성검(그람·레바테인·바리사다·아스칼론) 모두 보유 시 자동 해금"
+    },
+    {
+      id: 7,
+      code: "nBLSwrodUP2",
+      kind: 3,
+      name: "칼라드볼그",
+      icon: "🔮",
+      rank: "진화 성검 (7번)",
+      category: "1차 진화",
+      desc: "듀란달 마스터리 극한 연마 시 보랏빛 천둥과 함께 각성하는 진화 성검",
+      spiritModel: "보랏빛 발광체",
+      spiritCoeff: 120,
+      spiritHeal: "5% (생명력 · 마나)",
+      stats: "계수 120 정령 스킬, 5% 정령 즉시 회복",
+      req: "듀란달 마스터리 Lv.100 달성 시 연마 및 진화 해금"
+    },
+    {
+      id: 8,
+      code: "nBLSwrodUP3",
+      kind: 4,
+      name: "솔라리스",
+      icon: "☀️",
+      rank: "태양 성검 (8번)",
+      category: "2차 진화",
+      desc: "태양의 신성한 화염을 품은 성검. 최대 Lv.9 강화 업그레이드 지원",
+      spiritModel: "금색 발광체",
+      spiritCoeff: 140,
+      spiritHeal: "6% (생명력 · 마나)",
+      upgradeMax: 9,
+      upgradeDesc: "Lv당 솔라리스 검기 · 마스터리 데미지 +10%, 소환 쿨타임 10초 감소",
+      stats: "계수 140 정령 스킬, 6% 정령 즉시 회복, 업그레이드 최대 Lv.9",
+      req: "칼라드볼그 마스터리 Lv.100 달성 시 연마 및 진화 해금"
+    },
+    {
+      id: 9,
+      code: "nBLSwrodUP4",
+      kind: 5,
+      name: "엑스칼리버",
+      icon: "👑✨",
+      rank: "궁극의 성검 (9번)",
+      category: "최종 진화",
+      desc: "솔라리스 업그레이드 MAX 후 성검 소환 시 각성하는 V38 최종 완성형 궁극 성검",
+      spiritModel: "흰금빛 발광체 (크기 200% 전투 소환)",
+      spiritCoeff: 160,
+      spiritHeal: "8% (생명력 · 마나)",
+      upgradeMax: 9,
+      stats: "힘 / 민첩 / 지능 +100,000 기본 제공",
+      upgradeDesc: "Lv당 검기 · 마스터리 데미지 +10%, 성검 소환 쿨타임 8초 감소 (최대 Lv.9)",
+      masterySpecial: "75% 확률로 100 × 엑스칼리버 마스터리 Lv × (힘+민첩+지능) 폭풍 검기 발동",
+      req: "솔라리스 마스터리 Lv.100 & 솔라리스 업그레이드 MAX 후 성검 소환 시 진화"
+    }
+  ],
+  spiritSkills: [
+    {
+      step: 1,
+      title: "정령 출현",
+      reqPoint: 10000,
+      reqLv: 1,
+      badge: "기본 각성",
+      desc: "성검 소환 시 해당 성검 전용 모델의 수호 정령이 상시 동행 출현"
+    },
+    {
+      step: 2,
+      title: "정령 스킬",
+      reqPoint: 50000,
+      reqLv: 5,
+      badge: "범위 폭딜 & 회복",
+      desc: "주기적으로 광역 범위 타격 데미지 발동 및 영웅 체력/마나 회복 (데미지: 정령 계수 × 정령 Lv × 올스탯합)"
+    },
+    {
+      step: 3,
+      title: "정령 회복",
+      reqPoint: 100000,
+      reqLv: 10,
+      badge: "대량 즉시 회복",
+      desc: "정령 스킬 시전 시 생명력 및 마나 대량 즉시 회복 (칼라드볼그 5% / 솔라리스 6% / 엑스칼리버 8%)"
+    },
+    {
+      step: 4,
+      title: "시간제 전투 소환 (Ultimate)",
+      reqPoint: 150000,
+      reqLv: 25,
+      badge: "거대전투 강림",
+      desc: "200% 거대화된 정령이 독립 전투 유닛으로 10초간 강림 (쿨타임 60초, 광역 지속 섬멸 피해)"
+    }
+  ],
+  spiritEnhanceRule: {
+    maxLevel: 25,
+    costFormula: "현재 Lv × 1,000 성력 (실패 시에도 소모)",
+    successFormula: "100 - (4 × 현재 Lv)% (최저 10%)",
+    honorBonus: "명예 계급 [성검 기사] 달성 시 성공 확률 +5%"
+  },
+  masteryRule: {
+    maxLevel: 100,
+    trainCosts: [
+      { unit: "+1 연마", cost: 500, label: "성력 500" },
+      { unit: "+10 연마", cost: 5000, label: "성력 5,000" }
+    ],
+    chainRule: "이전 단계 성검 마스터리 Lv.100 달성 시 다음 단계 성검(칼라드볼그 ➔ 솔라리스 ➔ 엑스칼리버) 연마 순차 해금"
+  }
 };
 
 const DURENDAL_REQUIRED_SWORDS = [
@@ -608,7 +800,7 @@ const DURENDAL_REQUIRED_SWORDS = [
   { code: "BLSwrod5", name: "아스칼론(힘)" }
 ];
 
-// 4. 공식 날개 (Wings) 23종 데이터 및 9레벨 진화 트리
+// 4. 공식 날개 (Wings) 26종 데이터 및 9레벨 진화 트리 (V38 신규 월광·별무리·눈꽃 날개 포함)
 const WINGS_CATALOG = [
   { id: 1, name: "청조의 날개", req: "기본 날개" },
   { id: 2, name: "홍조의 날개", req: "[청조의 날개 Max시 선택 가능]" },
@@ -632,10 +824,13 @@ const WINGS_CATALOG = [
   { id: 20, name: "라바 날개", req: "[엔젤불꽃 날개 Max시 선택 가능]" },
   { id: 21, name: "요정왕 날개", req: "[라바 날개 Max시 선택 가능]" },
   { id: 22, name: "요정불 날개", req: "[요정왕 날개 Max시 선택 가능]" },
-  { id: 23, name: "푸른깃털 날개", req: "[요정불 날개 Max시 선택 가능]" }
+  { id: 23, name: "푸른깃털 날개", req: "[요정불 날개 Max시 선택 가능]" },
+  { id: 24, name: "월광 날개 [V38 신규]", req: "[푸른깃털 날개 Max시 선택 가능 • 날개 탭 2페이지]", option: "능력치 +210,000 · 장착 시 룬 효과 +5% (-날개3 장착)", isV38: true },
+  { id: 25, name: "별무리 날개 [V38 신규]", req: "[월광 날개 Max시 선택 가능 • 날개 탭 2페이지]", option: "능력치 +220,000 · 장착 시 룬 효과 +10% (-날개3 장착)", isV38: true },
+  { id: 26, name: "눈꽃 날개 [2026 크리스마스]", req: "[V38 크리스마스 스페셜 한정 • 레드콩 1개 구매]", option: "능력치 +230,000 · 장착 시 룬 효과 +12% (-날개3 장착)", isV38: true, isSpecial: true }
 ];
 
-// 5. 공식 창고 (Warehouse Box) 22종 데이터 및 9레벨/초월 조합 트리
+// 5. 공식 창고 (Warehouse Box) 26종 데이터 및 9레벨/초월 조합 트리 (V38 월궁 달토끼 & 크리스마스 창고 3종 포함)
 const WAREHOUSE_CATALOG = [
   { code: "BLBox1", name: "순록", category: "기본 창고", maxLevel: 9, req: "기본 제공" },
   { code: "BLBox2", name: "타란튤라", category: "기본 창고", maxLevel: 9, req: "기본 제공" },
@@ -658,7 +853,11 @@ const WAREHOUSE_CATALOG = [
   { code: "NBLBox_UP4", altCode: "BLBoxUP4", name: "다이스 조커", category: "각성 창고", maxLevel: 9, req: "소울 구울 MAX (Lv9) 달성시 가능" },
   { code: "NBLBox_UP5", altCode: "BLBoxUP5", name: "검은눈 고양이", category: "각성 창고", maxLevel: 9, req: "다이스 조커 MAX (Lv9) 달성시 가능" },
   { code: "NBLBox_UP6", altCode: "BLBoxUP6", name: "루나 고양이", category: "최종 각성 창고", maxLevel: 9, req: "검은눈 고양이 MAX (Lv9) 달성시 가능 (최대 Lv.9 업그레이드)" },
-  { code: "NBLBox_MOON", name: "달토끼", category: "초월 특전 창고", maxLevel: 9, isUnlockOnly: true, req: "루나 고양이 MAX (Lv9) 달성시 사용 가능" }
+  { code: "NBLBox_MOON", name: "달토끼", category: "초월 특전 창고", maxLevel: 9, req: "루나 고양이 MAX (Lv9) 달성시 해금 (V38 최대 Lv.9 업그레이드 추가)" },
+  { code: "NBLBox_LUNAR", name: "월궁 달토끼 [V38 신규]", category: "V38 최상위 각성 창고", maxLevel: 9, isUnlockOnly: true, req: "달토끼 업그레이드 MAX (Lv9) 달성시 구매 가능 (창고 탭 2페이지)", option: "트리거 데미지 +440% · 받는 트리거 데미지 -79% · 드랍률 +225% · 창고 배수 3.25", isV38: true },
+  { code: "NBLBox_XMAS1", name: "눈사람 [2026 크리스마스]", category: "V38 크리스마스 기념 창고", maxLevel: 9, req: "레드콩 1개 구매(Lv1), 블루콩 1개당 Lv+1 (최대 Lv9, -특수창고 장착)", option: "레벨당 천공 용의 둥지 / 악몽의 성소 아이템 드랍률 +30% (MAX +270%)", isV38: true },
+  { code: "NBLBox_XMAS2", name: "선물 썰매 [2026 크리스마스]", category: "V38 크리스마스 기념 창고", maxLevel: 9, req: "레드콩 1개 구매(Lv1), 블루콩 1개당 Lv+1 (최대 Lv9, -특수창고 장착)", option: "레벨당 상급 룬 드랍률 +20% (MAX +180%) · MAX 시 명예의 시련 조각 보상 +1", isV38: true },
+  { code: "NBLBox_XMAS3", name: "트리 정령 [2026 크리스마스]", category: "V38 크리스마스 기념 창고", maxLevel: 9, req: "레드콩 1개 구매(Lv1), 블루콩 1개당 Lv+1 (최대 Lv9, -특수창고 장착)", option: "레벨당 트리거 데미지 +30%, 받는 트리거 데미지 -1% (3종 MAX 세트: 트뎀 +600%, 드랍 +120%, 룬효과 +5%, 시작주화 +3만)", isV38: true }
 ];
 
 // 6. 공식 레벨별 펫 묶음 데이터
@@ -764,12 +963,14 @@ const PET_LEVEL_BUNDLES = [
   },
   {
     level: 9,
-    title: "Lv9 업그레이드 펫 묶음",
+    title: "Lv9~Lv14 카오스 최상위 펫 묶음",
     pets: [
-      { code: "SP_RGUP1", name: "카오스 엘리멘탈", desc: "Lv9 최상위 펫" },
-      { code: "SP_RGUP2", name: "카오스 랜턴", desc: "Lv9 최상위 펫" },
-      { code: "SP_RGUP3", name: "스핑거 도그", desc: "Lv9 최상위 펫" },
-      { code: "SP_RGUP4", name: "카오스 라이언", desc: "Lv9 최상위 펫" }
+      { code: "SP_RGUP1", name: "카오스 엘리멘탈 [Lv9]", desc: "Lv9 카오스 업그레이드 펫" },
+      { code: "SP_RGUP2", name: "카오스 랜턴 [Lv10]", desc: "Lv10 카오스 업그레이드 펫" },
+      { code: "SP_RGUP3", name: "스핑거 도그 [Lv11]", desc: "Lv11 카오스 업그레이드 펫" },
+      { code: "SP_RGUP4", name: "카오스 라이언 [Lv12]", desc: "Lv12 카오스 업그레이드 펫" },
+      { code: "SP_RGUP5", name: "카오스 벨러그 [Lv13]", desc: "Lv13 카오스 업그레이드 펫 (최대 Lv.9)" },
+      { code: "SP_RGUP6", name: "카오스 서리용 [Lv14][V38 신규]", desc: "벨러그 MAX 후 소환 (트뎀 +500% · 드랍률 +530% · 받피감 -87%)" }
     ]
   },
   {
@@ -827,10 +1028,12 @@ const RELICS_DATABASE = [
     boxId: "holy_relic_box_b",
     boxTitle: "성유물 목록박스B",
     icon: "💀",
-    badge: "1종 도감 (파멸의 성유물)",
-    desc: "로잔티움의 성물 소유 시 해금되는 상위 성유물입니다. (최대 Lv.9)",
+    badge: "3종 도감 (파멸 · 월궁 달빛 · 별무리 은하 성물)",
+    desc: "로잔티움의 성물 소유 시 순차 해금되는 상위 성유물 체인입니다. (블루콩 1개로 Lv+1, 최대 Lv.9)",
     items: [
-      { code: "HRL_B_ROZ", name: "로잔티움의 파멸 성물", source: "로잔티움의 성물 소유시", maxLevel: 9, option: "로잔티움의 성물 소유시, 로잔티움의 파멸 성물 레벨에 따라 효과 증가 / 레벨당 아이템 드랍률 +10%, 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "special" }
+      { code: "HRL_B_ROZ", name: "로잔티움의 파멸 성물", source: "로잔티움의 성물 소유시", maxLevel: 9, option: "로잔티움의 성물 소유시, 로잔티움의 파멸 성물 레벨에 따라 효과 증가 / 레벨당 아이템 드랍률 +10%, 트리거 데미지 +15%", baseVal: 15, unit: "%", type: "special" },
+      { code: "HRL_B_MOON", name: "월궁의 달빛 성물 [V38 신규]", source: "로잔티움의 파멸 성물 MAX(Lv.9) 달성시 해금", maxLevel: 9, option: "레벨당 트리거 데미지 +17%, 아이템 드랍률 +11%, 룬 효과 +0.5%, 룬 드랍률 +3% (최대 Lv.9)", baseVal: 17, unit: "%", type: "special" },
+      { code: "HRL_B_STAR", name: "별무리의 은하 성물 [V38 신규]", source: "월궁의 달빛 성물 MAX(Lv.9) 달성시 해금", maxLevel: 9, option: "레벨당 트리거 데미지 +20%, 받는 트리거 데미지 -3%(최대 -27%), 룬 효과 +1%, 룬 드랍률 +5% (최대 Lv.9)", baseVal: 20, unit: "%", type: "special" }
     ]
   },
   {
@@ -847,6 +1050,285 @@ const RELICS_DATABASE = [
 
 const OTHER_TABS_DATA = {
   relics: RELICS_DATABASE
+};
+
+// 6-2. V38 신규 룬 시스템 (Rune System) 전체 도감 및 시너지 데이터베이스
+const RUNE_SYSTEM_V38 = {
+  slotRules: {
+    normalBaseSlots: 3,
+    normalMaxSlots: 4,
+    normalExpandCost: "레드콩 1개 또는 회색콩 1개 (계정당 1회 · [스페셜] ➔ [혜택] 탭)",
+    specialBaseSlots: 1,
+    specialMaxSlots: 2,
+    specialExpandCost: "레드콩 1개 또는 회색콩 1개 (계정당 1회 · [스페셜] ➔ [혜택] 탭)",
+    command: "-룬 (또는 화면 좌측 하단 [룬] 버튼 클릭)"
+  },
+  normalRunes: [
+    {
+      id: 1,
+      code: "RUNE_N1",
+      sdata2Idx: 30,
+      equipIdx: 36,
+      name: "힘의 룬",
+      advName: "상급 힘의 룬",
+      icon: "🔴",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 힘 +40,000",
+      lv50Summary: "힘 +2,000,000",
+      lv70Summary: "힘 +2,800,000",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (힘의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 힘의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    },
+    {
+      id: 2,
+      code: "RUNE_N2",
+      sdata2Idx: 31,
+      equipIdx: 37,
+      name: "민첩의 룬",
+      advName: "상급 민첩의 룬",
+      icon: "🟢",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 민첩 +40,000",
+      lv50Summary: "민첩 +2,000,000",
+      lv70Summary: "민첩 +2,800,000",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (민첩의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 민첩의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    },
+    {
+      id: 3,
+      code: "RUNE_N3",
+      sdata2Idx: 32,
+      equipIdx: 38,
+      name: "지능의 룬",
+      advName: "상급 지능의 룬",
+      icon: "🔵",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 지능 +40,000",
+      lv50Summary: "지능 +2,000,000",
+      lv70Summary: "지능 +2,800,000",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (지능의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 지능의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    },
+    {
+      id: 4,
+      code: "RUNE_N4",
+      sdata2Idx: 33,
+      equipIdx: 39,
+      name: "균형의 룬",
+      advName: "상급 균형의 룬",
+      icon: "⚖️",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 힘 / 민첩 / 지능 각 +15,000 (합산 +45,000)",
+      lv50Summary: "올스탯 +750,000",
+      lv70Summary: "올스탯 +1,050,000",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (균형의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 균형의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    },
+    {
+      id: 5,
+      code: "RUNE_N5",
+      sdata2Idx: 34,
+      equipIdx: 40,
+      name: "투지의 룬",
+      advName: "상급 투지의 룬",
+      icon: "⚔️",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 최종 피해 +1%",
+      lv50Summary: "최종 피해 +50%",
+      lv70Summary: "최종 피해 +70%",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (투지의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 투지의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    },
+    {
+      id: 6,
+      code: "RUNE_N6",
+      sdata2Idx: 35,
+      equipIdx: 41,
+      name: "행운의 룬",
+      advName: "상급 행운의 룬",
+      icon: "🍀",
+      category: "일반 룬 (카우방 / 상급 사냥터)",
+      baseMaxLevel: 50,
+      advMaxLevel: 70,
+      perLevelDesc: "Lv당 추가 드랍률 +1%",
+      lv50Summary: "추가 드랍률 +50%",
+      lv70Summary: "추가 드랍률 +70%",
+      source: "Lv.1~50: 카우방 몬스터 드랍 (행운의 룬) · Lv.51~70: 천공 용의 둥지 / 악몽의 성소 드랍 (상급 행운의 룬)",
+      costNote: "룬 아이템 소모로 강화 (콩 소모 없음)"
+    }
+  ],
+  specialBaseRunes: [
+    {
+      id: 7,
+      code: "RUNE_S1",
+      sdata2Idx: 44,
+      name: "빛의 룬",
+      icon: "✨",
+      category: "기본 스페셜 룬",
+      maxLevel: 10,
+      perLevelDesc: "Lv당 힘 / 민첩 / 지능 각 +100,000",
+      maxSummary: "올스탯 +1,000,000",
+      req: "메뉴 [룬] 탭(룬 상점)에서 구매 (적용모드 필수)",
+      costNote: "구매(Lv.1): 레드콩/회색콩 1개 · 강화(Lv+1): 블루콩/회색콩 1개 (최대 Lv.10)"
+    },
+    {
+      id: 8,
+      code: "RUNE_S2",
+      sdata2Idx: 45,
+      name: "폭풍의 룬",
+      icon: "🌩️",
+      category: "기본 스페셜 룬",
+      maxLevel: 10,
+      perLevelDesc: "Lv당 최종 피해 +6%",
+      maxSummary: "최종 피해 +60%",
+      req: "메뉴 [룬] 탭(룬 상점)에서 구매 (적용모드 필수)",
+      costNote: "구매(Lv.1): 레드콩/회색콩 1개 · 강화(Lv+1): 블루콩/회색콩 1개 (최대 Lv.10)"
+    },
+    {
+      id: 9,
+      code: "RUNE_S3",
+      sdata2Idx: 46,
+      name: "번영의 룬",
+      icon: "🌟",
+      category: "기본 스페셜 룬",
+      maxLevel: 10,
+      perLevelDesc: "Lv당 추가 드랍률 +6%",
+      maxSummary: "추가 드랍률 +60%",
+      req: "메뉴 [룬] 탭(룬 상점)에서 구매 (적용모드 필수)",
+      costNote: "구매(Lv.1): 레드콩/회색콩 1개 · 강화(Lv+1): 블루콩/회색콩 1개 (최대 Lv.10)"
+    }
+  ],
+  specialAwakenedRunes: [
+    {
+      id: 10,
+      code: "RUNE_SA1",
+      sdata2Idx: 47,
+      name: "삼위일체의 룬",
+      icon: "👑",
+      category: "초월 스페셜 룬",
+      maxLevel: 30,
+      perLevelDesc: "Lv당 힘/민/지 각 +40,000 · 최종 피해 +1.5% · 추가 드랍률 +1%",
+      maxSummary: "올스탯 +1,200,000 · 최종 피해 +45% · 추가 드랍률 +30%",
+      req: "빛의 룬 + 폭풍의 룬 + 번영의 룬 3종 모두 Lv.10(MAX) 달성 시 해금",
+      costNote: "블루콩/회색콩 1개당 Lv+1 (최대 Lv.30)"
+    },
+    {
+      id: 11,
+      code: "RUNE_SA2",
+      sdata2Idx: 48,
+      name: "신속의 룬",
+      icon: "⚡",
+      category: "초월 스페셜 룬",
+      maxLevel: 30,
+      perLevelDesc: "Lv당 공격속도 +1% · 이동속도 +3",
+      maxSummary: "공격속도 +30% · 이동속도 +90",
+      req: "빛의 룬 + 폭풍의 룬 + 번영의 룬 3종 모두 Lv.10(MAX) 달성 시 구매 가능",
+      costNote: "레드콩/회색콩 1개 구매 · 블루콩/회색콩 1개당 Lv+1 (최대 Lv.30)"
+    },
+    {
+      id: 12,
+      code: "RUNE_SA3",
+      sdata2Idx: 49,
+      name: "파괴의 룬",
+      icon: "💥",
+      category: "초월 스페셜 룬",
+      maxLevel: 30,
+      perLevelDesc: "Lv당 최종 피해 +2%",
+      maxSummary: "최종 피해 +60%",
+      req: "빛의 룬 + 폭풍의 룬 + 번영의 룬 3종 모두 Lv.10(MAX) 달성 시 구매 가능",
+      costNote: "레드콩/회색콩 1개 구매 · 블루콩/회색콩 1개당 Lv+1 (최대 Lv.30)"
+    },
+    {
+      id: 13,
+      code: "RUNE_SA4",
+      sdata2Idx: 50,
+      name: "약탈의 룬",
+      icon: "💰",
+      category: "초월 스페셜 룬",
+      maxLevel: 30,
+      perLevelDesc: "Lv당 추가 드랍률 +2%",
+      maxSummary: "추가 드랍률 +60%",
+      req: "빛의 룬 + 폭풍의 룬 + 번영의 룬 3종 모두 Lv.10(MAX) 달성 시 구매 가능",
+      costNote: "레드콩/회색콩 1개 구매 · 블루콩/회색콩 1개당 Lv+1 (최대 Lv.30)"
+    }
+  ],
+  synergies: [
+    {
+      sourceType: "날개 (-날개3)",
+      icon: "🪽",
+      items: [
+        { name: "월광 날개 (24번)", effect: "장착 시 룬 효과 +5% (능력치 +210,000)" },
+        { name: "별무리 날개 (25번)", effect: "장착 시 룬 효과 +10% (능력치 +220,000)" },
+        { name: "눈꽃 날개 [2026 크리스마스] (26번)", effect: "장착 시 룬 효과 +12% (능력치 +230,000)" }
+      ]
+    },
+    {
+      sourceType: "성유물B (유물)",
+      icon: "🔮",
+      items: [
+        { name: "월궁의 달빛 성물 (최대 Lv.9)", effect: "Lv당 룬 효과 +0.5%, 룬 드랍률 +3% (Lv.9 MAX 시: 룬 효과 +4.5%, 룬 드랍률 +27%)" },
+        { name: "별무리의 은하 성물 (최대 Lv.9)", effect: "Lv당 룬 효과 +1%, 룬 드랍률 +5% (Lv.9 MAX 시: 룬 효과 +9%, 룬 드랍률 +45%)" }
+      ]
+    },
+    {
+      sourceType: "특수 창고 & 세트",
+      icon: "📦",
+      items: [
+        { name: "선물 썰매 [2026 크리스마스]", effect: "Lv당 상급 룬 드랍률 +20% (Lv.9 MAX 시 +180%)" },
+        { name: "크리스마스 창고 3종 MAX 세트", effect: "상시 룬 효과 +5% + '-유저이벤트2' 발동 가능 (30분간 상급 룬 드랍 2배)" }
+      ]
+    },
+    {
+      sourceType: "명예 기사 계급",
+      icon: "🎖️",
+      items: [
+        { name: "룬 기사 (계급 해금 효과)", effect: "달성 시 상시 룬 효과 +10%" }
+      ]
+    }
+  ]
+};
+
+// 6-3. V38 개편 명예 기사 계급 시스템 (Tier / Honor System Lv.1 ~ 99, 20단계 계급)
+const TIER_SYSTEM_V38 = {
+  maxLevel: 99,
+  romanNumerals: ["I", "II", "III", "IV", "V"],
+  tiers: [
+    { tierIdx: 0, name: "브론즈 기사", minLv: 1, maxLv: 4, color: "#cd7f32", icon: "🥉", rewardFrag: 0, unlockDesc: "기본 시작 계급", showInTable: false },
+    { tierIdx: 1, name: "실버 기사", minLv: 5, maxLv: 9, color: "#cbd5e1", icon: "🥈", rewardFrag: 1, unlockDesc: "첫 달성 시 조각 1 지급", showInTable: false },
+    { tierIdx: 2, name: "골드 기사", minLv: 10, maxLv: 14, color: "#facc15", icon: "🥇", rewardFrag: 1, unlockDesc: "명예의 시련 1단계", showInTable: true },
+    { tierIdx: 3, name: "플래티넘 기사", minLv: 15, maxLv: 19, color: "#38bdf8", icon: "💠", rewardFrag: 1, unlockDesc: "첫 달성 시 조각 1 지급", showInTable: false },
+    { tierIdx: 4, name: "다이아 기사", minLv: 20, maxLv: 24, color: "#60a5fa", icon: "💎", rewardFrag: 1, unlockDesc: "각인 [용맹] + 시련 2단계", showInTable: true },
+    { tierIdx: 5, name: "마스터 기사", minLv: 25, maxLv: 29, color: "#818cf8", icon: "⚔️", rewardFrag: 1, unlockDesc: "첫 달성 시 조각 1 지급", showInTable: false },
+    { tierIdx: 6, name: "그랜드 기사", minLv: 30, maxLv: 34, color: "#ef4444", icon: "🛡️", rewardFrag: 3, unlockDesc: "명예의 시련 3단계", showInTable: true },
+    { tierIdx: 7, name: "챌린저 기사", minLv: 35, maxLv: 39, color: "#f97316", icon: "🔥", rewardFrag: 3, unlockDesc: "첫 달성 시 조각 3 지급", showInTable: false },
+    { tierIdx: 8, name: "크라운 기사", minLv: 40, maxLv: 44, color: "#c084fc", icon: "👑", rewardFrag: 3, unlockDesc: "각인 [수호] + 시련 4단계", showInTable: true },
+    { tierIdx: 9, name: "로얄 기사", minLv: 45, maxLv: 49, color: "#e879f9", icon: "⚜️", rewardFrag: 3, unlockDesc: "첫 달성 시 조각 3 지급", showInTable: false },
+    { tierIdx: 10, name: "기사왕", minLv: 50, maxLv: 54, color: "#fbbf24", icon: "🦁", rewardFrag: 3, unlockDesc: "각인 [영광] + 시련 5단계", showInTable: true },
+    { tierIdx: 11, name: "성검 기사", minLv: 55, maxLv: 59, color: "#2dd4bf", icon: "🗡️", rewardFrag: 5, unlockDesc: "성검 정령 강화 확률 +5%", showInTable: true },
+    { tierIdx: 12, name: "룬 기사", minLv: 60, maxLv: 64, color: "#38bdf8", icon: "🔮", rewardFrag: 5, unlockDesc: "룬 효과 +10% + 시련 6단계", showInTable: true },
+    { tierIdx: 13, name: "용기사", minLv: 65, maxLv: 69, color: "#f87171", icon: "🐉", rewardFrag: 5, unlockDesc: "시련 조각 보상 +1", showInTable: true },
+    { tierIdx: 14, name: "성운 기사", minLv: 70, maxLv: 74, color: "#a78bfa", icon: "🌌", rewardFrag: 5, unlockDesc: "각인 최대 Lv 12", showInTable: true },
+    { tierIdx: 15, name: "천공 기사", minLv: 75, maxLv: 79, color: "#7dd3fc", icon: "⚡", rewardFrag: 8, unlockDesc: "시련 조각 보상 +1", showInTable: true },
+    { tierIdx: 16, name: "신화 기사", minLv: 80, maxLv: 84, color: "#f472b6", icon: "✨", rewardFrag: 8, unlockDesc: "계급 오라 이펙트", showInTable: true },
+    { tierIdx: 17, name: "영웅왕", minLv: 85, maxLv: 89, color: "#fde047", icon: "🌟", rewardFrag: 8, unlockDesc: "각인 최대 Lv 15", showInTable: true },
+    { tierIdx: 18, name: "대륙의 수호자", minLv: 90, maxLv: 94, color: "#34d399", icon: "🌏", rewardFrag: 12, unlockDesc: "시련 조각 보상 +1", showInTable: true },
+    { tierIdx: 19, name: "대륙의 군주", minLv: 95, maxLv: 99, color: "#facc15", icon: "👑", rewardFrag: 12, unlockDesc: "군주 등극 전체 공지", showInTable: true }
+  ],
+  engravings: [
+    { key: "HN_E1", name: "용맹", unlockTier: "다이아 기사 (Lv.20)", effectPerLv: "트리거 데미지 +3%", statKey: "trigDmg", perLvVal: 3 },
+    { key: "HN_E2", name: "수호", unlockTier: "크라운 기사 (Lv.40)", effectPerLv: "받는 트리거 데미지 -1.5%", statKey: "trigRed", perLvVal: 1.5 },
+    { key: "HN_E3", name: "영광", unlockTier: "기사왕 (Lv.50)", effectPerLv: "아이템 드랍률 +4%", statKey: "dropRate", perLvVal: 4 }
+  ]
 };
 
 // 7-1. 신대륙 전체 아이템 조합법 데이터베이스
@@ -1271,7 +1753,8 @@ const NEW_CONTINENT_RECIPES = [
     gold: 0,
     materials: ["그림자 목걸이[조합체]", "치프틴 그람의 지팡이[조합재료]"],
     rank: "조합체",
-    icon: "📿"
+    icon: "📿",
+    upgradeTarget: "악몽 사냥꾼의 목걸이[V38 시즌포인트 필수]"
   },
   {
     id: "rec_nightmare_ring",
@@ -1282,7 +1765,238 @@ const NEW_CONTINENT_RECIPES = [
     gold: 0,
     materials: ["핑크게이의 문장[반 신급]", "악몽이 담긴 반지[조합재료]", "흉몽의 영혼[조합재료]", "드림워커의 영혼[조합재료]"],
     rank: "반 신급",
-    icon: "💍"
+    icon: "💍",
+    upgradeTarget: "몽마군주의 반지[V38 시즌포인트 필수]"
+  },
+
+  // 7. V38 신규 추가 조합법 (지옥불 요새 · 심연 항구 · 천공 용의 둥지 · 악몽의 성소 · 카우방)
+  {
+    id: "rec_v38_hellfire_guardian_armor",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "지옥불 수호자의 갑옷 [V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["지옥불 수호자의 갑옷 조합서", "고대의갑옷[조합체]", "지옥불 뿔 조각 x100", "지옥불 쇠사슬 x100"],
+    rank: "신급",
+    icon: "🔥",
+    upgradeTarget: "지옥불 대족장의 갑옷 (모능 +190만 / 데미지 +70만 / 방어 +15만)"
+  },
+  {
+    id: "rec_v38_hellfire_chief_armor",
+    category: "갑옷",
+    categoryKey: "armor",
+    name: "지옥불 대족장의 갑옷 [V38 시즌포인트 필수]",
+    coin: 0,
+    gold: 0,
+    materials: ["지옥불 대족장의 갑옷 조합서", "지옥불 수호자의 갑옷", "심연의 토템 파편 x100", "타락한 투사의 인장 x100", "요새 장군의 군단 휘장 x50", "지옥불 대족장의 심장 x1"],
+    rank: "궁극",
+    icon: "🛡️🔥",
+    upgradeTarget: "모능 +320만 / 데미지 +120만 / 방어 +25만 / 받는 피해 35% 감소 (시즌포인트 필수)"
+  },
+  {
+    id: "rec_v38_seal_str_lv3",
+    category: "인장",
+    categoryKey: "seal",
+    name: "힘의 인장Lv3 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["힘의 인장Lv3 조합서", "힘의 인장Lv2[에픽]", "심연 해적의 금화 x150", "나가 여왕의 진주 x150", "심연의 닻 문장 x80", "대제독의 나침반 x1"],
+    rank: "신급",
+    icon: "📌",
+    requiredOldItem: "구대륙 심연의 해적 인장 ➔ 힘의 인장Lv2 ➔ Lv3 (힘 +250,000 · 첫 조합시 이벤트 보상권)"
+  },
+  {
+    id: "rec_v38_seal_agi_lv3",
+    category: "인장",
+    categoryKey: "seal",
+    name: "민첩의 인장Lv3 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["민첩의 인장Lv3 조합서", "민첩의 인장Lv2[에픽]", "심연 해적의 금화 x150", "나가 여왕의 진주 x150", "심연의 닻 문장 x80", "대제독의 나침반 x1"],
+    rank: "신급",
+    icon: "📌",
+    requiredOldItem: "구대륙 심연의 해적 인장 ➔ 민첩의 인장Lv2 ➔ Lv3 (민첩 +250,000 · 첫 조합시 이벤트 보상권)"
+  },
+  {
+    id: "rec_v38_seal_int_lv3",
+    category: "인장",
+    categoryKey: "seal",
+    name: "지능의 인장Lv3 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["지능의 인장Lv3 조합서", "지능의 인장Lv2[에픽]", "심연 해적의 금화 x150", "나가 여왕의 진주 x150", "심연의 닻 문장 x80", "대제독의 나침반 x1"],
+    rank: "신급",
+    icon: "💎",
+    requiredOldItem: "구대륙 심연의 해적 인장 ➔ 지능의 인장Lv2 ➔ Lv3 (지능 +250,000 · 첫 조합시 이벤트 보상권)"
+  },
+  {
+    id: "rec_v38_sky_dragon_greatsword",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "천룡의 대검 [V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["천룡의 대검 조합서", "고대의 검[노말]", "비룡의 비늘 x100", "폭풍 깃털 x100"],
+    rank: "신급",
+    icon: "⚔️",
+    upgradeTarget: "용왕의 대검 (힘 +800만 / 모능 +150만 / 데미지 +80만)"
+  },
+  {
+    id: "rec_v38_sky_dragon_daggers",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "천룡의 쌍단검 [V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["천룡의 쌍단검 조합서", "고대의 단검[노말]", "비룡의 비늘 x100", "폭풍 깃털 x100"],
+    rank: "신급",
+    icon: "🗡️",
+    upgradeTarget: "용왕의 쌍단검 (민첩 +800만 / 모능 +150만 / 데미지 +80만)"
+  },
+  {
+    id: "rec_v38_sky_dragon_staff",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "천룡의 지팡이 [V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["천룡의 지팡이 조합서", "고대의 지팡이[노말]", "비룡의 비늘 x100", "폭풍 깃털 x100"],
+    rank: "신급",
+    icon: "🪄",
+    upgradeTarget: "용왕의 지팡이 (지능 +800만 / 모능 +150만 / 데미지 +80만)"
+  },
+  {
+    id: "rec_v38_dragon_king_greatsword",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "용왕의 대검 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["용왕의 대검 조합서", "천룡의 대검", "용언 석판 x100", "천룡 근위기사의 문장 x100", "용장의 전투 깃발 x50", "천공룡의 심장 x1"],
+    rank: "궁극",
+    icon: "🐉⚔️",
+    upgradeTarget: "힘 +1,600만 / 모능 +300만 / 데미지 +150만 (천공 용의 둥지 최종 무기)"
+  },
+  {
+    id: "rec_v38_dragon_king_daggers",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "용왕의 쌍단검 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["용왕의 쌍단검 조합서", "천룡의 쌍단검", "용언 석판 x100", "천룡 근위기사의 문장 x100", "용장의 전투 깃발 x50", "천공룡의 심장 x1"],
+    rank: "궁극",
+    icon: "🐉🗡️",
+    upgradeTarget: "민첩 +1,600만 / 모능 +300만 / 데미지 +150만 (천공 용의 둥지 최종 무기)"
+  },
+  {
+    id: "rec_v38_dragon_king_staff",
+    category: "무기",
+    categoryKey: "weapon",
+    name: "용왕의 지팡이 [V38 시즌포인트 필수(택1)]",
+    coin: 0,
+    gold: 0,
+    materials: ["용왕의 지팡이 조합서", "천룡의 지팡이", "용언 석판 x100", "천룡 근위기사의 문장 x100", "용장의 전투 깃발 x50", "천공룡의 심장 x1"],
+    rank: "궁극",
+    icon: "🐉🪄",
+    upgradeTarget: "지능 +1,600만 / 모능 +300만 / 데미지 +150만 (천공 용의 둥지 최종 무기)"
+  },
+  {
+    id: "rec_v38_dream_lord_ring",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "몽마군주의 반지 [V38 시즌포인트 필수]",
+    coin: 0,
+    gold: 0,
+    materials: ["몽마군주의 반지 조합서", "나이트메어 반지[반 신급]", "악몽의 실타래 x150", "흉몽 파편 x150", "문지기의 열쇠 x80", "몽마군주의 눈 x1"],
+    rank: "신급",
+    icon: "💍✨",
+    upgradeTarget: "모든능력치 +700만 / 데미지 +150만 (악몽의 성소 최종 반지)"
+  },
+  {
+    id: "rec_v38_nightmare_hunter_necklace",
+    category: "악세",
+    categoryKey: "accessory",
+    name: "악몽 사냥꾼의 목걸이 [V38 시즌포인트 필수]",
+    coin: 0,
+    gold: 0,
+    materials: ["악몽 사냥꾼의 목걸이 조합서", "치프틴 그람의 목걸이[조합체]", "몽마의 향 x120", "잠식된 꿈 결정 x120", "문지기의 열쇠 x40", "몽마군주의 눈 x1"],
+    rank: "신급",
+    icon: "📿🌙",
+    upgradeTarget: "모든능력치 +450만 / 방어력 +10만 (악몽의 성소 최종 목걸이)"
+  },
+  {
+    id: "rec_v38_cow_pickaxe",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "광부왕의 곡괭이 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["광부왕의 곡괭이 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "에픽",
+    icon: "⛏️",
+    upgradeTarget: "카우방 특수 조합 무기 (공격 시 특수 효과 발동)"
+  },
+  {
+    id: "rec_v38_cow_greataxe",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "분쇄자의 대도끼 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["분쇄자의 대도끼 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "에픽",
+    icon: "🪓",
+    upgradeTarget: "카우방 특수 조합 무기 (공격 시 특수 효과 발동)"
+  },
+  {
+    id: "rec_v38_cow_king_crown",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "카우킹의 왕관 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["카우킹의 왕관 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "에픽",
+    icon: "👑",
+    upgradeTarget: "카우방 특수 조합 장비 (공격 시 특수 효과 발동)"
+  },
+  {
+    id: "rec_v38_cow_general_gear",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "정예 장군의 전투장비 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["정예 장군의 전투장비 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "에픽",
+    icon: "🛡️",
+    upgradeTarget: "카우방 특수 조합 장비 (공격 시 특수 효과 발동)"
+  },
+  {
+    id: "rec_v38_hellcow_heart",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "헬카우의 심장 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["헬카우의 심장 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "에픽",
+    icon: "❤️‍🔥",
+    upgradeTarget: "카우방 특수 조합 장비 (공격 시 특수 효과 발동)"
+  },
+  {
+    id: "rec_v38_cow_conqueror_crown",
+    category: "특수/기타",
+    categoryKey: "etc",
+    name: "카우방 정복자의 왕관 [카우방 조합 · V38 신규]",
+    coin: 0,
+    gold: 0,
+    materials: ["카우방 정복자의 왕관 조합서 (카우방 드랍)", "카우방 조합 재료(충전수 합) + 선행 장비"],
+    rank: "신급",
+    icon: "🐮👑",
+    upgradeTarget: "카우방 최종 정복 특수 조합 장비 (공격 시 특수 효과 발동)"
   }
 ];
 
@@ -2105,14 +2819,120 @@ const CONTINENT_UPGRADE_BRIDGES = [
 // 7-2. 시즌포인트 핵심 조건 6대 아이템 상세 테크트리 및 총 소요 재화 명세
 const SEASON_POINT_REQUIREMENTS = [
   {
-    id: "sp_chieftain",
-    name: "치프틴 그람의 목걸이[조합체]",
+    id: "sp_gaia",
+    name: "푸른 가이아의 특혜[조합체]",
+    rank: "조합체",
+    icon: "🌿",
+    totalCoin: 331,
+    totalGold: 400000,
+    stepCount: 8,
+    summaryDesc: "보물1~4(x3) ➔ 데몬갑옷(x3) ➔ 3트로피3(x2) + 스피릿방패 ➔ 고대갑옷 ➔ 고대책 ➔ 가이아 ➔ 푸른 가이아",
+    steps: [
+      {
+        step: 1,
+        target: "고대의갑옷[조합체]",
+        coin: 265,
+        gold: 400000,
+        materials: ["3트로피3(x2)", "스피릿 방패", "고대의갑옷 조합서"]
+      },
+      {
+        step: 2,
+        target: "낡은 고대의 책[조합체]",
+        coin: 30,
+        gold: 0,
+        materials: ["고대의갑옷[조합체]", "타락한 가이아의 가지[조합재료]", "낡은 고대의 책 조합서"]
+      },
+      {
+        step: 3,
+        target: "가이아의 특혜[조합체]",
+        coin: 33,
+        gold: 0,
+        materials: ["낡은 고대의 책[조합체]", "가이아의 수액[조합재료]", "가이아의 특혜 조합서"]
+      },
+      {
+        step: 4,
+        target: "푸른 가이아의 특혜[조합체]",
+        coin: 3,
+        gold: 0,
+        materials: ["푸른 가이아의 특혜 조합서", "가이아의 특혜[조합체]", "가이아의 수액[조합재료]", "봉인된 가이아의 심장[조합재료]"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "331개", type: "currency" },
+      { name: "골드", count: "40만 Gold", type: "currency" },
+      { name: "고대의갑옷[조합체]", count: "1개", type: "equip" },
+      { name: "타락한 가이아의 가지", count: "1개", type: "mat" },
+      { name: "가이아의 수액", count: "2개", type: "mat" },
+      { name: "봉인된 가이아의 심장", count: "1개", type: "mat" },
+      { name: "푸른 가이아의 특혜 조합서", count: "1개", type: "recipe" }
+    ]
+  },
+  {
+    id: "sp_pinkgay",
+    name: "핑크게이의 문장[반 신급]",
+    rank: "반 신급",
+    icon: "🏅",
+    totalCoin: 49,
+    totalGold: 1000000,
+    stepCount: 5,
+    summaryDesc: "긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이",
+    steps: [
+      {
+        step: 1,
+        target: "긴급용 무기[조합체]",
+        coin: 0,
+        gold: 1000000,
+        materials: ["신대륙인의 문장", "봉인 해제자 칭호"]
+      },
+      {
+        step: 2,
+        target: "호빵의 무구[조합체]",
+        coin: 1,
+        gold: 0,
+        materials: ["긴급용 무기[조합체]", "호빵의 무구 조합서", "호빵의 붕대[조합재료]"]
+      },
+      {
+        step: 3,
+        target: "코볼드 광산의 문장[조합체]",
+        coin: 12,
+        gold: 0,
+        materials: ["호빵의 무구[조합체]", "코볼드 광산의 문장 조합서", "신선한 코볼드의 고기[조합재료]"]
+      },
+      {
+        step: 4,
+        target: "폭설 거미의 문장[조합체]",
+        coin: 18,
+        gold: 0,
+        materials: ["코볼드 광산의 문장[조합체]", "폭설 거미의 문장 조합서", "얼어붙은 거미줄[조합재료]"]
+      },
+      {
+        step: 5,
+        target: "핑크게이의 문장[반 신급]",
+        coin: 18,
+        gold: 0,
+        materials: ["폭설 거미의 문장[조합체]", "핑크게이의 문장 조합서", "핑크게이의 가죽[조합재료]"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화", count: "49개", type: "currency" },
+      { name: "골드", count: "100만 Gold", type: "currency" },
+      { name: "신대륙인의 문장", count: "1개", type: "insignia" },
+      { name: "봉인 해제자 칭호", count: "1개", type: "title" },
+      { name: "호빵의 붕대[조합재료]", count: "1개", type: "mat" },
+      { name: "신선한 코볼드의 고기[조합재료]", count: "1개", type: "mat" },
+      { name: "얼어붙은 거미줄[조합재료]", count: "1개", type: "mat" },
+      { name: "핑크게이의 가죽[조합재료]", count: "1개", type: "mat" }
+    ]
+  },
+  {
+    id: "sp_nightmare_hunter",
+    name: "악몽 사냥꾼의 목걸이[조합체]",
     rank: "조합체",
     icon: "📿",
     totalCoin: 4,
     totalGold: 0,
-    stepCount: 3,
-    summaryDesc: "파란빛 목걸이 ➔ 그림자 목걸이 ➔ 치프틴 그람의 목걸이",
+    stepCount: 4,
+    summaryDesc: "파란빛 목걸이 ➔ 그림자 목걸이 ➔ 치프틴 그람의 목걸이 ➔ 악몽 사냥꾼의 목걸이 (*치프틴 그람 인정 불가)",
     steps: [
       {
         step: 1,
@@ -2134,338 +2954,41 @@ const SEASON_POINT_REQUIREMENTS = [
         coin: 0,
         gold: 0,
         materials: ["그림자 목걸이[조합체]", "치프틴 그람의 지팡이[조합재료]"]
+      },
+      {
+        step: 4,
+        target: "악몽 사냥꾼의 목걸이[조합체]",
+        coin: 0,
+        gold: 0,
+        materials: ["치프틴 그람의 목걸이[조합체]", "몽마의 향 120개", "잠식된 꿈 결정 120개", "문지기의 열쇠 40개", "몽마군주의 눈 1개", "악몽 사냥꾼의 목걸이 조합서"]
       }
     ],
     rawMaterials: [
       { name: "제국 주화", count: "4개", type: "currency" },
-      { name: "스피릿 목걸이 -레어-", count: "1개", type: "equip" },
-      { name: "블러드 스톤[조합재료]", count: "1개", type: "mat" },
-      { name: "산적왕의 목걸이", count: "1개", type: "equip" },
-      { name: "치프틴 그람의 지팡이[조합재료]", count: "1개", type: "mat" },
-      { name: "파란빛 목걸이 조합서", count: "1개", type: "recipe" },
-      { name: "그림자 목걸이 조합서", count: "1개", type: "recipe" }
+      { name: "치프틴 그람의 목걸이", count: "1개", type: "equip" },
+      { name: "몽마의 향", count: "120개", type: "mat" },
+      { name: "잠식된 꿈 결정", count: "120개", type: "mat" },
+      { name: "문지기의 열쇠", count: "40개", type: "mat" },
+      { name: "몽마군주의 눈", count: "1개", type: "boss_mat" },
+      { name: "악몽 사냥꾼의 목걸이 조합서", count: "1개", type: "recipe" }
     ]
   },
   {
-    id: "sp_pinkgay",
-    name: "핑크게이의 문장[반 신급]",
-    rank: "반 신급",
-    icon: "🏅",
-    totalCoin: 49,
-    totalGold: 1000000,
-    stepCount: 5,
-    summaryDesc: "긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이",
-    steps: [
-      {
-        step: 1,
-        target: "긴급용 무기[조합체]",
-        coin: 0,
-        gold: 1000000,
-        materials: ["긴급용 무기 조합서", "구대륙: 신대륙인의 문장[반 신급] (12단계)", "구대륙: 봉인 해제자 칭호[에픽] (7단계)", "이상한토끼의 뼈[조합재료]", "이상한사슴의 뿔[조합재료]", "꽃게의 큰맛살[조합재료]"]
-      },
-      {
-        step: 2,
-        target: "호빵의 무구[조합체]",
-        coin: 1,
-        gold: 0,
-        materials: ["호빵의 무구 조합서", "긴급용 무기[조합체]", "불타는 보구 -노말-", "달의 조각[조합재료]", "정예나이트의 영혼[조합재료]", "정예기사의 영혼[조합재료]"]
-      },
-      {
-        step: 3,
-        target: "코볼드 광산의 문장[반 신급]",
-        coin: 12,
-        gold: 0,
-        materials: ["코볼드 광산의 문장 조합서", "호빵의 무구[조합체]", "코볼트 일꾼의 곡괭이[조합재료]", "엘리트 코볼트의 가죽[조합재료]", "코볼트 감독관의 채찍[조합재료]"]
-      },
-      {
-        step: 4,
-        target: "폭설 거미의 문장[반 신급]",
-        coin: 18,
-        gold: 0,
-        materials: ["폭설 거미의 문장 조합서", "코볼드 광산의 문장[반 신급]", "폭설거미의 다리[조합재료]", "폭설거미의 핵[조합재료]"]
-      },
-      {
-        step: 5,
-        target: "핑크게이의 문장[반 신급]",
-        coin: 18,
-        gold: 0,
-        materials: ["핑크게이의 문장 조합서", "폭설 거미의 문장[반 신급]", "처참한 좀비의 머리[조합재료]", "핑크게이의 팬티[조합재료]", "타락한 파워[반 신급]"]
-      }
-    ],
-    rawMaterials: [
-      { name: "제국 주화", count: "49개", type: "currency" },
-      { name: "골드 (금)", count: "100만 Gold", type: "currency" },
-      { name: "신대륙인의 문장[반 신급]", count: "1개", type: "equip" },
-      { name: "봉인 해제자 칭호[에픽]", count: "1개", type: "title" },
-      { name: "이상한토끼의 뼈", count: "1개", type: "mat" },
-      { name: "이상한사슴의 뿔", count: "1개", type: "mat" },
-      { name: "꽃게의 큰맛살", count: "1개", type: "mat" },
-      { name: "불타는 보구 -노말-", count: "1개", type: "equip" },
-      { name: "달의 조각", count: "1개", type: "mat" },
-      { name: "정예나이트의 영혼", count: "1개", type: "mat" },
-      { name: "정예기사의 영혼", count: "1개", type: "mat" },
-      { name: "코볼트 일꾼의 곡괭이", count: "1개", type: "mat" },
-      { name: "엘리트 코볼트의 가죽", count: "1개", type: "mat" },
-      { name: "코볼트 감독관의 채찍", count: "1개", type: "mat" },
-      { name: "폭설거미의 다리", count: "1개", type: "mat" },
-      { name: "폭설거미의 핵", count: "1개", type: "mat" },
-      { name: "처참한 좀비의 머리", count: "1개", type: "mat" },
-      { name: "핑크게이의 팬티", count: "1개", type: "mat" },
-      { name: "타락한 파워[반 신급]", count: "1개", type: "equip" },
-      { name: "조합서 5종", count: "총 5장", type: "recipe" }
-    ],
-    oldContinentPrereqs: {
-      title: "구대륙 선행 2대 필수 아이템 상세 제작법 (신대륙인의 문장 & 봉인 해제자 칭호)",
-      items: [
-        {
-          name: "신대륙인의 문장[반 신급]",
-          desc: "구대륙 무기(여행자의 활[신급] 9단계) + 구대륙 문장(인두인의 예언 문장 10단계) ➔ 신대륙의 문장 ➔ 신대륙인의 문장",
-          badge: "구대륙 21단계 결합",
-          tree: [
-            {
-              step: "A-1",
-              title: "구대륙 무기 계보 (총 9단계 조합)",
-              target: "여행자의 활[신급]",
-              mats: [
-                "1. 전설의총[노말] = 전설의총 조합서 + 양털;; + 전설의총[초보용]",
-                "2. 대륙의 총 = 대륙의 총 조합서 + 소원의빛 + 부운영자들의 해골 + 전설의총[노말]",
-                "3. 창공의 활 = 창공의 활 조합서 + 대륙의 총 + 하피의 깃털 + 창공의지배자의 발톱",
-                "4. 가이아의 활 = 가이아의 활 조합서 + 창공의 활 + 강력한 힘의 결정체 + 신의 영혼",
-                "5. 차원의 활[반 신급] = 가이아의 활 + 리자드맨의 심장 + 블루드래곤의 목",
-                "6. 영혼의 활[반 신급] = 차원의 활 + 원한이 담긴 반지 + 망령의 영혼 + 악령의 영혼",
-                "7. 영웅의 활[신급] = 영혼의 활 + 궁병의 활조각 + 몽크의 제황홀 + 킹 오브 팬텀 + 기사의 검",
-                "8. 봉인된 활[신급] = 영웅의 활 + 히드라 몸통 + 히드라 목 + 히드라 머리 + 히드라 꼬리",
-                "9. 여행자의 활[신급] = 봉인된 활[신급] + 봉인서"
-              ]
-            },
-            {
-              step: "A-2",
-              title: "구대륙 문장 계보 (총 10단계 조합)",
-              target: "인두인의 예언 문장[반 신급]",
-              mats: [
-                "1. 소울방패[노말] = 소울방패 조합서 + 대륙의 세번째 보물 + 악마의 파편 + 럭셔리반지",
-                "2. 대륙의망토 = 대륙의망토 조합서 + 소울방패 + 2트로피2 + 전설의갑옷[노말]",
-                "3. 대륙의갑옷 = 대륙의갑옷 조합서 + 대륙의망토 + 부운영자들의 해골 + 2트로피2",
-                "4. 낡은 대륙의 책 = 낡은 대륙의 책 조합서 + 대륙의갑옷 + 부운영자 해골 + 소원의빛 + ???",
-                "5. 세계수의 특혜 = 세계수의 특혜 조합서 + 타락한 세계수의 가지 + 낡은 대륙의 책",
-                "6. 붉은 세계수의 특혜 = 조합서 + 세계수의 특혜 + 붉은 영물의 심장 + 개구리의 진액",
-                "7. 차원의 문장[반 신급] = 붉은 세계수의 특혜 + 차원의 전사 아뮬렛",
-                "8. 빛의 문장[반 신급] = 차원의 문장 + 개구리의 갑옷 + 빛",
-                "9. 고대의 문장[반 신급] = 빛의 문장 + 비석 + 이상한 종이",
-                "10. 인두인의 예언 문장[반 신급] = 인두인의 예언 문장 조합서 + 다크 발키리의 문장 + 고대의 문장"
-              ]
-            },
-            {
-              step: "A-3",
-              title: "신대륙의 문장 ➔ 신대륙인의 문장 최종 결합 (2단계)",
-              target: "신대륙인의 문장[반 신급]",
-              mats: [
-                "11. 신대륙의 문장[반 신급] = 신대륙의 문장 조합서 + 여행자의 활[신급] + 인두인의 예언 문장[반 신급] + 펠 임프의 시체 + 펠 샤먼의 지팡이 + 펠 오버시어의 검",
-                "12. 신대륙인의 문장[반 신급] = 신대륙인의 문장 조합서 + 신대륙의 문장[반 신급] + 엘퀴네스의 눈물 + 크리스탈 골렘의 블럭 + 하이브 마인드의 촉수"
-              ]
-            }
-          ]
-        },
-        {
-          name: "봉인 해제자 칭호[에픽]",
-          desc: "구대륙 8괘(대륙의 종이/펜) ➔ 장군/리더 ➔ 여행자 ➔ 레이븐 ➔ 봉인 해제자 칭호",
-          badge: "구대륙 7단계 칭호",
-          tree: [
-            {
-              step: "B-1",
-              title: "8괘 수집 및 도구 제작 (2단계)",
-              target: "대륙의 종이 & 대륙의 펜[에픽]",
-              mats: [
-                "1. 대륙의 종이[에픽] = 대륙의 종이 조합서 + 우 괘 + 좌 괘 + 지 괘 + 토 괘",
-                "2. 대륙의 펜[에픽] = 대륙의 펜 조합서 + 괴 괘 + 뢰 괘 + 멸 괘 + 묘 괘"
-              ]
-            },
-            {
-              step: "B-2",
-              title: "장군 & 리더 & 여행자 칭호 (3단계)",
-              target: "여행자의 칭호[에픽]",
-              mats: [
-                "3. 장군의 칭호[에픽] = 장군의 칭호 조합서 + 대륙의 종이[에픽] + 대륙의 펜[에픽]",
-                "4. 리더의 칭호[에픽] = 지하계 주술사의 스탭 + 처형자의 칼 + 워리더의 방패",
-                "5. 여행자의 칭호[에픽] = 여행자의 칭호 조합서 + 전왕의 칭호[에픽] + 장군의 칭호[에픽] + 리더의 칭호[에픽]"
-              ]
-            },
-            {
-              step: "B-3",
-              title: "레이븐 칭호 ➔ 봉인 해제자 칭호 최종 완성 (2단계)",
-              target: "봉인 해제자 칭호[에픽]",
-              mats: [
-                "6. 레이븐 칭호[에픽] = 레이븐 칭호 조합서 + 여행자의 칭호[에픽] + 리더의 칭호[에픽] + 레이븐 피어의 가방",
-                "7. 봉인 해제자 칭호[에픽] = 봉인 해제자 칭호 조합서 + 봉인 해제자A + 봉인 해제자B + 봉인 해제자C + 레이븐 칭호[에픽]"
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    id: "sp_blue_gaia",
-    name: "푸른 가이아의 특혜[조합체]",
-    rank: "조합체",
-    icon: "🌿",
-    totalCoin: 331,
-    totalGold: 400000,
-    stepCount: 8,
-    summaryDesc: "보물1~4(x3) ➔ 데몬갑옷(x3) ➔ 3트로피3(x2) + 스피릿방패 ➔ 고대갑옷 ➔ 고대책 ➔ 가이아 ➔ 푸른 가이아",
-    steps: [
-      {
-        step: 1,
-        target: "신대륙의 네번째 보물[조합체] (총 3개 제작)",
-        coin: 111,
-        gold: 0,
-        materials: ["1개당 37주화 소모 (1보물(4) ➔ 2보물(4) ➔ 3보물(10) ➔ 4보물(15))", "스피릿 목걸이, 블러드스톤, 산적왕목걸이, 장곤충, 스컬, 로구밍다리, 얼음병, 코브라독, 바실리스크보석"]
-      },
-      {
-        step: 2,
-        target: "-유니크급-데몬의 갑옷 (총 3개 제작)",
-        coin: 54,
-        gold: 0,
-        materials: ["1개당 18주화 소모 (데몬의 갑옷 조합서(18) + 낚시꾼의 갑옷 + 데몬의 파편)"]
-      },
-      {
-        step: 3,
-        target: "3트로피3[조합체] (총 2개 제작)",
-        coin: 34,
-        gold: 0,
-        materials: ["1개당 17주화 소모 (3트로피3 조합서(17) + 데몬의 갑옷 + 신대륙 4보물)"]
-      },
-      {
-        step: 4,
-        target: "스피릿 방패[조합체]",
-        coin: 16,
-        gold: 0,
-        materials: ["스피릿 방패 조합서(16) + 신대륙 4보물 + 은빛 반지[희귀급] + 데몬의 파편"]
-      },
-      {
-        step: 5,
-        target: "고대의망토[조합체]",
-        coin: 18,
-        gold: 0,
-        materials: ["고대의망토 조합서(18) + 3트로피3[조합체] + 데몬의 갑옷 + 스피릿 방패[조합체]"]
-      },
-      {
-        step: 6,
-        target: "고대의갑옷[조합체]",
-        coin: 0,
-        gold: 400000,
-        materials: ["고대의갑옷 조합서 + 고대의망토[조합체] + 3트로피3[조합체] + 케이의 해골"]
-      },
-      {
-        step: 7,
-        target: "낡은 고대의 책 ➔ 가이아의 특혜[조합체]",
-        coin: 63,
-        gold: 0,
-        materials: ["낡은 고대의 책(30): 케이의 해골, 고대의갑옷, 희망의빛, 어둠", "가이아의 특혜(33): 낡은 고대의 책, 타락한 가이아의 가지"]
-      },
-      {
-        step: 8,
-        target: "푸른 가이아의 특혜[조합체]",
-        coin: 35,
-        gold: 0,
-        materials: ["푸른 가이아의 특혜 조합서(35) + 가이아의 특혜[조합체] + 가이아의 수액 + 봉인된 가이아의 심장"]
-      }
-    ],
-    rawMaterials: [
-      { name: "제국 주화", count: "331개", type: "currency" },
-      { name: "골드 (금)", count: "40만 Gold", type: "currency" },
-      { name: "신대륙 네번째 보물", count: "3개", type: "treasure" },
-      { name: "-유니크급-데몬의 갑옷", count: "3개", type: "armor" },
-      { name: "케이의 해골", count: "2개", type: "mat" },
-      { name: "은빛 반지[희귀급]", count: "1개", type: "equip" },
-      { name: "희망의빛 / 어둠", count: "각 1개", type: "mat" },
-      { name: "타락한 가이아의 가지", count: "1개", type: "mat" },
-      { name: "가이아의 수액", count: "1개", type: "mat" },
-      { name: "봉인된 가이아의 심장", count: "1개", type: "mat" },
-      { name: "각 단계 조합서 10종", count: "총 10장", type: "recipe" }
-    ]
-  },
-  {
-    id: "sp_seal_str",
-    name: "힘의 인장Lv2[에픽]",
-    rank: "에픽",
-    icon: "📌",
-    totalCoin: 5,
-    totalGold: 0,
-    stepCount: 1,
-    summaryDesc: "심연의 해적 인장 + 차가운 돼지고기 + 힘의 조각Lv2 + 보어 라이더 심장",
-    steps: [
-      {
-        step: 1,
-        target: "힘의 인장Lv2[에픽]",
-        coin: 5,
-        gold: 0,
-        materials: ["힘의 인장Lv2 조합서", "구대륙: 심연의 해적 인장[에픽] (콜럼버스 인장 기반)", "차가운 돼지고기[조합재료]", "힘의 조각Lv2[???]", "보어 라이더의 심장"]
-      }
-    ],
-    rawMaterials: [
-      { name: "제국 주화", count: "5개", type: "currency" },
-      { name: "힘의 인장Lv2 조합서", count: "1개", type: "recipe" },
-      { name: "심연의 해적 인장[에픽]", count: "1개 (구대륙 인장 최종)", type: "seal" },
-      { name: "차가운 돼지고기[조합재료]", count: "1개", type: "mat" },
-      { name: "힘의 조각Lv2[???]", count: "1개", type: "mat" },
-      { name: "보어 라이더의 심장", count: "1개", type: "mat" }
-    ],
-    oldContinentPrereqs: {
-      title: "구대륙 선행 필수 인장: 심연의 해적 인장[에픽] 상세 제작법",
-      items: [
-        {
-          name: "심연의 해적 인장[에픽]",
-          desc: "구대륙 힘/민/지 3대 스탯 인장과 콜럼버스의 인장을 통합하여 완성하는 구대륙 최종 인장",
-          badge: "구대륙 3단계 인장",
-          tree: [
-            {
-              step: "C-1",
-              title: "3대 기본 스탯 인장 제작 (각 1개)",
-              target: "힘 / 지식 / 민첩의 인장[에픽]",
-              mats: [
-                "1. 힘의 인장[에픽] = 힘의 인장 조합서 + 힘의 조각[???] + 돼지고기 + 돼지의 심장",
-                "2. 지식의 인장[에픽] = 지식의 인장 조합서 + 지식의 조각[???] + 돼지고기 + 돼지의 심장",
-                "3. 민첩의 인장[에픽] = 민첩의 인장 조합서 + 민첩의 조각[???] + 돼지고기 + 돼지의 심장"
-              ]
-            },
-            {
-              step: "C-2",
-              title: "3대 인장 통합 ➔ 콜럼버스의 인장",
-              target: "콜럼버스의 인장[에픽]",
-              mats: [
-                "4. 콜럼버스의 인장[에픽] = 콜럼버스의 인장 조합서 + 옥좌의 인장 + 힘의 인장 + 민첩의 인장 + 지식의 인장 + 대나무 창"
-              ]
-            },
-            {
-              step: "C-3",
-              title: "구대륙 최종 심연의 해적 인장 완성",
-              target: "심연의 해적 인장[에픽]",
-              mats: [
-                "5. 심연의 해적 인장[에픽] = 심연의 해적 인장 조합서 + 드워프 해적의 총 + 콜럼버스의 인장[에픽] + 심연의 해적모자"
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    id: "sp_nightmare",
-    name: "나이트메어 반지[반 신급]",
+    id: "sp_dream_lord",
+    name: "몽마군주의 반지[반 신급]",
     rank: "반 신급",
     icon: "💍",
     totalCoin: 49,
     totalGold: 1000000,
-    stepCount: 2,
-    summaryDesc: "핑크게이의 문장 (49주화) + 악몽이 담긴 반지 + 흉몽의 영혼 + 드림워커의 영혼",
+    stepCount: 4,
+    summaryDesc: "긴급용 무기 ➔ 핑크게이의 문장 ➔ 나이트메어 반지 ➔ 몽마군주의 반지 (*나이트메어 반지 인정 불가)",
     steps: [
       {
         step: 1,
-        target: "핑크게이의 문장[반 신급] (선행 테크)",
+        target: "핑크게이의 문장[반 신급]",
         coin: 49,
         gold: 1000000,
-        materials: ["긴급용 무기 ➔ 호빵의 무구 ➔ 코볼드 ➔ 폭설 거미 ➔ 핑크게이의 문장"]
+        materials: ["긴급용 무기", "호빵의 무구", "코볼드", "폭설 거미", "핑크게이 가죽"]
       },
       {
         step: 2,
@@ -2473,43 +2996,204 @@ const SEASON_POINT_REQUIREMENTS = [
         coin: 0,
         gold: 0,
         materials: ["핑크게이의 문장[반 신급]", "악몽이 담긴 반지[조합재료]", "흉몽의 영혼[조합재료]", "드림워커의 영혼[조합재료]"]
+      },
+      {
+        step: 3,
+        target: "몽마군주의 반지[반 신급]",
+        coin: 0,
+        gold: 0,
+        materials: ["나이트메어 반지[반 신급]", "악몽의 실타래 150개", "흉몽 파편 150개", "문지기의 열쇠 80개", "몽마군주의 눈 1개", "몽마군주의 반지 조합서"]
       }
     ],
     rawMaterials: [
       { name: "제국 주화 (문장 포함)", count: "49개", type: "currency" },
       { name: "골드 (문장 포함)", count: "100만 Gold", type: "currency" },
-      { name: "핑크게이의 문장[반 신급]", count: "1개", type: "insignia" },
-      { name: "악몽이 담긴 반지[조합재료]", count: "1개", type: "mat" },
-      { name: "흉몽의 영혼[조합재료]", count: "1개", type: "mat" },
-      { name: "드림워커의 영혼[조합재료]", count: "1개", type: "mat" }
+      { name: "나이트메어 반지[반 신급]", count: "1개", type: "equip" },
+      { name: "악몽의 실타래", count: "150개", type: "mat" },
+      { name: "흉몽 파편", count: "150개", type: "mat" },
+      { name: "문지기의 열쇠", count: "80개", type: "mat" },
+      { name: "몽마군주의 눈", count: "1개", type: "boss_mat" },
+      { name: "몽마군주의 반지 조합서", count: "1개", type: "recipe" }
     ]
   },
   {
-    id: "sp_flag",
-    name: "시즌포인트 깃발[조합재료]",
-    rank: "조합재료",
-    icon: "🚩",
-    totalCoin: 0,
-    totalGold: 0,
-    stepCount: 1,
-    summaryDesc: "시즌포인트 획득을 인증하는 최종 특별 깃발 (인게임 퀘스트/드롭/교환)",
+    id: "sp_hellfire_chief",
+    name: "지옥불 대족장의 갑옷[조합체]",
+    rank: "조합체",
+    icon: "🛡️",
+    totalCoin: 265,
+    totalGold: 400000,
+    stepCount: 3,
+    summaryDesc: "고대의갑옷 ➔ 지옥불 수호자의 갑옷 ➔ 지옥불 대족장의 갑옷 (*고대갑옷/수호자갑옷 인정 불가)",
     steps: [
       {
         step: 1,
-        target: "시즌포인트 깃발[조합재료]",
+        target: "고대의갑옷[조합체]",
+        coin: 265,
+        gold: 400000,
+        materials: ["3트로피3(x2)", "스피릿 방패", "고대의갑옷 조합서"]
+      },
+      {
+        step: 2,
+        target: "지옥불 수호자의 갑옷[조합체]",
         coin: 0,
         gold: 0,
-        materials: ["인게임 시즌 전용 퀘스트 / 드롭 / 교환처에서 획득"]
+        materials: ["고대의갑옷[조합체]", "지옥불 뿔 조각 100개", "지옥불 쇠사슬 100개", "지옥불 수호자의 갑옷 조합서"]
+      },
+      {
+        step: 3,
+        target: "지옥불 대족장의 갑옷[조합체]",
+        coin: 0,
+        gold: 0,
+        materials: ["지옥불 수호자의 갑옷[조합체]", "심연의 토템 파편 100개", "타락한 투사의 인장 100개", "요새 장군의 군단 휘장 50개", "지옥불 대족장의 심장 1개", "지옥불 대족장의 갑옷 조합서"]
       }
     ],
     rawMaterials: [
-      { name: "시즌포인트 깃발[조합재료]", count: "1개", type: "flag" }
+      { name: "제국 주화", count: "265개", type: "currency" },
+      { name: "골드", count: "40만 Gold", type: "currency" },
+      { name: "고대의갑옷", count: "1개", type: "equip" },
+      { name: "지옥불 뿔 조각", count: "100개", type: "mat" },
+      { name: "지옥불 쇠사슬", count: "100개", type: "mat" },
+      { name: "심연의 토템 파편", count: "100개", type: "mat" },
+      { name: "타락한 투사의 인장", count: "100개", type: "mat" },
+      { name: "요새 장군의 군단 휘장", count: "50개", type: "mat" },
+      { name: "지옥불 대족장의 심장", count: "1개", type: "boss_mat" }
+    ]
+  },
+  {
+    id: "sp_seal_lv3",
+    name: "힘/민첩/지능의 인장 Lv3",
+    rank: "신급",
+    icon: "💎",
+    totalCoin: 5,
+    totalGold: 0,
+    stepCount: 3,
+    summaryDesc: "인장 Lv1 ➔ 힘/민첩/지능 인장 Lv2 (5주화) ➔ 인장 Lv3 (*인장 Lv2 인정 불가, 올스탯 +250,000)",
+    steps: [
+      {
+        step: 1,
+        target: "해당 인장 Lv1",
+        coin: 0,
+        gold: 0,
+        materials: ["구대륙 몬스터 드롭 및 기본 인장"]
+      },
+      {
+        step: 2,
+        target: "해당 인장 Lv2 [에픽]",
+        coin: 5,
+        gold: 0,
+        materials: ["인장 Lv1", "해당 인장 Lv2 조합서", "신대륙 조합 재료"]
+      },
+      {
+        step: 3,
+        target: "힘/민첩/지능의 인장 Lv3 [신급]",
+        coin: 0,
+        gold: 0,
+        materials: ["해당 Lv2 인장 1개", "심연 해적의 금화 150개", "나가 여왕의 진주 150개", "심연의 닻 문장 80개", "대제독의 나침반 1개", "인장 Lv3 조합서"]
+      }
+    ],
+    rawMaterials: [
+      { name: "제국 주화 (Lv2 포함)", count: "5개", type: "currency" },
+      { name: "힘/민첩/지능의 인장 Lv2", count: "1개", type: "equip" },
+      { name: "심연 해적의 금화", count: "150개", type: "mat" },
+      { name: "나가 여왕의 진주", count: "150개", type: "mat" },
+      { name: "심연의 닻 문장", count: "80개", type: "mat" },
+      { name: "대제독의 나침반", count: "1개", type: "boss_mat" },
+      { name: "인장 Lv3 조합서", count: "1개", type: "recipe" }
+    ]
+  },
+  {
+    id: "sp_dragon_king",
+    name: "용왕의 대검/쌍단검/지팡이",
+    rank: "궁극",
+    icon: "⚔️",
+    totalCoin: 0,
+    totalGold: 0,
+    stepCount: 3,
+    summaryDesc: "고대 무기 ➔ 천룡 무기 3종 ➔ 용왕 무기 3종 (*고대/천룡 무기 인정 불가, 천공 용의 둥지)",
+    steps: [
+      {
+        step: 1,
+        target: "고대의 대검 / 단검 / 지팡이",
+        coin: 0,
+        gold: 0,
+        materials: ["인게임 고대 무기 획득"]
+      },
+      {
+        step: 2,
+        target: "천룡의 대검 / 쌍단검 / 지팡이 [신급]",
+        coin: 0,
+        gold: 0,
+        materials: ["해당 고대 무기", "비룡의 비늘 100개", "폭풍 깃털 100개", "천룡 무기 조합서"]
+      },
+      {
+        step: 3,
+        target: "용왕의 대검 / 쌍단검 / 지팡이 [궁극]",
+        coin: 0,
+        gold: 0,
+        materials: ["같은 종류의 천룡 무기", "용언 석판 100개", "천룡 근위기사의 문장 100개", "용장의 전투 깃발 50개", "천공룡의 심장 1개", "용왕 무기 조합서"]
+      }
+    ],
+    rawMaterials: [
+      { name: "천룡 무기 (대검/쌍단검/지팡이)", count: "1개", type: "equip" },
+      { name: "용언 석판", count: "100개", type: "mat" },
+      { name: "천룡 근위기사의 문장", count: "100개", type: "mat" },
+      { name: "용장의 전투 깃발", count: "50개", type: "mat" },
+      { name: "천공룡의 심장", count: "1개", type: "boss_mat" },
+      { name: "용왕 무기 조합서", count: "1개", type: "recipe" }
     ]
   }
 ];
 
 // 8. DSR 아이템 코드 맵 (goodwin 실측 및 m16tool 세이브 아이템 ID 매핑)
 const DSR_ITEMS_MAP = {
+  // V38 신규 4대 사냥터 장비, 조합서 및 재료 (인게임 실측 아이템 ID 완벽 매핑)
+  294: { name: "견고한 벽 조합서", icon: "📜", rank: "조합서" },
+  295: { name: "호빵 반지 조합서", icon: "📜", rank: "조합서" },
+  396: { name: "지옥불 뿔 조각[조합재료]", icon: "🦏", rank: "조합재료" },
+  397: { name: "지옥불 쇠사슬[조합재료]", icon: "⛓️", rank: "조합재료" },
+  398: { name: "심연의 토템 파편[조합재료]", icon: "🗿", rank: "조합재료" },
+  399: { name: "타락한 투사의 인장[조합재료]", icon: "🏷️", rank: "조합재료" },
+  400: { name: "요새 장군의 군단 휘장[조합재료]", icon: "🎖️", rank: "조합재료" },
+  402: { name: "지옥불 수호자의 갑옷 조합서", icon: "📜", rank: "조합서" },
+  403: { name: "지옥불 대족장의 갑옷 조합서", icon: "📜", rank: "조합서" },
+  404: { name: "지옥불 수호자의 갑옷[조합]", icon: "🛡️", rank: "조합" },
+  405: { name: "지옥불 대족장의 갑옷[조합]", icon: "🛡️", rank: "조합" },
+  417: { name: "비룡의 비늘[조합재료]", icon: "🐉", rank: "조합재료" },
+  418: { name: "폭풍 깃털[조합재료]", icon: "🪶", rank: "조합재료" },
+  419: { name: "용언 석판[조합재료]", icon: "📜", rank: "조합재료" },
+  420: { name: "천룡 근위기사의 문장[조합재료]", icon: "🛡️", rank: "조합재료" },
+  421: { name: "용장의 전투 깃발[조합재료]", icon: "🚩", rank: "조합재료" },
+  422: { name: "천공룡의 심장[조합재료]", icon: "🫀", rank: "조합재료" },
+  424: { name: "천룡의 쌍단검 조합서", icon: "📜", rank: "조합서" },
+  425: { name: "천룡의 지팡이 조합서", icon: "📜", rank: "조합서" },
+  428: { name: "용왕의 지팡이 조합서", icon: "📜", rank: "조합서" },
+  431: { name: "천룡의 지팡이[천룡]", icon: "🪄", rank: "천룡" },
+  432: { name: "지옥불 대족장의 갑옷[조합체]", icon: "🛡️", rank: "조합체" },
+  435: { name: "악몽의 실타래[조합재료]", icon: "🧶", rank: "조합재료" },
+  436: { name: "흉몽 파편[조합재료]", icon: "🔮", rank: "조합재료" },
+  437: { name: "몽마의 향[조합재료]", icon: "💨", rank: "조합재료" },
+  438: { name: "잠식된 꿈 결정[조합재료]", icon: "💎", rank: "조합재료" },
+  439: { name: "문지기의 열쇠[조합재료]", icon: "🗝️", rank: "조합재료" },
+  442: { name: "악몽 사냥꾼의 목걸이 조합서", icon: "📜", rank: "조합서" },
+  445: { name: "심연 해적의 금화[조합재료]", icon: "🪙", rank: "조합재료" },
+  446: { name: "나가 여왕의 진주[조합재료]", icon: "🦪", rank: "조합재료" },
+  447: { name: "심연의 닻 문장[조합재료]", icon: "⚓", rank: "조합재료" },
+  448: { name: "대제독의 나침반[조합재료]", icon: "🧭", rank: "조합재료" },
+  458: { name: "몽마군주의 눈[조합재료]", icon: "👁️", rank: "조합재료" },
+  461: { name: "악몽 사냥꾼의 목걸이[조합체]", icon: "📿", rank: "조합체" },
+  462: { name: "몽마군주의 반지[반 신급]", icon: "💍", rank: "반 신급" },
+  463: { name: "지옥불 수호자의 갑옷[조합체]", icon: "🛡️", rank: "조합체" },
+  464: { name: "힘의 인장Lv3[신급]", icon: "📌", rank: "신급" },
+  465: { name: "민첩의 인장Lv3[신급]", icon: "📌", rank: "신급" },
+  466: { name: "지능의 인장Lv3[신급]", icon: "📌", rank: "신급" },
+  467: { name: "천룡의 대검[신급]", icon: "⚔️", rank: "신급" },
+  468: { name: "천룡의 쌍단검[신급]", icon: "🗡️", rank: "신급" },
+  469: { name: "천룡의 지팡이[신급]", icon: "🪄", rank: "신급" },
+  470: { name: "용왕의 대검[궁극]", icon: "⚔️", rank: "궁극" },
+  471: { name: "용왕의 쌍단검[궁극]", icon: "🗡️", rank: "궁극" },
+  472: { name: "용왕의 지팡이[궁극]", icon: "🪄", rank: "궁극" },
+
   372: { name: "데릭의 톱날칼[에픽]", icon: "⚔️", rank: "에픽" },
   370: { name: "데릭의 뼈갑옷[에픽]", icon: "🛡️", rank: "에픽" },
   298: { name: "견고한 벽[신급]", icon: "🏰", rank: "신급" },
@@ -2535,6 +3219,13 @@ const DSR_ITEMS_MAP = {
   258: { name: "그림자 목걸이[조합체]", icon: "📿", rank: "조합체" },
   259: { name: "신대륙의 첫번째 보물[조합체]", icon: "🏆", rank: "조합체" },
   260: { name: "신대륙의 두번째 보물[조합체]", icon: "🏆", rank: "조합체" },
+  300: { name: "신대륙의 네번째 보물[조합체]", icon: "🏆", rank: "조합체" },
+  327: { name: "3트로피3[조합체]", icon: "🏆", rank: "조합체" },
+  331: { name: "고대의 망토[조합체]", icon: "🧣", rank: "조합체" },
+  333: { name: "고대의갑옷[조합체]", icon: "🛡️", rank: "조합체" },
+  336: { name: "낡은 고대의 책[조합체]", icon: "📖", rank: "조합체" },
+  337: { name: "카우의 곡괭이[조합재료]", icon: "⛏️", rank: "조합재료" },
+  338: { name: "가이아의 특혜[조합체]", icon: "🌿", rank: "조합체" },
   237: { name: "스피릿 목걸이-레어-", icon: "📿", rank: "레어" },
   367: { name: "블루티렉스 퇴치 칭호[에픽]", icon: "🏷️", rank: "에픽" },
   368: { name: "[레전드급]블루티렉스 가죽", icon: "🦖", rank: "레전드급" },
@@ -2689,11 +3380,18 @@ const PLAYERS_DATABASE = {
   "goodwin": {
     userId: "goodwin",
     seasonPoint: 116,
-    honorPoint: 278,
+    honorPoint: 287,
+    hnRt: 13,
+    hnFr: 37,
+    hnMk: 0,
+    hnE1: 0,
+    hnE2: 0,
+    hnE3: 0,
+    hnTd: 20261111,
     isSeasonCompleted: true,
     seasonVersionLabel: "v37",
     rankingPoint: 7413786,
-    rankStanding: "계급 8위 (672점) / 유저 7위",
+    rankStanding: "용기사 IV (Lv.68 / 99 · 690점)",
     titleCode: "TT_TYPE2", // 실버 칭호
     swordCode: "BLSwrod2", // 그람(모능)
     swordLevel: 40,        // SDATA1 그람 마스터리 Lv.40
@@ -2712,6 +3410,8 @@ const PLAYERS_DATABASE = {
     blueBean: 0,
     greyBean: 3,
     beans: { red: 0, blue: 0, grey: 3 },
+    sdata1: "1,40,0,0,0,0,",
+    sdata2: "9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20261110,20261110,37,0,0,0,0,0,0,0,0,0,0,50,31,50,31,2,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20261111,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,",
     warehouseData: {
       "BLBox1": 1, "BLBox4": 1
     },
@@ -4046,9 +4746,9 @@ const DSR_RANKINGS_DATA = {
       "userRank": 7,
       "userScore": 7413786,
       "tierRank": 8,
-      "tierScore": 672,
+      "tierScore": 690,
       "seasonPoint": 116,
-      "honorPoint": 278,
+      "honorPoint": 287,
       "coin": 17741,
       "gold": 465454,
       "sacredPower": 11098,
@@ -4697,11 +5397,11 @@ const DSR_RANKINGS_DATA = {
       "rank": 8,
       "nicName": "goodwin",
       "tierRank": 8,
-      "tierScore": 672,
+      "tierScore": 690,
       "userRank": 7,
       "userScore": 7413786,
       "seasonPoint": 116,
-      "honorPoint": 278,
+      "honorPoint": 287,
       "coin": 17741,
       "gold": 465454,
       "sacredPower": 11098,

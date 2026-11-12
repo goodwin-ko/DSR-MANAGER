@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>대륙 RPG 매니저 | Continent RPG Manager</title>
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=37.5.1">
+  <link rel="stylesheet" href="styles.css?v=38.0.9">
 </head>
 <body>
 
@@ -21,8 +21,11 @@
           <div class="title-with-badge">
             <h1>대륙 RPG 매니저</h1>
             <button type="button" class="btn-version-badge" id="btnHeaderVersionBadge" onclick="openPatchNotesModal()" title="클릭하여 시스템 패치노트 확인">
-              <span class="badge-dot"></span> <span id="txtHeaderVersion">v37.5.5 패치노트 📋</span>
+              <span class="badge-dot"></span> <span id="txtHeaderVersion">v38.0.0 패치노트 📋</span>
             </button>
+            <a href="rank_internal.html" class="btn-version-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; text-decoration: none;" title="내부 테스트용 TOP 100 랭킹 분석실">
+              <span>🔬 내부 랭킹 분석실</span>
+            </a>
           </div>
           <p>Continent RPG Season & Account Manager</p>
         </div>
@@ -60,6 +63,25 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-modal-confirm" onclick="closePatchNotesModal()">확인 완료</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier / Honor V38 Modal Dialog -->
+    <div id="tierDetailModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closeTierDetailModal()">
+      <div class="modal-dialog" style="max-width: 960px; width: 95%;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="patch-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">V38 HONOR TIER</span>
+            <span id="txtModalTierTitle">👑 V38 명예 기사 계급 & 해금 정보</span>
+          </div>
+          <button type="button" class="btn-modal-close" onclick="closeTierDetailModal()" aria-label="닫기">✕</button>
+        </div>
+        <div class="modal-body" id="modalTierContentContainer" style="padding: 18px;">
+          <!-- Dynamically populated by openTierDetailModal() in app.js -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-confirm" onclick="closeTierDetailModal()">닫기</button>
         </div>
       </div>
     </div>
@@ -110,10 +132,10 @@
           <div class="stat-value" id="valRankingPoint">0 RP</div>
         </div>
 
-        <!-- 4. 계급순위 -->
-        <div class="stat-card">
+        <!-- 4. 계급 (V38 개편) -->
+        <div class="stat-card" id="cardTierStanding" onclick="if(typeof openTierDetailModal==='function') openTierDetailModal();" style="cursor: pointer; border-color: rgba(245, 158, 11, 0.35); background: linear-gradient(145deg, rgba(30, 27, 38, 0.92), rgba(17, 15, 24, 0.96));" title="클릭하여 V38 계급 점수·효과·해금 상세표 보기">
           <div class="stat-header">
-            <span class="stat-label">계급순위</span>
+            <span class="stat-label" style="color: #fbbf24; font-weight: 800;">계급 <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">(클릭 상세)</span></span>
             <span class="stat-icon">👑</span>
           </div>
           <div class="stat-value" id="valRankStanding" style="font-size: 14px;">조회 대기중</div>
@@ -293,11 +315,11 @@
       </button>
       <button type="button" class="nav-tab" data-tab="pets">
         <span>🐾 펫 목록</span>
-        <span class="tab-badge">Lv1 ~ Lv5</span>
+        <span class="tab-badge">Lv1 ~ Lv14</span>
       </button>
       <button type="button" class="nav-tab" data-tab="warehouse">
         <span>📦 창고</span>
-        <span class="tab-badge">22종 도감</span>
+        <span class="tab-badge">26종 도감</span>
       </button>
       <button type="button" class="nav-tab" data-tab="swords">
         <span>🗡️ 성검</span>
@@ -305,11 +327,15 @@
       </button>
       <button type="button" class="nav-tab" data-tab="wings">
         <span>🪽 날개</span>
-        <span class="tab-badge">23종 도감</span>
+        <span class="tab-badge">26종 도감</span>
       </button>
       <button type="button" class="nav-tab" data-tab="relics">
         <span>🔮 유물</span>
         <span class="tab-badge">각성</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="runes">
+        <span>💎 룬</span>
+        <span class="tab-badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">V38 신규</span>
       </button>
       <button type="button" class="nav-tab" data-tab="recipes">
         <span>📜 조합법</span>
@@ -382,21 +408,47 @@
          ========================================== -->
     <section id="tab-warehouse" class="tab-view">
       <div class="season-row-title" style="margin-bottom: 20px;">
-        <span>📦 공식 창고 22종 도감 (9레벨 & 초월 조합 · 달토끼 · 각성 트리)</span>
+        <span>📦 공식 창고 26종 도감 (9레벨 & 초월 조합 · 월궁 달토끼 · 크리스마스 창고)</span>
       </div>
       <div id="warehouseContainer" class="content-card-grid"></div>
     </section>
 
     <section id="tab-swords" class="tab-view">
-      <div class="season-row-title" style="margin-bottom: 20px;">
-        <span>🗡️ 전설의 성검 도감 (듀란달 4대 성검 전승 시스템)</span>
+      <!-- 상단 요약 배너: 현재 장착 성검 & 성력 & 정령 활성 단계 -->
+      <div id="swordStatusSummaryBanner" style="margin-bottom: 20px;"></div>
+
+      <!-- V38 세분화 3개 서브 페이지 탭 버튼 (진화/구매, 마스터리, 정령) -->
+      <div class="recipe-category-pills" style="margin: 0 0 22px 0;">
+        <button type="button" class="cat-pill active" data-sword-subtab="evolution">
+          <span>🗡️ 성검 진화 테크트리 (4대성검 ➔ 듀란달~엑스칼리버)</span>
+        </button>
+        <button type="button" class="cat-pill" data-sword-subtab="mastery">
+          <span>📜 성검 마스터리 (Lv.100)</span>
+        </button>
+        <button type="button" class="cat-pill" data-sword-subtab="spirit">
+          <span>🧚 성검 정령 시스템 (Lv.25)</span>
+        </button>
       </div>
-      <div id="swordsContainer" class="content-card-grid"></div>
+
+      <!-- 서브탭 1: 성검 진화 도감 (1~9번) -->
+      <div id="swordSubtab-evolution" class="sword-subtab-view">
+        <div id="swordsContainer" class="content-card-grid"></div>
+      </div>
+
+      <!-- 서브탭 2: 성검 마스터리 (Lv.100 연마) -->
+      <div id="swordSubtab-mastery" class="sword-subtab-view" style="display: none;">
+        <div id="swordMasteryContainer"></div>
+      </div>
+
+      <!-- 서브탭 3: 성검 정령 시스템 (Lv.25 & 4대 스킬) -->
+      <div id="swordSubtab-spirit" class="sword-subtab-view" style="display: none;">
+        <div id="swordSpiritContainer"></div>
+      </div>
     </section>
 
     <section id="tab-wings" class="tab-view">
       <div class="season-row-title" style="margin-bottom: 20px;">
-        <span>🪽 신성한 날개 장비 (23종 9레벨 진화 트리)</span>
+        <span>🪽 신성한 날개 장비 (26종 9레벨 진화 트리 · 월광/별무리/눈꽃 날개)</span>
       </div>
       <div id="wingsContainer" class="content-card-grid"></div>
     </section>
@@ -408,6 +460,14 @@
       <div id="relicsContainer"></div>
     </section>
 
+    <section id="tab-runes" class="tab-view">
+      <div class="season-row-title" style="margin-bottom: 20px;">
+        <span class="row-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">V38 RUNE SYSTEM</span>
+        <span>💎 신대륙 룬 시스템 도감 (일반/상급 룬 Lv.70 · 스페셜/초월 룬 · 룬 효과 증폭 시너지)</span>
+      </div>
+      <div id="runesContainer"></div>
+    </section>
+
     <!-- ==========================================
          7. TAB CONTENT 7: RECIPES (신대륙 조합법 & 시즌포인트 테크트리)
          ========================================== -->
@@ -416,16 +476,16 @@
       <div class="recipes-sp-overview">
         <div class="sp-banner-title">
           <div class="sp-badge-pill">⭐ SEASON POINT KEY ITEMS</div>
-          <h2>시즌포인트 획득 조건 6대 핵심 아이템 & 소요 재화 분석</h2>
-          <p>시즌포인트 인증에 요구되는 6개 핵심 아이템의 제작 테크트리, 필요 재료 및 누적 주화/골드 총량을 한눈에 확인하세요.</p>
+          <h2>V38 시즌포인트 조건 2 : 7대 필수 아이템 & 테크트리 조합법</h2>
+          <p>V38 공식 기준 각 조합의 최상위 아이템 7종 소지 조건 판정 및 세부 제작법 명세입니다. (*인장 Lv2, 나이트메어 반지, 치프틴 그람의 목걸이는 인정되지 않습니다)</p>
         </div>
 
         <!-- 종합 소요량 집계 카드 -->
         <div id="spSummaryTotals" class="sp-summary-totals-grid"></div>
 
-        <!-- 6대 아이템 테크트리 아코디언 카드 그리드 -->
+        <!-- 7대 아이템 테크트리 아코디언 카드 그리드 -->
         <div class="season-row-title" style="margin: 24px 0 14px;">
-          <span class="row-badge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.3);">6대 필수 아이템</span>
+          <span class="row-badge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.3);">V38 7대 최상위 필수 아이템</span>
           <span>아이템별 제작 단계(테크트리) 및 필요 원자재 명세 (클릭하여 펼치기/접기)</span>
         </div>
         <div id="seasonPointCardsGrid" class="sp-cards-grid"></div>
@@ -443,8 +503,8 @@
           <div class="recipe-filter-bar">
             <!-- 1차 대륙 선택 필터 -->
             <div class="continent-filter-pills" id="recipeContinentPills">
-              <button type="button" class="continent-pill active" onclick="filterRecipeContinent('all')">🌐 전체 대륙</button>
-              <button type="button" class="continent-pill" onclick="filterRecipeContinent('new')">✨ 신대륙 (28종)</button>
+              <button type="button" class="continent-pill active" onclick="filterRecipeContinent('all')">🌐 전체 대륙 (88종)</button>
+              <button type="button" class="continent-pill" onclick="filterRecipeContinent('new')">✨ 신대륙 (47종 · V38 포함)</button>
               <button type="button" class="continent-pill" onclick="filterRecipeContinent('old')">📜 구대륙 (41종)</button>
               <button type="button" class="continent-pill highlight-bridge" onclick="filterRecipeContinent('bridge')">⚡ 신/구 승급 연계도</button>
             </div>
@@ -537,7 +597,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=37.5.5"></script>
-  <script src="app.js?v=37.5.5"></script>
+  <script src="data.js?v=38.0.9"></script>
+  <script src="app.js?v=38.0.9"></script>
 </body>
 </html>

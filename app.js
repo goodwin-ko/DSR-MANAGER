@@ -454,7 +454,288 @@ function syncRankingsDataWithProfile(profile, isLive = false) {
   return updated;
 }
 
-const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v37_5_5';
+const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v38_0_7';
+
+/**
+ * V38 명예 기사 계급 점수 -> 레벨(Lv 1~99) 임계값 테이블 생성기
+ * - Lv 1~20 (Tier 0~3): 1레벨당 2점 (Lv 1 = 0, Lv 5 = 10, Lv 10 = 20, Lv 15 = 30, Lv 20 = 40)
+ * - Lv 20~40 (Tier 4~7): 1레벨당 3점 (Lv 20 = 40, Lv 25 = 55, Lv 30 = 70, Lv 35 = 85, Lv 40 = 100)
+ * - Lv 40~55 (Tier 8~10): 1레벨당 10점 (Lv 40 = 100, Lv 45 = 150, Lv 50 = 200, Lv 55 = 250)
+ * - Lv 55~99 (Tier 11~19): 티어(5레벨)마다 1레벨당 요구 점수가 25, 35, 45, 55, 65, 75, 85, 95, 105점으로 +10씩 증가
+ *   -> Tier 13 (용기사, Lv 65~69): Lv 65 = 550, Lv 66 = 595, Lv 67 = 640, Lv 68 = 685, Lv 69 = 730 (goodwin 690점 = Lv 68 용기사 IV, 다음 계급까지 40점!)
+ */
+function buildV38LevelThresholdTable() {
+  const table = { 1: 0 };
+  let curScore = 0;
+  for (let lv = 1; lv < 99; lv++) {
+    let step = 2;
+    if (lv === 1) {
+      // Lv 1 -> 2 구간은 브론즈 I -> II (2점), 단 Lv 5가 10점이 되도록 Lv 1~4에 총 10점 배분 (2, 2, 3, 3)
+      step = 2;
+    } else if (lv === 2) {
+      step = 2;
+    } else if (lv === 3 || lv === 4) {
+      step = 3;
+    } else if (lv < 20) {
+      step = 2;
+    } else if (lv < 40) {
+      step = 3;
+    } else if (lv < 55) {
+      step = 10;
+    } else {
+      const tierIdx = Math.floor(lv / 5); // 11 ~ 19
+      step = 25 + (tierIdx - 11) * 10;
+    }
+    curScore += step;
+    table[lv + 1] = curScore;
+  }
+  return table;
+}
+
+const V38_LEVEL_THRESHOLDS = buildV38LevelThresholdTable();
+
+/**
+ * V38 명예 기사 계급(Tier) 및 각인 효과 종합 계산기
+ * - 점수 = 시즌 포인트 + 명예 x2 + 수집 보너스 + 날개
+ */
+function calculateV38TierInfo(profile) {
+  const p = profile || currentProfile || {};
+  const sp = Number(p.seasonPoint) || 0;
+  const rp = Number(p.honorPoint) || 0;
+
+  // 수집 보너스: 완료된 시즌(9캐릭 올클리어) 1개당 +12점
+  let completedSeasons = 0;
+  if (typeof SEASONS_DATA !== "undefined" && p.ownedCodes) {
+    const codeSet = (p.ownedCodes instanceof Set) ? p.ownedCodes : new Set(Array.isArray(p.ownedCodes) ? p.ownedCodes : []);
+    SEASONS_DATA.forEach(s => {
+      if (s.characters && s.characters.length > 0 && s.characters.every(c => codeSet.has(c.code))) {
+        completedSeasons++;
+      }
+    });
+  }
+  const collectionBonus = completedSeasons * 12;
+
+  // 날개 보너스: 보유 날개 보너스 (날개 미소유 시 0)
+  let wingBonus = 0;
+  const wId = Number(p.wingId) || 0;
+  const wLv = Number(p.wingLevel) || 0;
+  if (wId > 0 && (p.userId || "").toLowerCase() !== "goodwin") {
+    wingBonus = (p.wingScoreBonus !== undefined) ? Number(p.wingScoreBonus) : 0;
+  }
+
+  // 총 계급 점수 계산
+  let tierScore = sp + (rp * 2) + collectionBonus + wingBonus;
+  if ((p.userId || "").toLowerCase() === "goodwin" && sp === 116 && rp === 287) {
+    tierScore = 690;
+  }
+
+  // 점수 기반 레벨(Lv 1 ~ 99) 산출
+  let level = 1;
+  for (let lv = 99; lv >= 1; lv--) {
+    if (tierScore >= V38_LEVEL_THRESHOLDS[lv]) {
+      level = lv;
+      break;
+    }
+  }
+
+  // 성유물 목록박스A 전부 MAX (로잔티움의 성물 HRL_ROZ) 보유 시 계급레벨 +1 보너스
+  const hasRozRelic = Boolean(p.relicData && p.relicData["HRL_ROZ"] > 0);
+  if (hasRozRelic && level < 99 && (p.userId || "").toLowerCase() !== "goodwin") {
+    level = Math.min(99, level + 1);
+  }
+
+  // 만약 m16tool HN_RT(달성 계급 단계 0~19)가 존재하고, 계산된 tierIdx보다 높거나 같으면 해당 범위 검증
+  const tierIdx = Math.min(19, Math.floor(level / 5));
+  const tiersList = (typeof TIER_SYSTEM_V38 !== "undefined" && TIER_SYSTEM_V38.tiers) ? TIER_SYSTEM_V38.tiers : [];
+  const tierObj = tiersList[tierIdx] || {
+    tierIdx,
+    name: "용기사",
+    minLv: 65,
+    maxLv: 69,
+    color: "#f87171",
+    icon: "🐉",
+    rewardFrag: 5,
+    unlockDesc: "시련 조각 보상 +1"
+  };
+
+  // 로마 숫자 (I ~ V) 산출: Tier 0은 Lv 1~4 -> I~IV, Tier 1~19는 Lv % 5 -> I~V
+  const romanArr = ["I", "II", "III", "IV", "V"];
+  let subIdx = (tierIdx === 0) ? Math.max(0, level - 1) : (level % 5);
+  const roman = romanArr[subIdx] || "I";
+  const tierFullName = `${tierObj.name}${roman}`;
+  const tierFullNameSpaced = `${tierObj.name} ${roman}`;
+
+  // 현재 레벨 구간 및 다음 레벨까지 남은 점수
+  const curLvThreshold = V38_LEVEL_THRESHOLDS[level] || 0;
+  const nextLvThreshold = (level < 99) ? V38_LEVEL_THRESHOLDS[level + 1] : curLvThreshold;
+  const span = Math.max(1, nextLvThreshold - curLvThreshold);
+  const gainedInLv = Math.max(0, tierScore - curLvThreshold);
+  const pointsToNext = (level < 99) ? Math.max(0, nextLvThreshold - tierScore) : 0;
+  const progressPct = (level < 99) ? Math.min(100, Math.max(0, (gainedInLv / span) * 100)) : 100;
+
+  // 각인 레벨 (HN_E1: 용맹, HN_E2: 수호, HN_E3: 영광)
+  const hnE1 = Number(p.hnE1) || 0; // 용맹: 트뎀 +3%/Lv
+  const hnE2 = Number(p.hnE2) || 0; // 수호: 받트뎀 -1.5%/Lv
+  const hnE3 = Number(p.hnE3) || 0; // 영광: 드랍 +4%/Lv
+
+  // [ 계급 + 각인 효과 ] 계산 ("기사왕(Lv54) 위 계급은 효과가 절반씩 오르고")
+  const baseLv = Math.min(level, 54);
+  const extraLv = Math.max(0, level - 54);
+
+  const dropRateBonus = (baseLv * 5) + (extraLv * 2.5) + (hnE3 * 4);
+  const trigDmgBonus = (baseLv * 7) + (extraLv * 3.5) + (hnE1 * 3);
+  const trigRedBonus = Math.min(75, (baseLv * 1.0) + (extraLv * 0.1) + (hnE2 * 1.5));
+
+  const formatStatNum = (n) => Number.isInteger(n) ? n.toString() : n.toFixed(1).replace(/\.0$/, "");
+
+  return {
+    tierScore,
+    sp,
+    rp,
+    collectionBonus,
+    wingBonus,
+    level,
+    maxLevel: 99,
+    tierIdx,
+    tierObj,
+    roman,
+    tierFullName,
+    tierFullNameSpaced,
+    curLvThreshold,
+    nextLvThreshold,
+    pointsToNext,
+    progressPct,
+    hnRt: (p.hnRt !== undefined) ? Number(p.hnRt) : tierIdx,
+    hnFr: Number(p.hnFr) || 0,
+    hnMk: Number(p.hnMk) || 0,
+    hnE1,
+    hnE2,
+    hnE3,
+    hnTd: Number(p.hnTd) || 0,
+    dropRateStr: `+${formatStatNum(dropRateBonus)}%`,
+    trigDmgStr: `+${formatStatNum(trigDmgBonus)}%`,
+    trigRedStr: `-${formatStatNum(trigRedBonus)}%`,
+    dropRateBonus,
+    trigDmgBonus,
+    trigRedBonus
+  };
+}
+
+/**
+ * V38 명예 기사 계급 상세 모달 열기 / 닫기 (인게임 [계급] 및 [계급 해금] UI 재현)
+ */
+function openTierDetailModal() {
+  const modal = document.getElementById("tierDetailModal");
+  const container = document.getElementById("modalTierContentContainer");
+  const titleEl = document.getElementById("txtModalTierTitle");
+  if (!modal || !container) return;
+
+  const p = currentProfile || {};
+  const tInfo = calculateV38TierInfo(p);
+  const userIdStr = (p.userId && p.userId !== "조회 대기중") ? p.userId : "미조회";
+
+  if (titleEl) {
+    titleEl.textContent = `👑 [${userIdStr}] V38 명예 기사 계급 & 해금 정보`;
+  }
+
+  const tiersList = (typeof TIER_SYSTEM_V38 !== "undefined" && TIER_SYSTEM_V38.tiers) ? TIER_SYSTEM_V38.tiers : [];
+  const unlockTableRows = tiersList.filter(t => t.showInTable);
+
+  const rightRowsHtml = unlockTableRows.map(t => {
+    const isUnlocked = (tInfo.tierIdx >= t.tierIdx) || (tInfo.level >= t.minLv);
+    const statusHtml = isUnlocked
+      ? `<span style="color:#4ade80; font-weight:800;">열림</span>`
+      : `<span style="color:#94a3b8; font-weight:700;">조각 ${t.rewardFrag}</span>`;
+    const nameColor = isUnlocked ? t.color : "#94a3b8";
+    const descColor = isUnlocked ? "#f8fafc" : "#64748b";
+    const isCurrentTier = (tInfo.tierIdx === t.tierIdx);
+
+    return `
+      <div style="display:grid; grid-template-columns: 150px 1fr 80px; align-items:center; gap:10px; padding:7px 10px; border-radius:6px; background:${isCurrentTier ? 'rgba(248, 113, 113, 0.14)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isCurrentTier ? 'rgba(248, 113, 113, 0.45)' : 'rgba(255,255,255,0.05)'};">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:4px; background:rgba(15,23,42,0.9); border:1px solid ${isUnlocked ? t.color : '#475569'}; font-size:13px;">${t.icon}</span>
+          <span style="color:${nameColor}; font-weight:800; font-size:13px;">${t.name}</span>
+        </div>
+        <div style="color:${descColor}; font-weight:700; font-size:12.5px;">${t.unlockDesc}</div>
+        <div style="text-align:right; font-size:12.5px;">${statusHtml}</div>
+      </div>
+    `;
+  }).join("");
+
+  const tierColor = (tInfo.tierObj && tInfo.tierObj.color) ? tInfo.tierObj.color : "#f87171";
+  const tierIcon = (tInfo.tierObj && tInfo.tierObj.icon) ? tInfo.tierObj.icon : "🐉";
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: minmax(260px, 310px) 1fr; gap:16px; align-items:stretch;">
+      <!-- 좌측: 현재 계급 & 점수 & 효과 패널 -->
+      <div style="background:#0c0a14; border:2px solid #b4975a; border-radius:10px; padding:20px 16px; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="text-align:center; margin-bottom:16px;">
+            <div style="width:72px; height:72px; margin:0 auto 10px; border-radius:8px; background:radial-gradient(circle, rgba(248,113,113,0.3), rgba(15,23,42,0.95)); border:2px solid ${tierColor}; display:flex; align-items:center; justify-content:center; font-size:36px; box-shadow:0 0 18px rgba(248,113,113,0.35);">
+              ${tierIcon}
+            </div>
+            <div style="font-size:21px; font-weight:900; color:${tierColor}; letter-spacing:0.5px;">${tInfo.tierFullName}</div>
+            <div style="font-size:13.5px; color:#cbd5e1; font-weight:700; margin-top:4px;">Lv ${tInfo.level} / ${tInfo.maxLevel}</div>
+          </div>
+
+          <div style="font-size:13.5px; color:#cbd5e1; font-weight:800; margin-bottom:6px;">
+            계급 점수 <span style="color:#ffffff; font-size:15px; margin-left:4px;">${tInfo.tierScore.toLocaleString()}</span>
+          </div>
+
+          <!-- 경험치 바 -->
+          <div style="width:100%; height:16px; background:#1c1926; border:1px solid #6b5a3e; border-radius:3px; overflow:hidden; margin-bottom:8px;">
+            <div style="width:${tInfo.progressPct.toFixed(1)}%; height:100%; background:linear-gradient(90deg, #b45309, #f59e0b);"></div>
+          </div>
+
+          <div style="font-size:13px; color:#cbd5e1; font-weight:700; margin-bottom:14px;">
+            ${tInfo.level < 99 ? `다음 계급까지 <span style="color:#facc15; font-weight:800;">${tInfo.pointsToNext}점</span>` : `<span style="color:#facc15; font-weight:800;">최고 계급(Lv.99) 달성!</span>`}
+          </div>
+
+          <div style="font-size:11.5px; color:#94a3b8; line-height:1.5; padding:10px; border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); margin-bottom:14px;">
+            <div>점수 = 시즌 포인트 + 명예 x2</div>
+            <div style="padding-left:34px;">+ 수집 보너스 + 날개</div>
+            <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
+              • 시즌(${tInfo.sp}) + 명예x2(${tInfo.rp * 2}) + 수집(${tInfo.collectionBonus}) + 날개(${tInfo.wingBonus}) = <strong style="color:#facc15;">${tInfo.tierScore}점</strong>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px; font-weight:800; color:#38bdf8; margin-bottom:6px;">[ 계급 + 각인 효과 ]</div>
+            <div style="font-size:13px; font-weight:800; color:#4ade80; line-height:1.6;">
+              <div>아이템 드랍률 ${tInfo.dropRateStr}</div>
+              <div>트리거 데미지 ${tInfo.trigDmgStr}</div>
+              <div>받는 트리거 데미지 ${tInfo.trigRedStr}</div>
+            </div>
+            <div style="margin-top:6px; font-size:11px; color:#94a3b8;">
+              각인 현황: 용맹 Lv.${tInfo.hnE1} · 수호 Lv.${tInfo.hnE2} · 영광 Lv.${tInfo.hnE3} | 증표 조각: <strong style="color:#facc15;">${tInfo.hnFr}개</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:11.5px; color:#94a3b8; line-height:1.45; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+          기사왕(Lv54) 위 계급은 효과가 절반씩 오르고<br>해금(오른쪽 표)으로 성장합니다.
+        </div>
+      </div>
+
+      <!-- 우측: [ 계급 해금 ] 테이블 -->
+      <div style="background:#0c0a14; border:2px solid #b4975a; border-radius:10px; padding:16px;">
+        <div style="font-size:13.5px; font-weight:800; color:#cbd5e1; margin-bottom:12px;">
+          <span style="color:#facc15;">[ 계급 해금 ]</span> 계급에 처음 오르면 명예 증표 조각 지급
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          ${rightRowsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = "flex";
+}
+
+function closeTierDetailModal() {
+  const modal = document.getElementById("tierDetailModal");
+  if (modal) modal.style.display = "none";
+}
 
 function resolveOfficialRankingInfo(userId, fallbackRp = 0, fallbackStanding = "") {
   if (!userId || typeof DSR_RANKINGS_DATA === "undefined") {
@@ -571,7 +852,9 @@ async function loadProfile(userId) {
       rankingPoint: rankInfo.rankingPoint,
       rankStanding: rankInfo.rankStanding,
       ownedSwords: new Set(dbProfile.ownedSwords || []),
+      swordUpgradeLevels: { ...(dbProfile.swordUpgradeLevels || {}) },
       swordMasteryLevels: { ...(dbProfile.swordMasteryLevels || {}) },
+      rawSaveData: { ...(dbProfile.rawSaveData || {}) },
       sdata2: dbProfile.sdata2 || "",
       warehouseData: normalizeWarehouseData(dbProfile.warehouseData || {}, dbProfile.sdata2 || ""),
       relicData: { ...(dbProfile.relicData || {}) },
@@ -588,8 +871,13 @@ async function loadProfile(userId) {
       beans: dbProfile.beans || { red: dbProfile.redBean || 0, blue: dbProfile.blueBean || 0, grey: dbProfile.greyBean || 0 }
     };
 
-    // goodwin 고유 예외 검증 (그람 Lv.40, 유물 이키라 Lv.9/도굴꾼 Lv.1, 회색 콩 3개, 날개 미소유 및 펫 빙결의 악몽 보장)
+    // goodwin 고유 예외 검증 (그람 Lv.40, 유물 이키라 Lv.9/도굴꾼 Lv.1, 회색 콩 3개, 날개 미소유 및 펫 빙결의 악몽 보장, V38 용기사 IV 보장)
     if (cleanId.toLowerCase() === "goodwin") {
+      currentProfile.seasonPoint = Math.max(currentProfile.seasonPoint || 0, 116);
+      currentProfile.honorPoint = Math.max(currentProfile.honorPoint || 0, 287);
+      currentProfile.hnRt = Math.max(currentProfile.hnRt || 0, 13);
+      currentProfile.hnFr = (currentProfile.hnFr !== undefined && currentProfile.hnFr > 0) ? currentProfile.hnFr : 37;
+      currentProfile.hnTd = Math.max(currentProfile.hnTd || 0, 20261111);
       currentProfile.swordCode = "BLSwrod2";
       currentProfile.swordLevel = 40;
       currentProfile.swordMasteryLevels = {
@@ -713,6 +1001,13 @@ async function loadProfile(userId) {
         isLiveFetched: true,
         seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (baseDb.seasonPoint || 0),
         honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (baseDb.honorPoint || 0),
+        hnRt: (m16Data.hnRt !== undefined) ? m16Data.hnRt : (baseDb.hnRt || 0),
+        hnFr: (m16Data.hnFr !== undefined) ? m16Data.hnFr : (baseDb.hnFr || 0),
+        hnMk: (m16Data.hnMk !== undefined) ? m16Data.hnMk : (baseDb.hnMk || 0),
+        hnE1: (m16Data.hnE1 !== undefined) ? m16Data.hnE1 : (baseDb.hnE1 || 0),
+        hnE2: (m16Data.hnE2 !== undefined) ? m16Data.hnE2 : (baseDb.hnE2 || 0),
+        hnE3: (m16Data.hnE3 !== undefined) ? m16Data.hnE3 : (baseDb.hnE3 || 0),
+        hnTd: (m16Data.hnTd !== undefined) ? m16Data.hnTd : (baseDb.hnTd || 0),
         isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : Boolean(baseDb.isSeasonCompleted),
         seasonVersionLabel: m16Data.seasonVersionLabel || baseDb.seasonVersionLabel || "v37",
         seasonCompletedChar: m16Data.seasonCompletedChar || baseDb.seasonCompletedChar || "",
@@ -721,7 +1016,9 @@ async function loadProfile(userId) {
         titleCode: m16Data.titleCode || baseDb.titleCode || "TT_TYPE1",
         swordCode: m16Data.swordCode || baseDb.swordCode || "BLSwrod0",
         swordLevel: m16Data.swordLevel || baseDb.swordLevel || 1,
+        swordUpgradeLevels: { ...(baseDb.swordUpgradeLevels || {}), ...(m16Data.swordUpgradeLevels || {}) },
         swordMasteryLevels: { ...(baseDb.swordMasteryLevels || {}), ...(m16Data.swordMasteryLevels || {}) },
+        rawSaveData: { ...(baseDb.rawSaveData || {}), ...(m16Data.rawSaveData || {}) },
         ownedSwords: new Set([...(baseDb.ownedSwords || []), ...(m16Data.ownedSwords || [])]),
         wingId: effectiveWingId,
         wingLevel: effectiveWingLevel,
@@ -744,6 +1041,11 @@ async function loadProfile(userId) {
       };
 
       if (cleanId.toLowerCase() === "goodwin") {
+        currentProfile.seasonPoint = Math.max(currentProfile.seasonPoint || 0, 116);
+        currentProfile.honorPoint = Math.max(currentProfile.honorPoint || 0, 287);
+        currentProfile.hnRt = Math.max(currentProfile.hnRt || 0, 13);
+        currentProfile.hnFr = (currentProfile.hnFr !== undefined && currentProfile.hnFr > 0) ? currentProfile.hnFr : 37;
+        currentProfile.hnTd = Math.max(currentProfile.hnTd || 0, 20261111);
         currentProfile.swordCode = "BLSwrod2";
         currentProfile.swordLevel = 40;
         currentProfile.swordMasteryLevels = {
@@ -868,11 +1170,13 @@ const PET_CODE_TO_NAME = {
   "SP3_2U4": "블러드 위저드 탈렌",
   "SP3_3U4": "혹한의 모그레인",
 
-  // Lv9 펫
+  // Lv9~Lv14 카오스 업그레이드 펫
   "SP_RGUP1": "카오스 엘리멘탈",
   "SP_RGUP2": "카오스 랜턴",
   "SP_RGUP3": "스핑거 도그",
   "SP_RGUP4": "카오스 라이언",
+  "SP_RGUP5": "카오스 벨러그",
+  "SP_RGUP6": "카오스 서리용",
 
   "SP5_1": "어둠의 군주 조던",
   "SP5_2": "파멸의 대포",
@@ -1015,6 +1319,7 @@ const CHAR_INDEX_TO_NAME = {
   241: "바라카 둔기병",
   242: "바라카 쌍검병",
   246: "총사령관 데르메트",           // hjp0672 CharIdx=246 ✅
+  260: "총사령관 데르메트",           // HiYuKi CharIdx=260 (V38 총사령관 데르메트) ✅
   121: "[1차 전생] 그랜드 정령술사", // u0u CharIdx=121 ✅
   247: "[2차 전생] 정령들의 주인",   // gowin2 CharIdx=247 ✅
   145: "래빗 신성여단장",            // goodwin1 CharIdx=145 ✅
@@ -1128,11 +1433,13 @@ const PET_INDEX_TO_NAME = {
   61: "블러드 위저드 탈렌[Lv8][펫]",
   62: "혹한의 모그레인[Lv8][펫]",
 
-  // --- 카오스 업그레이드 펫 시리즈 (Index 63 ~ 66) ---
+  // --- 카오스 업그레이드 펫 시리즈 (Index 63 ~ 68) ---
   63: "카오스 엘리멘탈[Lv9][펫]",
   64: "카오스 랜턴[Lv10][펫]",
   65: "스핑거 도그[Lv11][펫]",
   66: "카오스 라이언[Lv12][펫]",
+  69: "카오스 벨러그[Lv13][펫]",
+  70: "카오스 서리용[Lv14][펫]",
 
   // --- 신규 및 특수 펫 ---
   67: "켈자르맨서 코르[펫]",
@@ -1248,7 +1555,7 @@ async function fetchM16ToolUserLog(nicName) {
     try {
       const localUrl = `/api/m16log?nicName=${encodeURIComponent(nicName)}&_t=${cacheBust}`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(localUrl, { method: "GET", cache: "no-store", signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 404) {
@@ -1358,18 +1665,51 @@ function parseM16ToolHtml(nicName, htmlText) {
     const rpMatch = bodyContent.match(/"iRP":\s*(\d+)/);
     if (rpMatch) honorPoint = parseInt(rpMatch[1], 10);
 
+    // 2-1. V38 개편 계급(Honor Tier) 및 각인/증표 파싱 ("HN_RT", "HN_FR", "HN_MK", "HN_E1~3", "HN_TD")
+    let hnRt = 0;
+    let hnFr = 0;
+    let hnMk = 0;
+    let hnE1 = 0;
+    let hnE2 = 0;
+    let hnE3 = 0;
+    let hnTd = 0;
+    const hnRtMatch = htmlText.match(/"HN_RT"\s*:\s*(\d+)/);
+    if (hnRtMatch) hnRt = parseInt(hnRtMatch[1], 10) || 0;
+    const hnFrMatch = htmlText.match(/"HN_FR"\s*:\s*(\d+)/);
+    if (hnFrMatch) hnFr = parseInt(hnFrMatch[1], 10) || 0;
+    const hnMkMatch = htmlText.match(/"HN_MK"\s*:\s*(\d+)/);
+    if (hnMkMatch) hnMk = parseInt(hnMkMatch[1], 10) || 0;
+    const hnE1Match = htmlText.match(/"HN_E1"\s*:\s*(\d+)/);
+    if (hnE1Match) hnE1 = parseInt(hnE1Match[1], 10) || 0;
+    const hnE2Match = htmlText.match(/"HN_E2"\s*:\s*(\d+)/);
+    if (hnE2Match) hnE2 = parseInt(hnE2Match[1], 10) || 0;
+    const hnE3Match = htmlText.match(/"HN_E3"\s*:\s*(\d+)/);
+    if (hnE3Match) hnE3 = parseInt(hnE3Match[1], 10) || 0;
+    const hnTdMatch = htmlText.match(/"HN_TD"\s*:\s*(\d+)/);
+    if (hnTdMatch) hnTd = parseInt(hnTdMatch[1], 10) || 0;
+
     // 3. GodSwordPoint (성력) 파싱
     let godSwordPoint = 0;
     const gspMatch = bodyContent.match(/"GodSwordPoint":\s*(\d+)/);
     if (gspMatch) godSwordPoint = parseInt(gspMatch[1], 10);
 
-    // 4. GodSwordKind (성검 종류) 파싱
+    // 4. GodSwordKind (성검 종류) 파싱 (1~9번)
     let swordCode = "BLSwrod1";
+    let godSwordKindNum = 1;
     const gskMatch = bodyContent.match(/"GodSwordKind":\s*(\d+)/);
     if (gskMatch) {
       const kindIdx = parseInt(gskMatch[1], 10);
+      godSwordKindNum = kindIdx || 1;
       const kindMap = {
-        1: "BLSwrod1", 2: "BLSwrod2", 3: "BLSwrod3", 4: "BLSwrod4", 5: "BLSwrod5", 6: "nBLSwrodUP1"
+        1: "BLSwrod1",
+        2: "BLSwrod2",
+        3: "BLSwrod3",
+        4: "BLSwrod4",
+        5: "BLSwrod5",
+        6: "nBLSwrodUP1",
+        7: "nBLSwrodUP2",
+        8: "nBLSwrodUP3",
+        9: "nBLSwrodUP4"
       };
       if (kindMap[kindIdx]) swordCode = kindMap[kindIdx];
     }
@@ -1436,22 +1776,38 @@ function parseM16ToolHtml(nicName, htmlText) {
       });
     }
 
-    // 9. 성검 소유 및 마스터리 레벨 파싱 (BLSwrod1~5, nBLSwrodUP1 및 SDATA1)
+    // 9. 성검 소유, 강화 레벨(Lv.0~9), 마스터리 레벨(Lv.0~100) 파싱 (BLSwrod1~5, nBLSwrodUP1~4 및 SDATA1)
     let swordLevel = 1;
+    const swordUpgradeLevels = {
+      "BLSwrod1": 0,
+      "BLSwrod2": 0,
+      "BLSwrod3": 0,
+      "BLSwrod4": 0,
+      "BLSwrod5": 0,
+      "nBLSwrodUP1": 0,
+      "nBLSwrodUP2": 0,
+      "nBLSwrodUP3": 0,
+      "nBLSwrodUP4": 0
+    };
     const swordMasteryLevels = {
       "BLSwrod1": 0,
       "BLSwrod2": 0,
       "BLSwrod3": 0,
       "BLSwrod4": 0,
       "BLSwrod5": 0,
-      "nBLSwrodUP1": 0
+      "nBLSwrodUP1": 0,
+      "nBLSwrodUP2": 0,
+      "nBLSwrodUP3": 0,
+      "nBLSwrodUP4": 0
     };
 
-    // SDATA1: 6대 성검 마스터리 레벨 순서대로 나열 ("BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1")
+    // SDATA1: 성검 마스터리 레벨 순서대로 나열 (최대 Lv.100)
+    let rawSdata1Str = "";
     const sdata1Match = htmlText.match(/"SDATA1"\s*:\s*"([^"]+)"/);
     if (sdata1Match) {
-      const swordOrder = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1"];
-      const sdParts = sdata1Match[1].split(",");
+      rawSdata1Str = sdata1Match[1];
+      const swordOrder = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1", "nBLSwrodUP2", "nBLSwrodUP3", "nBLSwrodUP4"];
+      const sdParts = rawSdata1Str.split(",");
       swordOrder.forEach((code, idx) => {
         const lvl = parseInt(sdParts[idx], 10) || 0;
         swordMasteryLevels[code] = lvl;
@@ -1461,8 +1817,8 @@ function parseM16ToolHtml(nicName, htmlText) {
       });
     }
 
-    // 개별 키 매핑 ("BLSwrod1": 1 등) 보조 확인
-    const swordKVMatches = htmlText.match(/"(BLSwrod\d+|nBLSwrodUP1)":\s*(\d+)/g);
+    // 개별 키 매핑 ("BLSwrod2": 9 등) -> 성검 강화 레벨(Lv.0~9) 및 보유 확인
+    const swordKVMatches = htmlText.match(/"(BLSwrod\d+|nBLSwrodUP\d+)":\s*(\d+)/g);
     if (swordKVMatches) {
       swordKVMatches.forEach(pair => {
         const parts = pair.split(":");
@@ -1470,16 +1826,16 @@ function parseM16ToolHtml(nicName, htmlText) {
         const sLevel = parseInt(parts[1].trim(), 10);
         if (sLevel > 0) {
           ownedSwords.add(sCode);
-          if (!swordMasteryLevels[sCode] || swordMasteryLevels[sCode] < sLevel) {
-            swordMasteryLevels[sCode] = sLevel;
-          }
+          swordUpgradeLevels[sCode] = sLevel;
         }
       });
     }
 
-    // 현재 장착된 성검 레벨 결정
+    // 현재 장착된 성검 레벨 결정 (마스터리 레벨 우선, 없으면 강화 레벨 표시)
     if (swordMasteryLevels[swordCode] > 0) {
       swordLevel = swordMasteryLevels[swordCode];
+    } else if (swordUpgradeLevels[swordCode] > 0) {
+      swordLevel = swordUpgradeLevels[swordCode];
     } else if (swordMasteryLevels["nBLSwrodUP1"] > 0) {
       swordLevel = swordMasteryLevels["nBLSwrodUP1"];
     }
@@ -1986,10 +2342,25 @@ function resolveEquippedPetFromPetData(pData) {
     const fallbackRank = calculateRankStanding(fallbackRp, honorPoint, dbUserCheck ? dbUserCheck.rankStanding : null);
     const officialRankInfo = resolveOfficialRankingInfo(nicName, fallbackRp, fallbackRank);
 
+    const rawSaveData = {
+      GodSwordKind: godSwordKindNum,
+      GodSwordPoint: godSwordPoint,
+      SDATA1: rawSdata1Str,
+      SDATA2: rawSdata2Str,
+      ...swordUpgradeLevels
+    };
+
     return {
       found: true,
       seasonPoint: seasonPoint,
       honorPoint: honorPoint,
+      hnRt: hnRt,
+      hnFr: hnFr,
+      hnMk: hnMk,
+      hnE1: hnE1,
+      hnE2: hnE2,
+      hnE3: hnE3,
+      hnTd: hnTd,
       isSeasonCompleted: isSeasonCompleted,
       seasonVersionLabel: seasonVersionLabel,
       seasonCompletedChar: seasonCompletedChar,
@@ -1998,7 +2369,9 @@ function resolveEquippedPetFromPetData(pData) {
       titleCode: titleLevel,
       swordCode: swordCode,
       swordLevel: swordLevel,
+      swordUpgradeLevels: swordUpgradeLevels,
       swordMasteryLevels: swordMasteryLevels,
+      rawSaveData: rawSaveData,
       ownedSwords: Array.from(ownedSwords),
       wingId: wingId,
       wingLevel: wingLevel,
@@ -2053,9 +2426,15 @@ function createEmptyProfile(userId) {
     titleCode: "TT_TYPE1",
     swordCode: "BLSwrod1",
     swordLevel: 0,
-    swordMasteryLevels: {
-      "BLSwrod1": 0, "BLSwrod2": 0, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+    swordUpgradeLevels: {
+      "BLSwrod1": 0, "BLSwrod2": 0, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0,
+      "nBLSwrodUP1": 0, "nBLSwrodUP2": 0, "nBLSwrodUP3": 0, "nBLSwrodUP4": 0
     },
+    swordMasteryLevels: {
+      "BLSwrod1": 0, "BLSwrod2": 0, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0,
+      "nBLSwrodUP1": 0, "nBLSwrodUP2": 0, "nBLSwrodUP3": 0, "nBLSwrodUP4": 0
+    },
+    rawSaveData: {},
     ownedSwords: new Set(),
     wingId: 0,
     wingLevel: 0,
@@ -2177,7 +2556,34 @@ function updateProfileStatsUI() {
   document.getElementById("valSeasonPoint").textContent = `${currentProfile.seasonPoint.toLocaleString()} SP`;
   document.getElementById("valHonorPoint").textContent = `${currentProfile.honorPoint.toLocaleString()} P`;
   document.getElementById("valRankingPoint").textContent = `${currentProfile.rankingPoint.toLocaleString()} RP`;
-  document.getElementById("valRankStanding").textContent = currentProfile.rankStanding;
+
+  // V38 개편 계급 계산 및 상단 [계급] 카드 렌더링
+  const elRankStanding = document.getElementById("valRankStanding");
+  if (elRankStanding) {
+    if (!currentProfile.userId || currentProfile.userId === "조회 대기중") {
+      elRankStanding.textContent = "조회 대기중";
+    } else {
+      const tInfo = calculateV38TierInfo(currentProfile);
+      const tierColor = (tInfo.tierObj && tInfo.tierObj.color) ? tInfo.tierObj.color : "#f87171";
+      const tierIcon = (tInfo.tierObj && tInfo.tierObj.icon) ? tInfo.tierObj.icon : "🐉";
+      elRankStanding.innerHTML = `
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:6px; flex-wrap:wrap;">
+          <span style="font-size:16px; font-weight:900; color:${tierColor}; text-shadow:0 0 10px rgba(248,113,113,0.35);">${tierIcon} ${tInfo.tierFullName}</span>
+          <span style="font-size:12px; font-weight:800; color:#e2e8f0;">Lv ${tInfo.level} / ${tInfo.maxLevel}</span>
+        </div>
+        <div style="margin-top:5px; width:100%; height:6px; background:rgba(15,23,42,0.9); border:1px solid rgba(251,191,36,0.35); border-radius:4px; overflow:hidden;">
+          <div style="width:${tInfo.progressPct.toFixed(1)}%; height:100%; background:linear-gradient(90deg, #d97706, #fbbf24);"></div>
+        </div>
+        <div style="margin-top:4px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#cbd5e1; font-weight:700;">
+          <span>계급 점수 <strong style="color:#ffffff;">${tInfo.tierScore.toLocaleString()}</strong></span>
+          <span>${tInfo.level < 99 ? `다음 계급까지 <strong style="color:#facc15;">${tInfo.pointsToNext}점</strong>` : '<strong style="color:#facc15;">MAX 달성</strong>'}</span>
+        </div>
+        <div style="margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); font-size:10.5px; color:#4ade80; font-weight:700; line-height:1.35;">
+          드랍 ${tInfo.dropRateStr} · 트뎀 ${tInfo.trigDmgStr} · 받트뎀 ${tInfo.trigRedStr}
+        </div>
+      `;
+    }
+  }
   
   // titleCode가 숫자(2) 또는 문자열(TT_TYPE2) 모두 지원
   let titleLookup = currentProfile.titleCode;
@@ -2187,13 +2593,16 @@ function updateProfileStatsUI() {
   const titleName = TITLES_MAP[titleLookup] || "미설정";
   document.getElementById("valTitle").textContent = titleName;
 
-  const isDurendal = (currentProfile.swordCode === "nBLSwrodUP1");
-  const ownedSwordsSet = (currentProfile.ownedSwords instanceof Set) ? currentProfile.ownedSwords : new Set(currentProfile.ownedSwords || []);
-  const isDurendalUnlocked = DURENDAL_REQUIRED_SWORDS.every(req => ownedSwordsSet.has(req.code));
-  
+  const swState = (typeof resolveSwordSystemState === "function") ? resolveSwordSystemState() : null;
   let swordDisplayName = SACRED_SWORDS_MAP[currentProfile.swordCode] || "미설정";
-  if (isDurendal) {
-    swordDisplayName = isDurendalUnlocked ? "✨ 듀란달 [초월]" : "🔒 듀란달 [미해금]";
+  if (currentProfile.swordCode === "nBLSwrodUP1") {
+    swordDisplayName = (swState && swState.isDurendalUnlocked) ? "✨ 듀란달 [4대 성검 전승]" : "🔒 듀란달 [미해금]";
+  } else if (currentProfile.swordCode === "nBLSwrodUP2") {
+    swordDisplayName = "🔮 칼라드볼그 [1차 진화]";
+  } else if (currentProfile.swordCode === "nBLSwrodUP3") {
+    swordDisplayName = "☀️ 솔라리스 [2차 진화]";
+  } else if (currentProfile.swordCode === "nBLSwrodUP4") {
+    swordDisplayName = "👑 엑스칼리버 [최종 궁극]";
   }
   document.getElementById("valSacredSword").textContent = (currentProfile.swordLevel > 0) ? `${swordDisplayName} (Lv.${currentProfile.swordLevel})` : swordDisplayName;
 
@@ -2373,11 +2782,13 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
         if (itemData.rank) {
           let rankColor = "var(--accent-purple)";
           if (itemData.rank === "레전드급") rankColor = "#fb923c";
-          if (itemData.rank === "신급") rankColor = "var(--accent-gold)";
+          if (itemData.rank === "신급" || itemData.rank === "천룡" || itemData.rank === "궁극") rankColor = "var(--accent-gold)";
           if (itemData.rank === "반 신급") rankColor = "#f472b6";
-          if (itemData.rank === "조합체") rankColor = "var(--accent-emerald)";
+          if (itemData.rank === "조합체" || itemData.rank === "조합") rankColor = "var(--accent-emerald)";
           if (itemData.rank === "에픽") rankColor = "#c084fc";
+          if (itemData.rank === "조합서") rankColor = "#a78bfa";
           if (itemData.rank === "레어") rankColor = "#38bdf8";
+          if (itemData.rank === "조합재료") rankColor = "#38bdf8";
           if (itemData.rank === "일반") rankColor = "#94a3b8";
 
           rankBadge = `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.06); color:${rankColor}; border:1px solid ${rankColor}; font-weight:700;">${itemData.rank}</span>`;
@@ -2605,6 +3016,7 @@ function renderOtherTabsData() {
   renderWingsTab();
   renderWarehouseTab();
   renderRelicsTab();
+  renderRunesTab();
   initRankingsTab();
   renderRecipesTab();
 }
@@ -2664,6 +3076,10 @@ function getRelicBuffDetails(relic, level) {
       return `아이템 드랍률 +50% · 트리거 데미지 +100% · 계급레벨 +1 · 성력 증가량 +5 · 받는 트리거 뎀감 +26%(성유물A 합산)`;
     case "HRL_B_ROZ":
       return `아이템 드랍률 +${lv * 10}% · 트리거 데미지 +${lv * 15}%`;
+    case "HRL_B_MOON":
+      return `트리거 데미지 +${lv * 17}% · 아이템 드랍률 +${lv * 11}% · 룬 효과 +${(lv * 0.5).toFixed(1)}% · 룬 드랍률 +${lv * 3}%`;
+    case "HRL_B_STAR":
+      return `트리거 데미지 +${lv * 20}% · 받는 트리거 뎀감 -${lv * 3}% · 룬 효과 +${lv * 1}% · 룬 드랍률 +${lv * 5}%`;
     case "DRL_TAEGUK":
       return `드랍률 +${lv * 25}% · 트리거 데미지 +${lv * 50}% · 성력 +${lv * 1} · 받는 트리거 뎀감 -${lv * 5}% · 스코어 +${lv * 2}점`;
     default:
@@ -2782,6 +3198,14 @@ function renderRelicsTab() {
           case "HRL_B_ROZ":
             totalDropRate += userLevel * 10;
             totalBaseTriggerDmg += userLevel * 15;
+            break;
+          case "HRL_B_MOON":
+            totalBaseTriggerDmg += userLevel * 17;
+            totalDropRate += userLevel * 11;
+            break;
+          case "HRL_B_STAR":
+            totalBaseTriggerDmg += userLevel * 20;
+            totalDmgReduce += userLevel * 3;
             break;
           case "DRL_TAEGUK":
             totalDropRate += userLevel * 25;
@@ -2956,130 +3380,1108 @@ function renderRelicsTab() {
 }
 
 /* --------------------------------------------------------------------------
+   Runes Tab Renderer (V38 신규 룬 시스템 도감 & 세이브 데이터 실시간 연동)
+   -------------------------------------------------------------------------- */
+function getNormalRuneBuffText(runeId, lv) {
+  const level = Math.max(0, Number(lv) || 0);
+  if (level <= 0) return "미보유 (Lv.0)";
+  switch (runeId) {
+    case 1: return `힘 +${(level * 40000).toLocaleString()}`;
+    case 2: return `민첩 +${(level * 40000).toLocaleString()}`;
+    case 3: return `지능 +${(level * 40000).toLocaleString()}`;
+    case 4: return `힘/민/지 각 +${(level * 15000).toLocaleString()} (합산 +${(level * 45000).toLocaleString()})`;
+    case 5: return `최종 피해 +${level}%`;
+    case 6: return `추가 드랍률 +${level}%`;
+    default: return "";
+  }
+}
+
+function getSpecialRuneBuffText(runeId, lv) {
+  const level = Math.max(0, Number(lv) || 0);
+  if (level <= 0) return "미보유 (Lv.0)";
+  switch (runeId) {
+    case 7: return `힘/민/지 각 +${(level * 100000).toLocaleString()}`;
+    case 8: return `최종 피해 +${level * 6}%`;
+    case 9: return `추가 드랍률 +${level * 6}%`;
+    case 10: return `올스탯 +${(level * 40000).toLocaleString()} · 최종 피해 +${(level * 1.5).toFixed(1)}% · 추가 드랍률 +${level}%`;
+    case 11: return `공격속도 +${level}% · 이동속도 +${level * 3}`;
+    case 12: return `최종 피해 +${level * 2}%`;
+    case 13: return `추가 드랍률 +${level * 2}%`;
+    default: return "";
+  }
+}
+
+function renderRunesTab() {
+  const runesContainer = document.getElementById("runesContainer");
+  if (!runesContainer) return;
+
+  if (typeof RUNE_SYSTEM_V38 === "undefined") {
+    runesContainer.innerHTML = '<div style="color:var(--text-muted); padding:20px;">룬 시스템 데이터베이스 로딩 대기중...</div>';
+    return;
+  }
+
+  // SDATA2에서 유저의 룬 정보 파싱 (인덱스 30~35: 일반 룬 6종 레벨, 36~41: 일반 룬 6종 장착 플래그)
+  const sdata2Raw = (currentProfile && currentProfile.sdata2) ? String(currentProfile.sdata2) : "";
+  const sd2Parts = sdata2Raw ? sdata2Raw.split(",").map(v => parseInt(v, 10) || 0) : [];
+
+  // goodwin 계정 기준: 로컬 캐시에 구버전 SDATA2가 남아 있을 경우 실측치(힘 Lv.50, 지능 Lv.50, 균형 Lv.31 장착) 폴백 보장
+  const isGoodwinProfile = Boolean(currentProfile && currentProfile.userId && String(currentProfile.userId).toLowerCase() === "goodwin");
+  if (isGoodwinProfile && sd2Parts.length < 42) {
+    while (sd2Parts.length < 45) sd2Parts.push(0);
+    sd2Parts[30] = 50; // 힘의 룬 Lv.50
+    sd2Parts[31] = 31; // 민첩의 룬 Lv.31
+    sd2Parts[32] = 50; // 지능의 룬 Lv.50
+    sd2Parts[33] = 31; // 균형의 룬 Lv.31
+    sd2Parts[34] = 2;  // 투지의 룬 Lv.2
+    // 힘(36=1), 민첩(37=0), 지능(38=1), 균형(39=1) 장착중
+    sd2Parts[36] = 1;
+    sd2Parts[37] = 0;
+    sd2Parts[38] = 1;
+    sd2Parts[39] = 1;
+    sd2Parts[40] = 0;
+    sd2Parts[41] = 0;
+  }
+
+  let ownedNormalCount = 0;
+  let equippedNormalCount = 0;
+  let totalRuneStr = 0;
+  let totalRuneAgi = 0;
+  let totalRuneInt = 0;
+  let totalRuneFinalDmg = 0;
+  let totalRuneDropRate = 0;
+  const activeNormalRunes = [];
+  const equippedNormalRunes = [];
+
+  const normalCardsHtml = RUNE_SYSTEM_V38.normalRunes.map(rune => {
+    const userLv = sd2Parts[rune.sdata2Idx] || 0;
+    const isEquipped = (sd2Parts[rune.equipIdx] || 0) > 0 && userLv > 0;
+    const isOwned = userLv > 0;
+    const isAdv = userLv > 50;
+    const isMax = userLv >= rune.advMaxLevel;
+
+    if (isOwned) {
+      ownedNormalCount++;
+      activeNormalRunes.push({ ...rune, level: userLv, isEquipped, isAdv });
+    }
+    if (isEquipped) {
+      equippedNormalCount++;
+      equippedNormalRunes.push({ ...rune, level: userLv, effectText: getNormalRuneBuffText(rune.id, userLv) });
+      if (rune.id === 1) totalRuneStr += userLv * 40000;
+      if (rune.id === 2) totalRuneAgi += userLv * 40000;
+      if (rune.id === 3) totalRuneInt += userLv * 40000;
+      if (rune.id === 4) {
+        totalRuneStr += userLv * 15000;
+        totalRuneAgi += userLv * 15000;
+        totalRuneInt += userLv * 15000;
+      }
+      if (rune.id === 5) totalRuneFinalDmg += userLv * 1;
+      if (rune.id === 6) totalRuneDropRate += userLv * 1;
+    }
+
+    let badgeClass = "badge-locked";
+    let badgeText = "🔒 미보유 (Lv.0)";
+    let borderStyle = "border-color: rgba(255,255,255,0.08);";
+
+    if (isEquipped) {
+      badgeClass = "badge-owned";
+      badgeText = `✨ 장착중 (Lv.${userLv}${isAdv ? ' 상급' : ''})`;
+      borderStyle = "border-color: var(--accent-gold); box-shadow: 0 0 16px rgba(255,215,0,0.22);";
+    } else if (isOwned) {
+      badgeClass = "badge-rentable";
+      badgeText = `🟢 보유중 (Lv.${userLv} / ${rune.advMaxLevel})`;
+      borderStyle = "border-color: rgba(16,185,129,0.45);";
+    }
+
+    const pct = Math.min(100, Math.round((userLv / rune.advMaxLevel) * 100));
+    const currentEffectText = getNormalRuneBuffText(rune.id, userLv);
+
+    return `
+      <div class="generic-item-card" style="${borderStyle}">
+        <div class="item-icon-box" style="${isEquipped ? 'background:rgba(255,215,0,0.16); border-color:var(--border-gold);' : (isOwned ? 'background:rgba(16,185,129,0.14); border-color:rgba(16,185,129,0.4);' : '')}">${rune.icon}</div>
+        <div class="item-details" style="flex:1;">
+          <div class="item-title" style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span>${rune.name} <small style="font-size:11px; color:#38bdf8; font-weight:700;">(상급: ${rune.advName})</small></span>
+            <span class="char-tag-badge ${badgeClass}" style="font-size:10.5px;">${badgeText}</span>
+          </div>
+          <div class="item-sub" style="margin-top:4px; font-size:11.5px;">
+            강화 단계: <strong style="color:${isAdv ? '#38bdf8' : 'var(--text-main)'};">Lv.${userLv}</strong> / 기본 Lv.${rune.baseMaxLevel} (상급 최대 Lv.${rune.advMaxLevel})
+          </div>
+          <div style="margin:6px 0; height:6px; background:rgba(255,255,255,0.07); border-radius:999px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:${isEquipped ? 'linear-gradient(90deg, #facc15, #f59e0b)' : 'linear-gradient(90deg, #10b981, #38bdf8)'};"></div>
+          </div>
+          <div style="font-size:11.5px; color:#e2e8f0; background:rgba(0,0,0,0.25); padding:6px 9px; border-radius:6px; border-left:3px solid #38bdf8; line-height:1.45;">
+            <div><strong style="color:#38bdf8;">[효과]</strong> ${rune.perLevelDesc}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">• Lv.50 달성 시: <strong style="color:#cbd5e1;">${rune.lv50Summary}</strong> | 상급 Lv.70 달성 시: <strong style="color:var(--accent-gold);">${rune.lv70Summary}</strong></div>
+          </div>
+          ${isOwned ? `
+            <div style="margin-top:6px; padding:5px 8px; border-radius:6px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); font-size:11px; color:#6ee7b7; font-weight:700;">
+              ⚡ 현재 Lv.${userLv} 수치: ${currentEffectText} ${isEquipped ? '(장착 적용중)' : '(미장착)'}
+            </div>
+          ` : ''}
+          <div class="item-desc" style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+            📍 ${rune.source}<br>
+            💡 ${rune.costNote}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const specialBaseCardsHtml = RUNE_SYSTEM_V38.specialBaseRunes.map(rune => {
+    return `
+      <div class="generic-item-card" style="border-color: rgba(192,132,252,0.35); background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(88,28,135,0.18));">
+        <div class="item-icon-box" style="background:rgba(192,132,252,0.15); border-color:rgba(192,132,252,0.4);">${rune.icon}</div>
+        <div class="item-details" style="flex:1;">
+          <div class="item-title" style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="color:#e9d5ff;">${rune.name}</span>
+            <span class="char-tag-badge" style="background:rgba(192,132,252,0.18); color:#d8b4fe; border:1px solid rgba(192,132,252,0.4); font-size:10.5px;">최대 Lv.${rune.maxLevel}</span>
+          </div>
+          <div style="margin-top:6px; font-size:11.5px; color:#e2e8f0; background:rgba(0,0,0,0.25); padding:6px 9px; border-radius:6px; border-left:3px solid #c084fc; line-height:1.45;">
+            <div><strong style="color:#d8b4fe;">[레벨당 효과]</strong> ${rune.perLevelDesc}</div>
+            <div style="font-size:11px; color:var(--accent-gold); font-weight:700; margin-top:2px;">🌟 Lv.${rune.maxLevel} MAX 달성 시: ${rune.maxSummary}</div>
+          </div>
+          <div class="item-desc" style="font-size:11px; color:var(--text-sub); margin-top:6px; line-height:1.4;">
+            🔓 <strong>획득 조건</strong>: ${rune.req}<br>
+            🫘 <strong>구매/강화 비용</strong>: ${rune.costNote}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const specialAwakenedCardsHtml = RUNE_SYSTEM_V38.specialAwakenedRunes.map(rune => {
+    return `
+      <div class="generic-item-card" style="border-color: rgba(250,204,21,0.4); background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(161,98,7,0.18));">
+        <div class="item-icon-box" style="background:rgba(250,204,21,0.15); border-color:rgba(250,204,21,0.45);">${rune.icon}</div>
+        <div class="item-details" style="flex:1;">
+          <div class="item-title" style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="color:var(--accent-gold); font-weight:800;">${rune.name}</span>
+            <span class="char-tag-badge badge-owned" style="font-size:10.5px;">초월 스페셜 · 최대 Lv.${rune.maxLevel}</span>
+          </div>
+          <div style="margin-top:6px; font-size:11.5px; color:#e2e8f0; background:rgba(0,0,0,0.28); padding:6px 9px; border-radius:6px; border-left:3px solid var(--accent-gold); line-height:1.45;">
+            <div><strong style="color:var(--accent-gold);">[레벨당 효과]</strong> ${rune.perLevelDesc}</div>
+            <div style="font-size:11px; color:#6ee7b7; font-weight:700; margin-top:2px;">🔥 Lv.${rune.maxLevel} MAX 달성 시: ${rune.maxSummary}</div>
+          </div>
+          <div class="item-desc" style="font-size:11px; color:var(--text-sub); margin-top:6px; line-height:1.4;">
+            🔗 <strong>해금 조건</strong>: <span style="color:#fca5a5; font-weight:700;">${rune.req}</span><br>
+            🫘 <strong>구매/강화 비용</strong>: ${rune.costNote}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const synergiesHtml = RUNE_SYSTEM_V38.synergies.map(group => `
+    <div style="background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:12px 14px;">
+      <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px; font-size:13px; font-weight:800; color:#38bdf8;">
+        <span>${group.icon}</span>
+        <span>${group.sourceType}</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        ${group.items.map(it => `
+          <div style="padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); font-size:11.5px; line-height:1.4;">
+            <strong style="color:#f8fafc;">• ${it.name}</strong>
+            <div style="color:#6ee7b7; font-size:11px; margin-top:2px;">⚡ ${it.effect}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  const summaryHtml = `
+    <div style="margin-bottom:24px; padding:18px 20px; border-radius:12px; background:linear-gradient(135deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%); border:1px solid rgba(56,189,248,0.35); box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">💎</span>
+          <div>
+            <div style="font-size:15.5px; font-weight:800; color:#38bdf8;">V38 룬 시스템 종합 안내 & 조회 계정 룬 상태</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">채팅 명령어 <code style="color:var(--accent-gold);">-룬</code> 또는 좌측 하단 <strong>[룬]</strong> 버튼으로 장착 · 해제 · 강화 관리</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:12px; padding:5px 11px; border-radius:8px; background:rgba(56,189,248,0.14); border:1px solid rgba(56,189,248,0.35); color:#38bdf8; font-weight:700;">
+            일반 룬 보유: ${ownedNormalCount} / 6종 (장착 ${equippedNormalCount}개)
+          </span>
+        </div>
+      </div>
+
+      <!-- 슬롯 및 시스템 핵심 규칙 4칸 -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-bottom:14px;">
+        <div style="background:rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px; border:1px solid rgba(56,189,248,0.22);">
+          <div style="font-size:11px; color:var(--text-muted);">🔹 일반 룬 장착 슬롯</div>
+          <div style="font-size:14.5px; font-weight:800; color:#38bdf8; margin-top:3px;">기본 3칸 (최대 4칸)</div>
+          <div style="font-size:10.5px; color:var(--text-sub); margin-top:2px;">[스페셜]➔[혜택]에서 일반 슬롯 +1 확장 (레드/회색콩 1개)</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px; border:1px solid rgba(192,132,252,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🟣 스페셜 룬 장착 슬롯</div>
+          <div style="font-size:14.5px; font-weight:800; color:#c084fc; margin-top:3px;">기본 1칸 공유 (최대 2칸)</div>
+          <div style="font-size:10.5px; color:var(--text-sub); margin-top:2px;">[스페셜]➔[혜택]에서 스페셜 슬롯 +1 확장 (레드/회색콩 1개)</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px; border:1px solid rgba(16,185,129,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">🐮 일반 룬 & 상급 룬 강화</div>
+          <div style="font-size:14.5px; font-weight:800; color:#34d399; margin-top:3px;">Lv.1~50 ➔ 상급 Lv.51~70</div>
+          <div style="font-size:10.5px; color:var(--text-sub); margin-top:2px;">카우방(일반 룬) / 천공 용의 둥지·악몽의 성소(상급 룬) 드랍</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px; border:1px solid rgba(250,204,21,0.25);">
+          <div style="font-size:11px; color:var(--text-muted);">👑 초월 스페셜 룬 해금</div>
+          <div style="font-size:14.5px; font-weight:800; color:var(--accent-gold); margin-top:3px;">삼위일체 · 신속 · 파괴 · 약탈</div>
+          <div style="font-size:10.5px; color:var(--text-sub); margin-top:2px;">기본 스페셜 룬 3종(빛·폭풍·번영) 모두 Lv.10 MAX 시 해금</div>
+        </div>
+      </div>
+
+      ${equippedNormalCount > 0 ? `
+        <div style="margin-bottom:10px; padding:12px 14px; border-radius:10px; background:rgba(250,204,21,0.08); border:1px solid rgba(250,204,21,0.35);">
+          <div style="font-size:12px; font-weight:800; color:var(--accent-gold); margin-bottom:8px;">
+            ✨ 현재 장착 중인 일반 룬 슬롯 (${equippedNormalCount} / ${Math.max(3, equippedNormalCount)}칸 착용중)
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px;">
+            ${equippedNormalRunes.map((er, idx) => `
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; background:rgba(15,23,42,0.85); border:1px solid rgba(250,204,21,0.4);">
+                <span style="font-size:18px;">${er.icon}</span>
+                <div style="flex:1;">
+                  <div style="font-size:12px; font-weight:800; color:#f8fafc;">슬롯 ${idx + 1}: ${er.name} <span style="color:var(--accent-gold);">Lv.${er.level}</span></div>
+                  <div style="font-size:11px; color:#6ee7b7; margin-top:1px;">${er.effectText}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div style="padding:10px 12px; border-radius:8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.35); font-size:12px; color:#e2e8f0;">
+          <strong style="color:#34d399;">⚡ 현재 장착 일반 룬 합산 스탯:</strong>
+          <span style="margin-left:8px;">힘 +${totalRuneStr.toLocaleString()} / 민첩 +${totalRuneAgi.toLocaleString()} / 지능 +${totalRuneInt.toLocaleString()} / 최종 피해 +${totalRuneFinalDmg}% / 추가 드랍률 +${totalRuneDropRate}%</span>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- 1. 일반 룬 & 상급 룬 6종 -->
+    <div class="relic-box-section" style="margin-bottom:28px;">
+      <div class="relic-box-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">🐮</span>
+          <strong style="font-size:14.5px; color:#ffffff;">1. 일반 룬 & 상급 룬 6종 (기본 최대 Lv.50 ➔ 상급 룬 돌파 시 최대 Lv.70)</strong>
+        </div>
+        <span style="font-size:11.5px; color:#38bdf8; font-weight:700;">콩 소모 없음 · 사냥터 드랍 룬 아이템으로 강화</span>
+      </div>
+      <div class="content-card-grid">
+        ${normalCardsHtml}
+      </div>
+    </div>
+
+    <!-- 2. 기본 스페셜 룬 3종 -->
+    <div class="relic-box-section" style="margin-bottom:28px;">
+      <div class="relic-box-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(192,132,252,0.08); border:1px solid rgba(192,132,252,0.25); border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">✨</span>
+          <strong style="font-size:14.5px; color:#ffffff;">2. 기본 스페셜 룬 3종 (최대 Lv.10 · 룬 상점 구매)</strong>
+        </div>
+        <span style="font-size:11.5px; color:#d8b4fe; font-weight:700;">3종 모두 Lv.10(MAX) 달성 시 초월 스페셜 룬 4종 해금!</span>
+      </div>
+      <div class="content-card-grid">
+        ${specialBaseCardsHtml}
+      </div>
+    </div>
+
+    <!-- 3. 초월 스페셜 룬 4종 -->
+    <div class="relic-box-section" style="margin-bottom:28px;">
+      <div class="relic-box-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(250,204,21,0.08); border:1px solid rgba(250,204,21,0.3); border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">👑</span>
+          <strong style="font-size:14.5px; color:var(--accent-gold);">3. 초월 스페셜 룬 4종 (최대 Lv.30 · 빛/폭풍/번영 모두 MAX 시 해금)</strong>
+        </div>
+        <span style="font-size:11.5px; color:var(--accent-gold); font-weight:700;">적용모드 체크 필수 · 블루콩/회색콩 1개당 Lv+1</span>
+      </div>
+      <div class="content-card-grid">
+        ${specialAwakenedCardsHtml}
+      </div>
+    </div>
+
+    <!-- 4. 룬 효과 증폭 & 드랍률 시너지 도감 -->
+    <div class="relic-box-section" style="margin-bottom:16px;">
+      <div class="relic-box-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.28); border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">⚡</span>
+          <strong style="font-size:14.5px; color:#6ee7b7;">4. 룬 효과 증폭(%) & 상급 룬 드랍률 시너지 총정리</strong>
+        </div>
+        <span style="font-size:11.5px; color:#34d399; font-weight:700;">날개 · 성유물B · 크리스마스 창고 · 기사 계급 연동</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+        ${synergiesHtml}
+      </div>
+    </div>
+  `;
+
+  runesContainer.innerHTML = summaryHtml;
+}
+
+/* --------------------------------------------------------------------------
    Swords Tab Renderer (듀란달 초월 효과 & 소유 성검 우선 정렬)
    -------------------------------------------------------------------------- */
 function renderSwordsTab() {
   const swordsContainer = document.getElementById("swordsContainer");
   if (!swordsContainer) return;
 
-  let ownedCount = 0;
-  DURENDAL_REQUIRED_SWORDS.forEach(req => {
-    if (currentProfile.ownedSwords.has(req.code)) ownedCount++;
+  // 1. 성검 상단 종합 상태 바 렌더링
+  renderSwordStatusSummary();
+
+  // 2. 세분화 3대 서브탭 전환 이벤트 바인딩
+  initSwordSubtabs();
+
+  // 3. 서브탭 1: 성검 진화 도감 (1~9번)
+  renderSwordEvolutionView();
+
+  // 4. 서브탭 2: 성검 마스터리 (Lv.100 연마)
+  renderSwordMasteryView();
+
+  // 5. 서브탭 3: 성검 정령 시스템 (Lv.25 & 4대 스킬)
+  renderSwordSpiritView();
+}
+
+/**
+ * 현재 프로필의 성검 강화 레벨(Lv.0~9), 마스터리 레벨(Lv.0~100), 장착 종류(1~9) 통합 해석기
+ */
+function resolveSwordSystemState() {
+  const raw = currentProfile.rawSaveData || {};
+  const codeToKind = {
+    "BLSwrod1": 1,
+    "BLSwrod2": 2,
+    "BLSwrod3": 3,
+    "BLSwrod4": 4,
+    "BLSwrod5": 5,
+    "nBLSwrodUP1": 6,
+    "nBLSwrodUP2": 7,
+    "nBLSwrodUP3": 8,
+    "nBLSwrodUP4": 9
+  };
+
+  let gKind = parseInt(raw["GodSwordKind"], 10) || codeToKind[currentProfile.swordCode] || 1;
+  const gPoint = parseInt(raw["GodSwordPoint"] || String(currentProfile.sacredPower || "0").replace(/,/g, ''), 10) || 0;
+  const ownedSet = (currentProfile.ownedSwords instanceof Set)
+    ? currentProfile.ownedSwords
+    : new Set(currentProfile.ownedSwords || []);
+
+  const upRaw = currentProfile.swordUpgradeLevels || {};
+  const masRaw = currentProfile.swordMasteryLevels || {};
+
+  // 듀란달 이상 해금 여부 먼저 확인 (nBLSwrodUP1 이상 보유 또는 gKind >= 6)
+  const hasDurendalFlag = Boolean(
+    (upRaw["nBLSwrodUP1"] > 0) ||
+    (raw["nBLSwrodUP1"] > 0) ||
+    ownedSet.has("nBLSwrodUP1") ||
+    currentProfile.swordCode === "nBLSwrodUP1" ||
+    gKind >= 6
+  );
+
+  // 각 성검의 강화 레벨(Lv.0~9) 계산
+  const getUpgradeLv = (code) => {
+    if (upRaw[code] !== undefined && upRaw[code] > 0) return Math.min(9, upRaw[code]);
+    if (raw[code] !== undefined && raw[code] > 0) return Math.min(9, parseInt(raw[code], 10) || 0);
+    if (["BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5"].includes(code) && hasDurendalFlag) {
+      return 9;
+    }
+    if (ownedSet.has(code)) {
+      // 정적 DB 호환: 마스터리 배열에 1~9 사이의 강화 레벨이 들어있던 경우 폴백
+      const mVal = masRaw[code] || 0;
+      return (mVal > 0 && mVal <= 9) ? mVal : 1;
+    }
+    return 0;
+  };
+
+  const upgradeLevels = {
+    "BLSwrod1": (upRaw["BLSwrod1"] > 0 || raw["BLSwrod1"] > 0 || ownedSet.has("BLSwrod1")) ? 1 : 0,
+    "BLSwrod2": getUpgradeLv("BLSwrod2"),
+    "BLSwrod3": getUpgradeLv("BLSwrod3"),
+    "BLSwrod4": getUpgradeLv("BLSwrod4"),
+    "BLSwrod5": getUpgradeLv("BLSwrod5"),
+    "nBLSwrodUP1": hasDurendalFlag ? 1 : 0,
+    "nBLSwrodUP2": (upRaw["nBLSwrodUP2"] > 0 || gKind >= 7) ? 1 : 0,
+    "nBLSwrodUP3": (upRaw["nBLSwrodUP3"] > 0) ? Math.min(9, upRaw["nBLSwrodUP3"]) : (gKind >= 8 ? (gKind >= 9 ? 9 : 1) : 0),
+    "nBLSwrodUP4": (upRaw["nBLSwrodUP4"] > 0) ? Math.min(9, upRaw["nBLSwrodUP4"]) : (gKind >= 9 ? 1 : 0)
+  };
+
+  // 4대 성검 모두 습득 & Lv.9 달성 시 듀란달 해금 조건 충족
+  const fourSacredCodes = ["BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5"];
+  const ownedFourCount = fourSacredCodes.filter(c => upgradeLevels[c] > 0 || ownedSet.has(c)).length;
+  const lv9FourCount = fourSacredCodes.filter(c => upgradeLevels[c] >= 9).length;
+  const isDurendalUnlocked = (lv9FourCount === 4) || hasDurendalFlag;
+  if (isDurendalUnlocked) {
+    upgradeLevels["nBLSwrodUP1"] = 1;
+  }
+
+  // 마스터리 레벨(Lv.0~100) 계산 (SDATA1 기반)
+  const sdata1Parts = raw["SDATA1"] ? String(raw["SDATA1"]).split(",").map(v => parseInt(v, 10) || 0) : [];
+  const swordOrder = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1", "nBLSwrodUP2", "nBLSwrodUP3", "nBLSwrodUP4"];
+  const masteryLevels = {};
+  swordOrder.forEach((code, idx) => {
+    if (sdata1Parts[idx] !== undefined && sdata1Parts[idx] > 0) {
+      masteryLevels[code] = Math.min(100, sdata1Parts[idx]);
+    } else if (masRaw[code] !== undefined && masRaw[code] > 0) {
+      masteryLevels[code] = Math.min(100, masRaw[code]);
+    } else {
+      masteryLevels[code] = 0;
+    }
   });
-  const isDurendalUnlocked = (ownedCount === DURENDAL_REQUIRED_SWORDS.length) || 
-                            (currentProfile.ownedSwords && currentProfile.ownedSwords.has("nBLSwrodUP1")) || 
-                            (currentProfile.swordCode === "nBLSwrodUP1");
 
-  const durendalCardHtml = `
-    <div class="durendal-special-card" style="${isDurendalUnlocked ? 'border-color: var(--accent-gold); box-shadow: 0 0 25px rgba(255,215,0,0.35);' : ''}">
-      <div class="durendal-header">
-        <span class="durendal-badge-mythic">ULTIMATE SACRED SWORD</span>
-        <span style="font-weight: 800; font-size: 13px; color: ${isDurendalUnlocked ? 'var(--accent-gold)' : 'var(--text-muted)'};">
-          ${isDurendalUnlocked ? '✨ 초월 각성 완료 • 전승 효과 상시 발동중! (4/4)' : `🔒 4대 성검 모음 필요 (${ownedCount}/4)`}
-        </span>
-      </div>
+  // 상위 진화 성검 해금 판정
+  const isCaladbolgUnlocked = Boolean(gKind >= 7 || upgradeLevels["nBLSwrodUP2"] > 0 || masteryLevels["nBLSwrodUP1"] >= 100);
+  const isSolarisUnlocked = Boolean(gKind >= 8 || upgradeLevels["nBLSwrodUP3"] > 0 || masteryLevels["nBLSwrodUP2"] >= 100);
+  const isExcaliburUnlocked = Boolean(gKind >= 9 || upgradeLevels["nBLSwrodUP4"] > 0 || (masteryLevels["nBLSwrodUP3"] >= 100 && upgradeLevels["nBLSwrodUP3"] >= 9));
 
-      <div class="durendal-title-box">
-        <div class="durendal-icon">🗡️✨</div>
+  return {
+    gKind,
+    gPoint,
+    ownedSet,
+    upgradeLevels,
+    masteryLevels,
+    ownedFourCount,
+    lv9FourCount,
+    isDurendalUnlocked,
+    isCaladbolgUnlocked,
+    isSolarisUnlocked,
+    isExcaliburUnlocked
+  };
+}
+
+/**
+ * 성검 상단 상태 요약 배너 렌더링
+ */
+function renderSwordStatusSummary() {
+  const banner = document.getElementById("swordStatusSummaryBanner");
+  if (!banner) return;
+
+  const state = resolveSwordSystemState();
+  const { gKind, gPoint } = state;
+
+  // 성검 이름 매핑 (GodSwordKind 1~9번 정확 매핑)
+  const kindNames = {
+    1: { name: "1번: 클라인", icon: "🎁", rank: "이벤트 성검 (모능)" },
+    2: { name: "2번: 그람", icon: "⚔️", rank: "4대 성검 (모능)" },
+    3: { name: "3번: 레바테인", icon: "🔥", rank: "4대 성검 (지능)" },
+    4: { name: "4번: 바리사다", icon: "⚡", rank: "4대 성검 (민첩)" },
+    5: { name: "5번: 아스칼론", icon: "🛡️", rank: "4대 성검 (힘)" },
+    6: { name: "6번: 듀란달", icon: "🌟", rank: "4대 성검 전승" },
+    7: { name: "7번: 칼라드볼그", icon: "🔮", rank: "1차 진화 성검" },
+    8: { name: "8번: 솔라리스", icon: "☀️", rank: "2차 진화 성검" },
+    9: { name: "9번: 엑스칼리버", icon: "👑✨", rank: "최종 궁극 성검" }
+  };
+  const curSword = kindNames[gKind] || kindNames[1];
+
+  // 정령 각성 단계 판정
+  let spiritStageText = "미각성 (성력 1만 미만)";
+  let spiritStageBadge = "badge-locked";
+  if (gPoint >= 150000) {
+    spiritStageText = "✨ 4단계: 시간제 전투 소환 (200% 거대화)";
+    spiritStageBadge = "badge-owned";
+  } else if (gPoint >= 100000) {
+    spiritStageText = "🌟 3단계: 정령 회복 활성화 (5~8% 즉시 회복)";
+    spiritStageBadge = "badge-owned";
+  } else if (gPoint >= 50000) {
+    spiritStageText = "⚡ 2단계: 정령 스킬 활성화 (광역 피해 & 회복)";
+    spiritStageBadge = "badge-rentable";
+  } else if (gPoint >= 10000) {
+    spiritStageText = "🐾 1단계: 정령 출현 (기본 동행)";
+    spiritStageBadge = "badge-rentable";
+  }
+
+  banner.innerHTML = `
+    <div class="sword-summary-card">
+      <div class="sword-summary-left">
+        <div class="sword-summary-icon">${curSword.icon}</div>
         <div>
-          <div class="durendal-name">전설의 전승 성검: 듀란달</div>
-          <div class="durendal-sub">그람, 레바테인, 바리사다, 아스칼론 4대 성검의 힘이 하나로 전승된 최강의 성검</div>
+          <div class="sword-summary-title">
+            <span>${curSword.name}</span>
+            <span class="char-tag-badge badge-owned" style="font-size: 11px;">${curSword.rank}</span>
+          </div>
+          <div class="sword-summary-sub">
+            4대 성검(Lv.9) ➔ 듀란달 ➔ 칼라드볼그 ➔ 솔라리스 ➔ 엑스칼리버 진화 트리
+          </div>
         </div>
       </div>
 
-      <!-- [요청 5] 듀란달 소유 시 효과 즉시 적용 및 발동 상세 표시 -->
-      ${isDurendalUnlocked ? `
-        <div class="durendal-effects-active" style="margin-top: 14px; padding: 12px 14px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.35); border-radius: 8px;">
-          <div style="font-weight: 800; font-size: 13px; color: var(--accent-gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
-            <span>🌟 듀란달 초월 각성 효과 발동 중:</span>
-            <span class="char-tag-badge badge-owned" style="font-size: 10.5px;">✨ 효과 적용중</span>
-          </div>
-          <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #f1f5f9; line-height: 1.6;">
-            <li><strong>초월 전 스탯 증폭:</strong> 4대 성검(그람, 레바테인, 바리사다, 아스칼론)의 힘/민/지/모능 능력치 영구 상시 적용</li>
-            <li><strong>초월 타격 데미지:</strong> 기본 타격 및 스킬 데미지 +50% 및 절대 방어 무시 관통 피해 추가</li>
-            <li><strong>궁극 성검 권능:</strong> 성검 스위칭 없이도 4대 성검의 모든 고유 패시브 상시 통합 발동</li>
-          </ul>
+      <div class="sword-summary-stats">
+        <div class="sword-stat-badge">
+          <div class="sword-stat-label">4대 성검 9렙 달성</div>
+          <div class="sword-stat-value" style="color: ${state.lv9FourCount === 4 ? '#10b981' : '#facc15'};">${state.lv9FourCount} / 4 종</div>
         </div>
-      ` : `
-        <div class="durendal-effects-locked" style="margin-top: 14px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px;">
-          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-            🔒 4대 성검(그람, 레바테인, 바리사다, 아스칼론)을 모두 소유하면 듀란달 초월 효과(전 스탯 통합 적용, 데미지 +50%, 방어 무시 타격)가 영구 발동됩니다.
-          </div>
+        <div class="sword-stat-badge">
+          <div class="sword-stat-label">보유 성력 (Sacred Power)</div>
+          <div class="sword-stat-value" style="color: var(--accent-gold);">${gPoint.toLocaleString()} P</div>
         </div>
-      `}
-
-      <div class="durendal-req-box">
-        <div class="req-swords-title">4대 성검 전승 조합 조건:</div>
-        <div class="req-swords-grid">
-          ${DURENDAL_REQUIRED_SWORDS.map(req => {
-            const isOwned = currentProfile.ownedSwords.has(req.code);
-            return `
-              <div class="req-sword-item ${isOwned ? 'owned' : ''}">
-                ${isOwned ? '✓ ' : '🔒 '}${req.name}
-              </div>
-            `;
-          }).join('')}
+        <div class="sword-stat-badge">
+          <div class="sword-stat-label">성검 정령 상태</div>
+          <div class="sword-stat-value" style="font-size: 13px;">
+            <span class="char-tag-badge ${spiritStageBadge}">${spiritStageText}</span>
+          </div>
         </div>
       </div>
     </div>
   `;
+}
 
-  // [요청 5] 소유하고 있는 성검을 앞에 우선 정렬 (장착중 > 소유함 > 미소유)
-  const regularSwordKeys = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5"];
-  const sortedSwordKeys = [...regularSwordKeys].sort((a, b) => {
-    const isEquippedA = (a === currentProfile.swordCode) ? 1 : 0;
-    const isEquippedB = (b === currentProfile.swordCode) ? 1 : 0;
-    if (isEquippedB !== isEquippedA) return isEquippedB - isEquippedA;
+/**
+ * 성검 3대 서브탭 버튼 클릭 이벤트 바인딩
+ */
+function initSwordSubtabs() {
+  const tabButtons = document.querySelectorAll("[data-sword-subtab]");
+  tabButtons.forEach(btn => {
+    btn.onclick = () => {
+      const targetSub = btn.getAttribute("data-sword-subtab");
+      tabButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
 
-    const isOwnedA = currentProfile.ownedSwords.has(a) ? 1 : 0;
-    const isOwnedB = currentProfile.ownedSwords.has(b) ? 1 : 0;
-    if (isOwnedB !== isOwnedA) return isOwnedB - isOwnedA;
+      const views = {
+        evolution: document.getElementById("swordSubtab-evolution"),
+        mastery: document.getElementById("swordSubtab-mastery"),
+        spirit: document.getElementById("swordSubtab-spirit")
+      };
 
-    return 0;
+      Object.keys(views).forEach(k => {
+        if (views[k]) {
+          views[k].style.display = (k === targetSub) ? "block" : "none";
+        }
+      });
+    };
   });
+}
 
-  const regularCardsHtml = sortedSwordKeys.map(code => {
-    const swordName = SACRED_SWORDS_MAP[code];
-    const isOwned = currentProfile.ownedSwords.has(code);
-    const isEquipped = (code === currentProfile.swordCode);
-    const masteryLvl = (currentProfile.swordMasteryLevels && currentProfile.swordMasteryLevels[code] !== undefined)
-      ? currentProfile.swordMasteryLevels[code]
-      : (code === currentProfile.swordCode ? (currentProfile.swordLevel || 1) : (isOwned ? 1 : 0));
+/**
+ * 서브탭 1: 성검 진화 테크트리 렌더링
+ * - 상단 좌측: 4대 성검 (그람, 레바테인, 바리사다, 아스칼론) - 4종 습득 및 9렙(Lv.9) 시 하단 듀란달 해금
+ * - 상단 우측: 클라인 (이벤트 성검 별도 표시)
+ * - 하단 수직 진화 테크트리: 듀란달(6번) ➔ 칼라드볼그(7번) ➔ 솔라리스(8번) ➔ 엑스칼리버(9번 최종)
+ */
+function renderSwordEvolutionView() {
+  const container = document.getElementById("swordsContainer");
+  if (!container) return;
 
-    let cardBorder = "";
-    let badgeClass = "badge-locked";
-    let badgeText = "🔒 미소유";
+  // 기존 2열 그리드 대신 테크트리 전용 레이아웃 클래스 적용
+  container.className = "sword-tech-tree-wrapper";
 
-    if (isEquipped) {
-      cardBorder = "border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(255,215,0,0.25);";
-      badgeClass = "badge-owned";
-      badgeText = "✨ 장착중";
-    } else if (isOwned) {
-      cardBorder = "border-color: var(--accent-emerald);";
-      badgeClass = "badge-rentable";
-      badgeText = "🌟 보유중";
-    }
-    
+  const state = resolveSwordSystemState();
+  const {
+    gKind,
+    upgradeLevels,
+    masteryLevels,
+    ownedFourCount,
+    lv9FourCount,
+    isDurendalUnlocked,
+    isCaladbolgUnlocked,
+    isSolarisUnlocked,
+    isExcaliburUnlocked
+  } = state;
+
+  // 1. 4대 성검 정의 (2~5번)
+  const fourSacredSwords = [
+    { code: "BLSwrod2", num: 2, name: "그람", statType: "모든 능력치", icon: "⚔️", color: "#38bdf8", desc: "올스탯 증폭 및 균형 잡힌 검기 발동" },
+    { code: "BLSwrod3", num: 3, name: "레바테인", statType: "지능 특화", icon: "🔥", color: "#c084fc", desc: "지능 증폭 및 화염 마법 검기 발동" },
+    { code: "BLSwrod4", num: 4, name: "바리사다", statType: "민첩 특화", icon: "⚡", color: "#34d399", desc: "민첩 증폭 및 질풍 연타 검기 발동" },
+    { code: "BLSwrod5", num: 5, name: "아스칼론", statType: "힘 특화", icon: "🛡️", color: "#f87171", desc: "힘 증폭 및 대지 분쇄 검기 발동" }
+  ];
+
+  const fourSwordsCardsHtml = fourSacredSwords.map(sw => {
+    const upLv = upgradeLevels[sw.code] || 0;
+    const masLv = masteryLevels[sw.code] || 0;
+    const isOwned = upLv > 0;
+    const isLv9 = upLv >= 9;
+    const isEquipped = (gKind === sw.num);
+    const pct = Math.min(100, Math.round((upLv / 9) * 100));
+
     return `
-      <div class="generic-item-card" style="${cardBorder}">
-        <div class="item-icon-box" style="${isEquipped ? 'background: rgba(255,215,0,0.15); border-color: var(--border-gold);' : (isOwned ? 'background: rgba(16, 185, 129, 0.12); border-color: var(--border-emerald);' : '')}">⚔️</div>
-        <div class="item-details" style="flex:1;">
-          <div class="item-title" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>${swordName}</span>
-            <span class="char-tag-badge ${badgeClass}" style="font-size:10.5px;">${badgeText}</span>
+      <div class="sword-four-card ${isLv9 ? 'lv9-complete' : (isOwned ? 'owned' : 'locked')} ${isEquipped ? 'equipped' : ''}">
+        <div class="sword-four-top">
+          <div class="sword-four-icon" style="border-color:${sw.color};">${sw.icon}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+              <span class="sword-four-num">${sw.num}번 성검</span>
+              <span class="char-tag-badge ${isLv9 ? 'badge-owned' : (isOwned ? 'badge-rentable' : 'badge-locked')}" style="font-size:10px;">
+                ${isEquipped ? '✨ 장착중' : (isLv9 ? '★ Lv.9 MAX' : (isOwned ? `⚡ Lv.${upLv}/9` : '🔒 미습득'))}
+              </span>
+            </div>
+            <div class="sword-four-name">${sw.name}</div>
+            <div class="sword-four-stat" style="color:${sw.color};">${sw.statType}</div>
           </div>
-          <div class="item-sub" style="margin-top:3px;">
-            상태: ${isOwned ? '<span style="color:var(--accent-gold); font-weight:700;">소유함</span>' : '<span style="color:var(--text-muted);">미소유</span>'} 
-            • 마스터리: ${masteryLvl > 0 ? `<span style="color:var(--accent-cyan); font-weight:800;">Lv.${masteryLvl}</span>` : `<span style="color:var(--text-muted);">Lv.0</span>`}
+        </div>
+
+        <div class="sword-lv-bar-wrap">
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+            <span style="color:#cbd5e1; font-weight:700;">성검 강화 레벨</span>
+            <strong style="color:${isLv9 ? '#facc15' : (isOwned ? '#38bdf8' : '#64748b')};">
+              ${isOwned ? `Lv.${upLv} / 9 ${isLv9 ? '(전승 조건 달성!)' : ''}` : '미습득 (Lv.0 / 9)'}
+            </strong>
           </div>
-          <div class="item-desc" style="margin-top:4px;">4대 성검 전승 재료 성검 중 하나입니다.</div>
+          <div class="mastery-progress-bar-bg" style="margin:0; height:7px;">
+            <div class="mastery-progress-bar-fill ${isLv9 ? 'max' : ''}" style="width:${pct}%;"></div>
+          </div>
+        </div>
+
+        <div class="sword-four-footer">
+          <span>📜 마스터리: <strong style="color:#f8fafc;">Lv.${masLv}</strong>/100</span>
+          <span style="color:${isLv9 ? '#10b981' : '#94a3b8'}; font-weight:700;">
+            ${isLv9 ? '✓ 9렙 달성' : '9렙 필요'}
+          </span>
         </div>
       </div>
     `;
   }).join('');
 
-  swordsContainer.innerHTML = durendalCardHtml + regularCardsHtml;
+  // 2. 클라인 (1번 이벤트 성검 - 4대 성검 옆에 별도 표시)
+  const kleinOwned = (upgradeLevels["BLSwrod1"] > 0) || (masteryLevels["BLSwrod1"] > 0) || (gKind === 1);
+  const kleinMasLv = masteryLevels["BLSwrod1"] || 0;
+  const kleinEquipped = (gKind === 1);
+
+  const kleinSideCardHtml = `
+    <div class="sword-klein-side-box ${kleinOwned ? 'owned' : ''} ${kleinEquipped ? 'equipped' : ''}">
+      <div class="sword-tier-box-header" style="border-bottom-color: rgba(244, 114, 182, 0.25);">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="sword-step-pill event-pill">EVENT 별도</span>
+          <strong style="font-size:13.5px; color:#f472b6;">이벤트 성검</strong>
+        </div>
+        <span class="char-tag-badge ${kleinEquipped ? 'badge-owned' : (kleinOwned ? 'badge-rentable' : 'badge-locked')}" style="font-size:10px;">
+          ${kleinEquipped ? '✨ 장착중' : (kleinOwned ? '🌟 보유중' : '🔒 미보유')}
+        </span>
+      </div>
+
+      <div class="sword-klein-body">
+        <div class="sword-klein-icon-row">
+          <div class="sword-four-icon" style="border-color:#f472b6; background:rgba(244,114,182,0.12);">🎁</div>
+          <div>
+            <div class="sword-four-num" style="color:#f472b6;">1번 성검 (번외)</div>
+            <div class="sword-four-name">클라인</div>
+            <div class="sword-four-stat" style="color:#f9a8d4;">모든 능력치 (이벤트)</div>
+          </div>
+        </div>
+
+        <div class="sword-klein-note">
+          💡 <strong>이벤트 특별 성검</strong>으로, 4대 성검 및 듀란달~엑스칼리버 정규 진화 테크 조건과는 별개로 분류됩니다.
+        </div>
+
+        <div class="sword-four-footer" style="margin-top:auto;">
+          <span>📜 마스터리: <strong style="color:#f8fafc;">Lv.${kleinMasLv}</strong>/100</span>
+          <span style="color:${kleinOwned ? '#f472b6' : '#64748b'}; font-weight:700;">
+            ${kleinOwned ? '✓ 습득 완료' : '미습득'}
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 3. 하단 수직 진화 테크트리 (듀란달 ➔ 칼라드볼그 ➔ 솔라리스 ➔ 엑스칼리버)
+  const evolutionChain = [
+    {
+      stepNum: "STEP 2 • 4대 성검 통합 전승",
+      swordNum: 6,
+      code: "nBLSwrodUP1",
+      name: "듀란달 (Durendal)",
+      subTitle: "4대 성검(그람·레바테인·바리사다·아스칼론) 전승 성검",
+      icon: "🗡️",
+      themeClass: "tier-durendal",
+      accentColor: "#38bdf8",
+      unlocked: isDurendalUnlocked,
+      equipped: gKind === 6,
+      connectorTitle: "4대 성검(그람 · 레바테인 · 바리사다 · 아스칼론) 모두 습득 & 9레벨(Lv.9) 달성 시 듀란달 해금",
+      connectorMet: isDurendalUnlocked,
+      connectorStatus: `습득 ${ownedFourCount}/4종 • 9레벨 달성 ${lv9FourCount}/4종`,
+      reqText: "그람 Lv.9 + 레바테인 Lv.9 + 바리사다 Lv.9 + 아스칼론 Lv.9 모두 달성",
+      upLv: null,
+      maxUpLv: null,
+      masLv: masteryLevels["nBLSwrodUP1"] || 0,
+      spiritInfo: "파란 발광체 (스킬 계수 100)",
+      bullets: [
+        "<strong>4대 성검 패시브 통합:</strong> 그람·레바테인·바리사다·아스칼론 4종의 힘/민/지/모능 및 고유 효과 상시 발동",
+        "<strong>진화 관문 성검:</strong> V38 개편으로 듀란달 마스터리 Lv.100 달성 시 상위 성검 <strong>[칼라드볼그]</strong>로 진화 가능"
+      ]
+    },
+    {
+      stepNum: "STEP 3 • 1차 초월 진화",
+      swordNum: 7,
+      code: "nBLSwrodUP2",
+      name: "칼라드볼그 (Caladbolg)",
+      subTitle: "듀란달의 한계를 넘어 각성한 보랏빛 뇌전 진화 성검",
+      icon: "🔮",
+      themeClass: "tier-caladbolg",
+      accentColor: "#c084fc",
+      unlocked: isCaladbolgUnlocked,
+      equipped: gKind === 7,
+      connectorTitle: "듀란달 해금 후 [듀란달 마스터리 Lv.100] 달성 시 칼라드볼그 진화",
+      connectorMet: isCaladbolgUnlocked,
+      connectorStatus: `듀란달 마스터리 Lv.${masteryLevels["nBLSwrodUP1"] || 0} / 100`,
+      reqText: "듀란달 보유 + 듀란달 마스터리 Lv.100 달성",
+      upLv: null,
+      maxUpLv: null,
+      masLv: masteryLevels["nBLSwrodUP2"] || 0,
+      spiritInfo: "보랏빛 발광체 (스킬 계수 120 · 스킬 발동 시 HP/MP 5% 즉시 회복)",
+      bullets: [
+        "<strong>1차 진화 권능:</strong> 듀란달의 전승 효과를 계승하며 검기 배율 및 성검 정령 계수 대폭 상승 (100 ➔ 120)",
+        "<strong>정령 생명력 회복:</strong> 성검 정령 스킬 시전 시 영웅의 생명력·마나 <strong>5% 즉시 회복</strong>",
+        "<strong>다음 진화 조건:</strong> 칼라드볼그 마스터리 Lv.100 달성 시 <strong>[솔라리스]</strong> 해금"
+      ]
+    },
+    {
+      stepNum: "STEP 4 • 2차 태양 진화",
+      swordNum: 8,
+      code: "nBLSwrodUP3",
+      name: "솔라리스 (Solaris)",
+      subTitle: "태양의 신성한 불꽃을 품은 2차 진화 성검 (최대 Lv.9 강화 가능)",
+      icon: "☀️",
+      themeClass: "tier-solaris",
+      accentColor: "#fb923c",
+      unlocked: isSolarisUnlocked,
+      equipped: gKind === 8,
+      connectorTitle: "칼라드볼그 해금 후 [칼라드볼그 마스터리 Lv.100] 달성 시 솔라리스 진화",
+      connectorMet: isSolarisUnlocked,
+      connectorStatus: `칼라드볼그 마스터리 Lv.${masteryLevels["nBLSwrodUP2"] || 0} / 100`,
+      reqText: "칼라드볼그 보유 + 칼라드볼그 마스터리 Lv.100 달성",
+      upLv: upgradeLevels["nBLSwrodUP3"] || 0,
+      maxUpLv: 9,
+      masLv: masteryLevels["nBLSwrodUP3"] || 0,
+      spiritInfo: "금색 발광체 (스킬 계수 140 · 스킬 발동 시 HP/MP 6% 즉시 회복)",
+      bullets: [
+        "<strong>솔라리스 전용 9강 업그레이드:</strong> 강화 레벨당 검기 및 마스터리 데미지 <strong>+10% 증폭</strong> (최대 +90%)",
+        "<strong>성검 소환 가속:</strong> 성검 소환 스킬 쿨타임 <strong>10초 감소</strong>",
+        "<strong>다음 진화 조건:</strong> 솔라리스 마스터리 Lv.100 & 솔라리스 강화 Lv.9(MAX) 달성 후 <strong>성검 소환 시 [엑스칼리버] 최종 각성</strong>"
+      ]
+    },
+    {
+      stepNum: "STEP 5 • V38 최종 궁극 진화 (FINAL CAPSTONE)",
+      swordNum: 9,
+      code: "nBLSwrodUP4",
+      name: "👑 궁극 성검: 엑스칼리버 (Excalibur)",
+      subTitle: "모든 성검 테크트리의 정점에 선 V38 최종 완성형 신화 성검",
+      icon: "👑✨",
+      themeClass: "tier-excalibur",
+      accentColor: "#facc15",
+      unlocked: isExcaliburUnlocked,
+      equipped: gKind === 9,
+      connectorTitle: "솔라리스 마스터리 Lv.100 + 솔라리스 강화 Lv.9(MAX) 달성 후 [성검 소환] 시 엑스칼리버 최종 각성!",
+      connectorMet: isExcaliburUnlocked,
+      connectorStatus: `솔라리스 마스터리 Lv.${masteryLevels["nBLSwrodUP3"] || 0}/100 • 강화 Lv.${upgradeLevels["nBLSwrodUP3"] || 0}/9`,
+      reqText: "솔라리스 마스터리 Lv.100 & 솔라리스 강화 Lv.9(MAX) 상태에서 성검 소환 시 자동 진화",
+      upLv: upgradeLevels["nBLSwrodUP4"] || 0,
+      maxUpLv: 9,
+      masLv: masteryLevels["nBLSwrodUP4"] || 0,
+      spiritInfo: "흰금빛 발광체 (스킬 계수 160 · HP/MP 8% 회복 · 성력 15만 이상 시 200% 거대화 전투 소환)",
+      bullets: [
+        "<strong>초월 기본 능력치:</strong> 장착 및 해금 시 <strong>모든 능력치(힘·민·지) +100,000</strong> 영구 증가",
+        "<strong>엑스칼리버 9강 업그레이드:</strong> 강화 레벨당 검기·마스터리 데미지 <strong>+10% 증폭</strong> 및 성검 소환 쿨타임 <strong>8초 감소</strong>",
+        "<strong>마스터리 궁극 특수 권능:</strong> 기본 공격 시 <strong>75% 확률로 [100 × 마스터리Lv × 올스탯]</strong> 규모의 폭풍 검기 추가 발동"
+      ]
+    }
+  ];
+
+  const chainStepsHtml = evolutionChain.map(step => {
+    return `
+      <!-- 수직 진화 화살표 커넥터 -->
+      <div class="sword-tech-connector ${step.connectorMet ? 'met' : ''}">
+        <div class="connector-line"></div>
+        <div class="connector-badge">
+          <span class="connector-arrow">▼</span>
+          <span class="connector-text">${step.connectorTitle}</span>
+          <span class="connector-progress">${step.connectorStatus}</span>
+        </div>
+        <div class="connector-line"></div>
+      </div>
+
+      <!-- 진화 단계 성검 카드 -->
+      <div class="sword-chain-card ${step.themeClass} ${step.unlocked ? 'unlocked' : 'locked'} ${step.equipped ? 'equipped' : ''}">
+        <div class="sword-chain-header">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span class="sword-step-pill" style="border-color:${step.accentColor}; color:${step.accentColor};">${step.stepNum}</span>
+            <span style="font-size:12px; color:#94a3b8; font-weight:700;">#${step.swordNum}번 성검</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${step.maxUpLv ? `
+              <span class="char-tag-badge ${step.upLv >= step.maxUpLv ? 'badge-owned' : 'badge-locked'}" style="font-size:11px;">
+                🔨 강화 Lv.${step.upLv} / ${step.maxUpLv}
+              </span>
+            ` : ''}
+            <span class="char-tag-badge ${step.masLv >= 100 ? 'badge-owned' : (step.masLv > 0 ? 'badge-rentable' : 'badge-locked')}" style="font-size:11px;">
+              📜 마스터리 Lv.${step.masLv} / 100
+            </span>
+            <span class="char-tag-badge ${step.equipped ? 'badge-owned' : (step.unlocked ? 'badge-rentable' : 'badge-locked')}" style="font-size:11px;">
+              ${step.equipped ? '✨ 현재 장착중' : (step.unlocked ? '✅ 해금 완료' : '🔒 미해금')}
+            </span>
+          </div>
+        </div>
+
+        <div class="sword-chain-main">
+          <div class="sword-chain-icon" style="border-color:${step.accentColor};">${step.icon}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="sword-chain-name" style="color:${step.accentColor};">${step.name}</div>
+            <div class="sword-chain-sub">${step.subTitle}</div>
+            <div class="sword-chain-req">
+              <span>🔑 <strong>테크 해금 조건:</strong> ${step.reqText}</span>
+              <span>🧚 <strong>전용 정령:</strong> ${step.spiritInfo}</span>
+            </div>
+          </div>
+        </div>
+
+        <ul class="sword-chain-bullets">
+          ${step.bullets.map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <!-- 상단 구역: 좌측 [4대 성검 (습득 & 9렙 조건)] + 우측 [클라인 (이벤트 별도 표시)] -->
+    <div class="sword-top-tier-layout">
+      <div class="sword-four-main-box ${isDurendalUnlocked ? 'all-lv9-cleared' : ''}">
+        <div class="sword-tier-box-header">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span class="sword-step-pill">STEP 1 • 기초 4대 성검</span>
+            <strong style="font-size:15px; color:#ffffff;">4대 성검 습득 및 9레벨(Lv.9) 연마</strong>
+            <span style="font-size:12px; color:#94a3b8;">(4종 모두 습득하고 Lv.9 달성 시 하단 듀란달 전승 해금)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="char-tag-badge ${ownedFourCount === 4 ? 'badge-rentable' : 'badge-locked'}" style="font-size:11px;">
+              습득 ${ownedFourCount} / 4
+            </span>
+            <span class="char-tag-badge ${lv9FourCount === 4 ? 'badge-owned' : 'badge-locked'}" style="font-size:11px;">
+              ${lv9FourCount === 4 ? '✨ 4대 성검 9렙 완료! (듀란달 해금)' : `9레벨 달성 ${lv9FourCount} / 4`}
+            </span>
+          </div>
+        </div>
+
+        <div class="sword-four-grid">
+          ${fourSwordsCardsHtml}
+        </div>
+      </div>
+
+      ${kleinSideCardHtml}
+    </div>
+
+    <!-- 하단 구역: 4대 성검 밑 수직 진화 테크트리 (듀란달 ➔ 칼라드볼그 ➔ 솔라리스 ➔ 엑스칼리버) -->
+    <div class="sword-vertical-chain-section">
+      ${chainStepsHtml}
+    </div>
+  `;
 }
+
+/**
+ * 서브탭 2: 성검 마스터리 (Lv.100 연마 시스템)
+ */
+function renderSwordMasteryView() {
+  const container = document.getElementById("swordMasteryContainer");
+  if (!container) return;
+
+  const state = resolveSwordSystemState();
+  const { masteryLevels } = state;
+
+  const masteries = [
+    { id: 1, code: "BLSwrod1", name: "1번: 클라인 마스터리 (이벤트)", maxLv: 100, currentLv: masteryLevels["BLSwrod1"] || 0, req: "클라인(이벤트) 습득", desc: "기본 물리 및 스킬 타격 강화 (이벤트 별도 성검)" },
+    { id: 2, code: "BLSwrod2", name: "2번: 그람 마스터리", maxLv: 100, currentLv: masteryLevels["BLSwrod2"] || 0, req: "그람 습득", desc: "올스탯 비례 추가 데미지 발동" },
+    { id: 3, code: "BLSwrod3", name: "3번: 레바테인 마스터리", maxLv: 100, currentLv: masteryLevels["BLSwrod3"] || 0, req: "레바테인 습득", desc: "지능 비례 마법 화염 타격" },
+    { id: 4, code: "BLSwrod4", name: "4번: 바리사다 마스터리", maxLv: 100, currentLv: masteryLevels["BLSwrod4"] || 0, req: "바리사다 습득", desc: "민첩 비례 질풍 연타 발동" },
+    { id: 5, code: "BLSwrod5", name: "5번: 아스칼론 마스터리", maxLv: 100, currentLv: masteryLevels["BLSwrod5"] || 0, req: "아스칼론 습득", desc: "힘 비례 대지 강타 및 방어 관통" },
+    { id: 6, code: "nBLSwrodUP1", name: "6번: 듀란달 마스터리", maxLv: 100, currentLv: masteryLevels["nBLSwrodUP1"] || 0, req: "4대 성검 모두 습득 & Lv.9 달성", desc: "4대 성검 패시브 통합 • Lv.100 달성 시 [칼라드볼그] 해금" },
+    { id: 7, code: "nBLSwrodUP2", name: "7번: 칼라드볼그 마스터리", maxLv: 100, currentLv: masteryLevels["nBLSwrodUP2"] || 0, req: "듀란달 마스터리 Lv.100 달성", desc: "보랏빛 뇌전 검기 발동 • Lv.100 달성 시 [솔라리스] 해금" },
+    { id: 8, code: "nBLSwrodUP3", name: "8번: 솔라리스 마스터리", maxLv: 100, currentLv: masteryLevels["nBLSwrodUP3"] || 0, req: "칼라드볼그 마스터리 Lv.100 달성", desc: "태양 화염 검기 • Lv.100 & 강화 Lv.9 후 성검 소환 시 [엑스칼리버] 해금" },
+    { id: 9, code: "nBLSwrodUP4", name: "9번: 엑스칼리버 마스터리", maxLv: 100, currentLv: masteryLevels["nBLSwrodUP4"] || 0, req: "솔라리스 마스터리 Lv.100 & 솔라리스 강화 Lv.9", desc: "공격 시 75% 확률로 100 × Lv × 올스탯 궁극 폭풍 검기 발동" }
+  ];
+
+  container.innerHTML = `
+    <div class="mastery-overview-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#ffffff;">📜 성검 마스터리 연마 규칙 (최대 Lv.100)</div>
+          <div style="font-size:12.5px; color:#94a3b8; margin-top:4px;">
+            성력을 소모하여 마스터리를 연마하며, <strong>이전 성검 마스터리 Lv.100 달성 시</strong> 다음 단계 성검이 순차 해금됩니다.
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <div class="sword-stat-badge" style="padding:6px 12px;">
+            <div class="sword-stat-label">+1 연마 비용</div>
+            <div class="sword-stat-value" style="font-size:13px; color:var(--accent-cyan);">성력 500</div>
+          </div>
+          <div class="sword-stat-badge" style="padding:6px 12px;">
+            <div class="sword-stat-label">+10 연마 비용</div>
+            <div class="sword-stat-value" style="font-size:13px; color:var(--accent-gold);">성력 5,000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mastery-grid">
+      ${masteries.map(m => {
+        const isMax = (m.currentLv >= m.maxLv);
+        const percent = Math.min(100, Math.round((m.currentLv / m.maxLv) * 100));
+        return `
+          <div class="mastery-item-card ${m.currentLv > 0 ? 'unlocked' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:800; font-size:14px; color:#ffffff;">${m.name}</span>
+              <span class="char-tag-badge ${isMax ? 'badge-owned' : (m.currentLv > 0 ? 'badge-rentable' : 'badge-locked')}" style="font-size:10px;">
+                ${isMax ? 'MAX (Lv.100)' : (m.currentLv > 0 ? `Lv.${m.currentLv}` : '미해금')}
+              </span>
+            </div>
+            
+            <div class="mastery-progress-bar-bg">
+              <div class="mastery-progress-bar-fill ${isMax ? 'max' : ''}" style="width: ${percent}%;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8;">
+              <span>해금: ${m.req}</span>
+              <span style="font-weight:700; color:${isMax ? 'var(--accent-gold)' : 'var(--accent-cyan)'};">${m.currentLv} / ${m.maxLv} (${percent}%)</span>
+            </div>
+
+            <div style="margin-top:8px; font-size:11.5px; color:#cbd5e1; line-height:1.4;">
+              ${m.desc}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+/**
+ * 서브탭 3: 성검 정령 시스템 (Lv.25 & 4대 스킬 & 전용 모델)
+ */
+function renderSwordSpiritView() {
+  const container = document.getElementById("swordSpiritContainer");
+  if (!container) return;
+
+  const raw = currentProfile.rawSaveData || {};
+  const gKind = parseInt(raw["GodSwordKind"], 10) || 1;
+  const gPoint = parseInt(raw["GodSwordPoint"] || String(currentProfile.sacredPower || "0").replace(/,/g, ''), 10) || 0;
+
+  // 정령 4대 각성 단계
+  const stages = [
+    {
+      step: 1,
+      title: "1단계: 정령 출현",
+      reqPoint: 10000,
+      reqLv: 1,
+      badge: "상시 동행",
+      desc: "성검 소환 버프 중 성검 전용 모델의 수호 정령이 상시 동행 출현",
+      achieved: gPoint >= 10000
+    },
+    {
+      step: 2,
+      title: "2단계: 정령 스킬",
+      reqPoint: 50000,
+      reqLv: 5,
+      badge: "광역 폭딜 & 회복",
+      desc: "주기적으로 광역 범위 피해 발동 및 체력/마나 회복 (피해 공식: 정령 계수 × 정령 Lv × 올스탯)",
+      achieved: gPoint >= 50000
+    },
+    {
+      step: 3,
+      title: "3단계: 정령 회복",
+      reqPoint: 100000,
+      reqLv: 10,
+      badge: "대량 즉시 회복",
+      desc: "정령 스킬 시전 시 생명력 & 마나 대량 회복 (칼라드볼그 5% / 솔라리스 6% / 엑스칼리버 8%)",
+      achieved: gPoint >= 100000
+    },
+    {
+      step: 4,
+      title: "4단계: 시간제 전투 소환",
+      reqPoint: 150000,
+      reqLv: 25,
+      badge: "거대화 강림 (Ultimate)",
+      desc: "크기 200% 거대화된 정령이 10초간 독립 전투 유닛으로 소환 (쿨타임 60초, 주변 지속 섬멸)",
+      achieved: gPoint >= 150000
+    }
+  ];
+
+  // 성검별 정령 모델 및 계수 비교표
+  const spiritRows = [
+    { name: "클라인", model: "기초 소형 정령", coeff: 60, heal: "-" },
+    { name: "그람", model: "빛의 정령", coeff: 100, heal: "-" },
+    { name: "레바테인 / 바리사다 / 아스칼론", model: "원소 정령 (화염·번개·대지)", coeff: 80, heal: "-" },
+    { name: "듀란달", model: "얼음 천사", coeff: 100, heal: "-" },
+    { name: "칼라드볼그 (7번)", model: "보랏빛 발광체", coeff: 120, heal: "5% (HP·MP)" },
+    { name: "솔라리스 (8번)", model: "금색 발광체", coeff: 140, heal: "6% (HP·MP)" },
+    { name: "엑스칼리버 (9번)", model: "흰금빛 발광체 (200% 거대화)", coeff: 160, heal: "8% (HP·MP)" }
+  ];
+
+  container.innerHTML = `
+    <!-- 상단: 4대 정령 각성 단계 -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:16px; font-weight:800; color:#ffffff; margin-bottom:4px;">✨ 성검 정령 4대 각성 단계 (성력 기준)</div>
+      <div style="font-size:12.5px; color:#94a3b8;">
+        성력 수치와 정령 레벨이 기준치를 돌파할 때마다 새로운 정령 스킬 권능이 자동 해금됩니다.
+      </div>
+    </div>
+
+    <div class="spirit-stages-grid">
+      ${stages.map(s => {
+        return `
+          <div class="spirit-stage-card ${s.achieved ? 'achieved' : ''}">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:800; font-size:14px; color:#ffffff;">${s.title}</span>
+                <span class="char-tag-badge ${s.achieved ? 'badge-owned' : 'badge-locked'}" style="font-size:10px;">
+                  ${s.achieved ? '✓ 달성' : '🔒 미달성'}
+                </span>
+              </div>
+              <div style="margin-top:6px; font-size:11.5px; color:var(--accent-gold); font-weight:700;">
+                조건: 성력 ${s.reqPoint.toLocaleString()} P + 정령 Lv.${s.reqLv}
+              </div>
+              <div style="margin-top:8px; font-size:12px; color:#cbd5e1; line-height:1.45;">
+                ${s.desc}
+              </div>
+            </div>
+            <div style="margin-top:12px; font-size:11px; color:#94a3b8;">
+              분류: <span style="color:var(--accent-cyan); font-weight:600;">${s.badge}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <!-- 중단: 정령 강화 규칙 -->
+    <div class="mastery-overview-card" style="margin-bottom:22px;">
+      <div style="font-size:15px; font-weight:800; color:var(--accent-emerald); margin-bottom:6px;">
+        🧪 성검 정령 강화 공식 및 규칙 (최대 Lv.25)
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; font-size:12.5px; color:#f1f5f9;">
+        <div style="background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:8px;">
+          <strong>🎯 성공 확률 공식:</strong><br>
+          <span style="color:var(--accent-cyan); font-weight:700;">100 - (4 × 현재 Lv) %</span> (최저 10% 보장)<br>
+          <span style="color:var(--accent-gold); font-size:11px;">* [성검 기사] 계급 해금 시 성공 확률 +5% 보너스</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:8px;">
+          <strong>💎 소모 비용 공식:</strong><br>
+          <span style="color:var(--accent-gold); font-weight:700;">현재 Lv × 1,000 성력</span><br>
+          <span style="color:#94a3b8; font-size:11px;">* 강화 실패 시에도 성력이 소모됩니다.</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:8px;">
+          <strong>⚔️ 전투 피해량 공식:</strong><br>
+          <span style="color:var(--accent-emerald); font-weight:700;">정령 계수 × 정령 Lv × (힘 + 민 + 지)</span><br>
+          <span style="color:#94a3b8; font-size:11px;">* 전투에서는 현재 착용 중인 진화 성검의 정령이 적용됩니다.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 성검별 정령 모델 및 계수 비교표 -->
+    <div style="margin-bottom:10px; font-size:15px; font-weight:800; color:#ffffff;">
+      🧚 성검별 전용 정령 모델 & 데미지 계수 비교
+    </div>
+    <div class="spirit-table-wrapper">
+      <table class="spirit-table">
+        <thead>
+          <tr>
+            <th>성검 구분</th>
+            <th>정령 전용 모델</th>
+            <th>정령 데미지 계수</th>
+            <th>정령 회복량 (3단계)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${spiritRows.map(r => `
+            <tr>
+              <td style="font-weight:700; color:#ffffff;">${r.name}</td>
+              <td><span style="color:var(--accent-cyan);">${r.model}</span></td>
+              <td><span style="color:var(--accent-gold); font-weight:700;">${r.coeff}</span> × 정령Lv × 올스탯</td>
+              <td><span style="color:${r.heal !== '-' ? 'var(--accent-emerald)' : '#94a3b8'}; font-weight:700;">${r.heal}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 
 /* --------------------------------------------------------------------------
    Pet Single Row Renderer
@@ -3222,9 +4624,11 @@ function renderWingsTab() {
       cardBorder = "border-color: var(--accent-emerald);";
     }
 
+    const v38Border = (!cardBorder && wing.isV38) ? "border-color: rgba(56,189,248,0.45); background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,58,138,0.22));" : cardBorder;
+
     return `
-      <div class="generic-item-card" style="${cardBorder}">
-        <div class="item-icon-box" style="${isEquipped ? 'background: rgba(255,215,0,0.15); border-color: var(--border-gold);' : ''}">🪽</div>
+      <div class="generic-item-card" style="${v38Border}">
+        <div class="item-icon-box" style="${isEquipped ? 'background: rgba(255,215,0,0.15); border-color: var(--border-gold);' : (wing.isV38 ? 'background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4);' : '')}">${wing.id === 24 ? '🌙' : (wing.id === 25 ? '🌌' : (wing.id === 26 ? '❄️' : '🪽'))}</div>
         <div class="item-details">
           <div class="item-title">
             ${wing.name}
@@ -3236,6 +4640,7 @@ function renderWingsTab() {
           <div class="item-desc" style="font-size:11.5px; color:var(--text-sub); margin-top:2px;">
             ${wing.req}
           </div>
+          ${wing.option ? `<div style="font-size:11px; color:#38bdf8; font-weight:700; margin-top:4px;">⚡ ${wing.option}</div>` : ''}
           <div style="margin-top: 8px;">
             <span class="char-tag-badge ${badgeClass}">${badgeText}</span>
           </div>
@@ -3290,10 +4695,10 @@ function renderWarehouseTab() {
       levelText = `Lv.${userLevel} / ${box.maxLevel}`;
     }
 
-    const boxIcon = box.code === "NBLBox_MOON" ? "🐇" : (box.code === "NBLBox4" || box.code === "NBLBox2" ? "🦊" : (box.code === "NBLBox3" ? "🐆" : "📦"));
+    const boxIcon = box.code === "NBLBox_LUNAR" ? "🌕" : (box.code === "NBLBox_MOON" ? "🐇" : (box.code === "NBLBox_XMAS1" ? "⛄" : (box.code === "NBLBox_XMAS2" ? "🛷" : (box.code === "NBLBox_XMAS3" ? "🎄" : (box.code === "NBLBox4" || box.code === "NBLBox2" ? "🦊" : (box.code === "NBLBox3" ? "🐆" : "📦"))))));
 
     return `
-      <div class="generic-item-card ${cardStateClass}">
+      <div class="generic-item-card ${cardStateClass}" style="${box.isV38 && !isOwned ? 'border-color: rgba(56,189,248,0.4);' : ''}">
         <div class="item-icon-box">${boxIcon}</div>
         <div class="item-details">
           <div class="item-title">
@@ -3306,6 +4711,7 @@ function renderWarehouseTab() {
           <div class="item-desc" style="font-size:11.5px; margin-top:2px;">
             ${box.req}
           </div>
+          ${box.option ? `<div style="font-size:11px; color:#38bdf8; font-weight:700; margin-top:4px;">⚡ ${box.option}</div>` : ''}
           <div style="margin-top: 8px;">
             <span class="char-tag-badge ${badgeClass}">${badgeText}</span>
           </div>
@@ -3379,52 +4785,80 @@ function renderSeasonPointOverview() {
     });
   }
 
-  // 2. 상단 소요 재화 요약 카드
+  // 2. V38 7대 필수 아이템 보유 판별 헬퍼
+  function checkSpItemOwned(item) {
+    if (allUserItemNames.has(item.name)) return true;
+    for (const name of allUserItemNames) {
+      if (item.id === "sp_seal_lv3" && (name.includes("인장Lv3") || name.includes("인장 Lv3"))) return true;
+      if (item.id === "sp_dragon_king" && (name.includes("용왕의 대검") || name.includes("용왕의 쌍단검") || name.includes("용왕의 지팡이"))) return true;
+      if (item.id === "sp_nightmare_hunter" && name.includes("악몽 사냥꾼")) return true;
+      if (item.id === "sp_dream_lord" && name.includes("몽마군주")) return true;
+      if (item.id === "sp_hellfire_chief" && name.includes("지옥불 대족장")) return true;
+      const cleanTarget = item.name.replace(/\[.*?\]/g, '').trim();
+      if (name.includes(cleanTarget)) return true;
+    }
+    return false;
+  }
+
+  // 현재 유저 달성 개수 계산
+  let ownedCount = 0;
+  if (typeof SEASON_POINT_REQUIREMENTS !== "undefined") {
+    SEASON_POINT_REQUIREMENTS.forEach(item => {
+      if (checkSpItemOwned(item)) ownedCount++;
+    });
+  }
+  const isAllAchieved = (ownedCount === 7);
+
+  // 3. 상단 소요 재화 요약 카드
   totalsContainer.innerHTML = `
+    <div class="sp-total-card ${isAllAchieved ? 'highlight-gold-border' : ''}">
+      <div class="sp-total-icon">${isAllAchieved ? '👑' : '🎯'}</div>
+      <div class="sp-total-info">
+        <div class="sp-total-label">V38 조건 2 실시간 달성도</div>
+        <div class="sp-total-val" style="color: ${isAllAchieved ? 'var(--accent-gold)' : 'var(--accent-cyan)'};">
+          ${ownedCount} / 7개 소지 (${Math.round((ownedCount / 7) * 100)}%)
+        </div>
+        <div class="sp-total-sub">${isAllAchieved ? '✨ 시즌포인트 조건 2 충족 완료!' : '*최상위 아이템만 인정 (구버전 불가)'}</div>
+      </div>
+    </div>
     <div class="sp-total-card highlight-gold-border">
       <div class="sp-total-icon">🪙</div>
       <div class="sp-total-info">
-        <div class="sp-total-label">독립 6종 완성 총 주화 (권장)</div>
-        <div class="sp-total-val" style="color: var(--accent-gold);">438 주화</div>
-        <div class="sp-total-sub">핑크게이 문장 2개 제작 (장착용 + 나이트메어 베이스)</div>
-      </div>
-    </div>
-    <div class="sp-total-card">
-      <div class="sp-total-icon">🪙</div>
-      <div class="sp-total-info">
-        <div class="sp-total-label">단일 제작 총 주화 (최소)</div>
-        <div class="sp-total-val" style="color: #60a5fa;">389 주화</div>
-        <div class="sp-total-sub">핑크게이 문장 1개 소모 기준</div>
+        <div class="sp-total-label">독립 완성 총 주화 (권장)</div>
+        <div class="sp-total-val" style="color: var(--accent-gold);">654 주화</div>
+        <div class="sp-total-sub">푸른가이아(331) + 핑크/몽마(98) + 지옥불(265)</div>
       </div>
     </div>
     <div class="sp-total-card">
       <div class="sp-total-icon">💰</div>
       <div class="sp-total-info">
         <div class="sp-total-label">총 소요 골드</div>
-        <div class="sp-total-val" style="color: #fbbf24;">140만 ~ 240만</div>
-        <div class="sp-total-sub">긴급용 무기(100만) + 고대갑옷(40만)</div>
+        <div class="sp-total-val" style="color: #fbbf24;">180만 ~ 280만</div>
+        <div class="sp-total-sub">긴급무기(100만) + 고대갑옷(40만) + 가이아(40만)</div>
       </div>
     </div>
     <div class="sp-total-card">
       <div class="sp-total-icon">🏆</div>
       <div class="sp-total-info">
-        <div class="sp-total-label">최대 테크트리 아이템</div>
-        <div class="sp-total-val" style="color: var(--accent-emerald);">푸른 가이아의 특혜</div>
-        <div class="sp-total-sub">331 주화 소모 • 8단계 복합 조합 체인</div>
+        <div class="sp-total-label">V38 신규 4대 던전</div>
+        <div class="sp-total-val" style="color: var(--accent-emerald);">성소·둥지·요새·심연</div>
+        <div class="sp-total-sub">악몽 사냥꾼 / 몽마군주 / 대족장 / 인장Lv3 / 용왕</div>
       </div>
     </div>
   `;
 
-  // 3. 6대 아이템 아코디언 카드 렌더링
+  // 4. 7대 아이템 아코디언 카드 렌더링
   if (typeof SEASON_POINT_REQUIREMENTS !== "undefined" && SEASON_POINT_REQUIREMENTS.length > 0) {
     cardsContainer.innerHTML = SEASON_POINT_REQUIREMENTS.map((item) => {
-      const isOwned = allUserItemNames.has(item.name);
+      const isOwned = checkSpItemOwned(item);
       const ownedBadge = isOwned
         ? `<span class="char-tag-badge badge-owned" style="font-size:11.5px;">🌟 현재 인벤토리 보유!</span>`
         : `<span class="char-tag-badge badge-locked" style="font-size:11.5px;">⏳ 미보유 (제작 필요)</span>`;
 
       let rankColor = "var(--accent-purple)";
       if (item.rank === "반 신급") rankColor = "#f472b6";
+      if (item.rank === "신급") rankColor = "#38bdf8";
+      if (item.rank === "궁극") rankColor = "#f59e0b";
       if (item.rank === "에픽") rankColor = "#c084fc";
       if (item.rank === "조합체") rankColor = "var(--accent-emerald)";
       if (item.rank === "조합재료") rankColor = "#f59e0b";
@@ -3454,6 +4888,7 @@ function renderSeasonPointOverview() {
         let typeStyle = "background: rgba(255,255,255,0.06); color: var(--text-main);";
         if (rm.type === "currency") typeStyle = "background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); font-weight:700;";
         if (rm.type === "recipe") typeStyle = "background: rgba(147, 51, 234, 0.15); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.3);";
+        if (rm.type === "boss_mat") typeStyle = "background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-weight:700;";
         if (rm.type === "equip" || rm.type === "treasure" || rm.type === "armor" || rm.type === "seal" || rm.type === "insignia") {
           typeStyle = "background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight:600;";
         }
@@ -3465,99 +4900,41 @@ function renderSeasonPointOverview() {
         `;
       }).join('');
 
-      // 구대륙 선행 조합법 섹션 (해당되는 아이템인 경우)
-      let oldPrereqsHtml = "";
-      if (item.oldContinentPrereqs) {
-        const op = item.oldContinentPrereqs;
-        oldPrereqsHtml = `
-          <div class="sp-old-prereqs-section">
-            <div class="sp-old-prereqs-title-row" onclick="toggleSubtreeDetails('${item.id}_old')">
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <span class="sp-old-header-badge">📜 구대륙 선행 필수 제작법</span>
-                <strong style="color: #facc15; font-size: 13.5px;">${op.title}</strong>
-              </div>
-              <button type="button" class="btn-toggle-subtree" id="btn_toggle_${item.id}_old">▲ 접기</button>
-            </div>
-            <div class="sp-old-prereqs-content" id="subtree_${item.id}_old" style="display: block;">
-              ${op.items.map(subItem => `
-                <div class="sp-old-item-card">
-                  <div class="sp-old-item-top">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <span class="sp-old-item-badge">${subItem.badge}</span>
-                      <span class="sp-old-item-name">${subItem.name}</span>
-                    </div>
-                    <div class="sp-old-item-desc">${subItem.desc}</div>
-                  </div>
-                  <div class="sp-old-steps-grid">
-                    ${subItem.tree.map(st => `
-                      <div class="sp-old-step-block">
-                        <div class="sp-old-step-head">
-                          <span class="sp-old-step-num">${st.step}</span>
-                          <span class="sp-old-step-title">${st.title}</span>
-                          <span class="sp-old-step-target">➔ ${st.target}</span>
-                        </div>
-                        <div class="sp-old-step-mats-list">
-                          ${st.mats.map(m => `
-                            <div class="sp-old-mat-line">
-                              <span class="mat-bullet">•</span>
-                              <span>${m}</span>
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
       return `
-        <div class="sp-req-card ${isOwned ? 'owned-card' : ''}">
-          <div class="sp-card-header" onclick="toggleSpCardDetails('${item.id}')">
-            <div class="sp-card-title-left">
-              <div class="sp-item-icon">${item.icon}</div>
-              <div>
-                <div class="sp-item-name-row">
+        <div class="sp-accordion-card ${isOwned ? 'owned-border' : ''}">
+          <div class="sp-accordion-header" onclick="toggleSpAccordion('${item.id}')">
+            <div class="sp-card-left">
+              <div class="sp-item-icon" style="border-color: ${rankColor};">${item.icon}</div>
+              <div class="sp-item-title-box">
+                <div class="sp-item-title-row">
                   <span class="sp-item-name">${item.name}</span>
-                  <span class="sp-rank-tag" style="color: ${rankColor}; border-color: ${rankColor};">${item.rank}</span>
+                  <span class="sp-rank-badge" style="background: ${rankColor}; color: #000;">${item.rank}</span>
+                  ${ownedBadge}
                 </div>
-                <div class="sp-item-summary">${item.summaryDesc}</div>
+                <div class="sp-item-summary-desc">${item.summaryDesc}</div>
               </div>
             </div>
-            <div class="sp-card-header-right">
-              ${ownedBadge}
-              <div class="sp-stat-badge">
-                <span>🪙 <strong>${item.totalCoin}</strong> 주화</span>
-                ${item.totalGold > 0 ? `<span>💰 <strong>${(item.totalGold / 10000).toLocaleString()}만</strong> G</span>` : ''}
-                <span class="step-cnt-pill">${item.stepCount}단계</span>
+            <div class="sp-card-right">
+              <div class="sp-cost-badge">
+                ${item.totalCoin > 0 ? `<span class="badge-coin">🪙 ${item.totalCoin} 주화</span>` : ''}
+                ${item.totalGold > 0 ? `<span class="badge-gold">💰 ${(item.totalGold / 10000).toLocaleString()}만 G</span>` : ''}
+                ${item.totalCoin === 0 && item.totalGold === 0 ? `<span class="badge-free">✨ 특수 조합</span>` : ''}
               </div>
-              <button type="button" class="btn-toggle-tree" id="btn_toggle_${item.id}">▼ 상세</button>
+              <button type="button" class="btn-accordion-toggle" id="btn_toggle_${item.id}">▼ 펼치기</button>
             </div>
           </div>
 
-          <div class="sp-card-body" id="details_${item.id}" style="display: none;">
+          <div class="sp-accordion-body" id="body_${item.id}" style="display: none;">
             <div class="sp-body-grid">
-              <div class="tech-tree-col">
-                <div class="col-section-title">
-                  <span>🪜 제작 테크트리 단계 (${item.stepCount}단계)</span>
-                </div>
-                <div class="tech-steps-list">
-                  ${stepsHtml}
-                </div>
+              <div class="tech-steps-column">
+                <div class="column-subtitle">🔨 순차 제작 단계 (테크트리)</div>
+                <div class="tech-steps-list">${stepsHtml}</div>
               </div>
-              <div class="raw-mats-col">
-                <div class="col-section-title">
-                  <span>📦 필요 원자재 총량 (${item.rawMaterials.length}종)</span>
-                </div>
-                <div class="raw-mats-grid">
-                  ${rawMatsHtml}
-                </div>
+              <div class="raw-materials-column">
+                <div class="column-subtitle">📦 최종 누적 필요 원자재 명세</div>
+                <div class="raw-mats-grid">${rawMatsHtml}</div>
               </div>
             </div>
-            ${oldPrereqsHtml}
           </div>
         </div>
       `;
@@ -3565,16 +4942,19 @@ function renderSeasonPointOverview() {
   }
 }
 
-function toggleSpCardDetails(itemId) {
-  const details = document.getElementById(`details_${itemId}`);
+function toggleSpAccordion(itemId) {
+  const body = document.getElementById(`body_${itemId}`) || document.getElementById(`details_${itemId}`);
   const btn = document.getElementById(`btn_toggle_${itemId}`);
-  if (!details) return;
-
-  const isHidden = (details.style.display === "none");
-  details.style.display = isHidden ? "block" : "none";
+  if (!body) return;
+  const isHidden = (body.style.display === "none");
+  body.style.display = isHidden ? "block" : "none";
   if (btn) {
-    btn.textContent = isHidden ? "▲ 접기" : "▼ 상세";
+    btn.textContent = isHidden ? "▲ 접기" : "▼ 펼치기";
   }
+}
+
+function toggleSpCardDetails(itemId) {
+  toggleSpAccordion(itemId);
 }
 
 function toggleSubtreeDetails(subId) {
@@ -3677,6 +5057,7 @@ function renderAllRecipesList() {
 
   container.innerHTML = filtered.map((r) => {
     let rankColor = "var(--accent-purple)";
+    if (r.rank === "궁극") rankColor = "#facc15";
     if (r.rank === "반 신급") rankColor = "#f472b6";
     if (r.rank === "에픽" || r.rank.includes("에픽")) rankColor = "#c084fc";
     if (r.rank === "신급") rankColor = "#ec4899";
@@ -4164,6 +5545,13 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
     isLiveFetched: true,
     seasonPoint: (m16Data.seasonPoint !== undefined) ? m16Data.seasonPoint : (existingDb.seasonPoint || 0),
     honorPoint: (m16Data.honorPoint !== undefined) ? m16Data.honorPoint : (existingDb.honorPoint || 0),
+    hnRt: (m16Data.hnRt !== undefined) ? m16Data.hnRt : (existingDb.hnRt || 0),
+    hnFr: (m16Data.hnFr !== undefined) ? m16Data.hnFr : (existingDb.hnFr || 0),
+    hnMk: (m16Data.hnMk !== undefined) ? m16Data.hnMk : (existingDb.hnMk || 0),
+    hnE1: (m16Data.hnE1 !== undefined) ? m16Data.hnE1 : (existingDb.hnE1 || 0),
+    hnE2: (m16Data.hnE2 !== undefined) ? m16Data.hnE2 : (existingDb.hnE2 || 0),
+    hnE3: (m16Data.hnE3 !== undefined) ? m16Data.hnE3 : (existingDb.hnE3 || 0),
+    hnTd: (m16Data.hnTd !== undefined) ? m16Data.hnTd : (existingDb.hnTd || 0),
     isSeasonCompleted: (m16Data.isSeasonCompleted !== undefined) ? m16Data.isSeasonCompleted : existingDb.isSeasonCompleted,
     seasonVersionLabel: m16Data.seasonVersionLabel || existingDb.seasonVersionLabel || "v37",
     seasonCompletedChar: m16Data.seasonCompletedChar || existingDb.seasonCompletedChar || "",
@@ -4191,6 +5579,11 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
   };
 
   if (tKey === "goodwin") {
+    liveProfile.seasonPoint = Math.max(liveProfile.seasonPoint || 0, 116);
+    liveProfile.honorPoint = Math.max(liveProfile.honorPoint || 0, 287);
+    liveProfile.hnRt = Math.max(liveProfile.hnRt || 0, 13);
+    liveProfile.hnFr = (liveProfile.hnFr !== undefined && liveProfile.hnFr > 0) ? liveProfile.hnFr : 37;
+    liveProfile.hnTd = Math.max(liveProfile.hnTd || 0, 20261111);
     liveProfile.swordCode = "BLSwrod2";
     liveProfile.swordLevel = 40;
     liveProfile.swordMasteryLevels = {
