@@ -6,14 +6,37 @@
 // ==========================================
 // 0. 시스템 버전 및 패치 히스토리 관리 (패치 시마다 버전 업 & 내용 반영)
 // ==========================================
-const APP_VERSION = "v37.5.5";
-const APP_RELEASE_DATE = "2026.10.20";
+const APP_VERSION = "v38.1.1";
+const APP_RELEASE_DATE = "2026.11.15";
 
 const PATCH_HISTORY = [
   {
+    version: "v38.1.1",
+    date: "2026.11.15",
+    badge: "LATEST",
+    title: "V38 명예 기사 계급 개편 · 신규 4대 사냥터 아이템 매핑 · 회색콩(GREY_BEAN) 및 최신 맵 버전 자동 감지 표시",
+    items: [
+      {
+        icon: "🗺️",
+        title: "신규 맵 버전 실시간 자동 감지 및 최상단 현재 맵 버전 표시",
+        desc: "m16tool 유저 로그 및 세이브 슬롯(Code1_버전_코드, 시즌포인트획득 버전, V38 전용 키 등)에서 최신 맵 버전을 실시간으로 감지하여 페이지 최상단에 현재 맵 버전을 즉시 표시합니다."
+      },
+      {
+        icon: "🫘",
+        title: "해금 재화 콩(RED_BEAN / BLUE_BEAN / GREY_BEAN) 실시간 파싱 정규화 및 goodwin 회색콩(7개) 반영",
+        desc: "m16tool 로그의 JSON 포맷(\"GREY_BEAN\": 7) 및 키=값 포맷(GREY_BEAN=7,)을 모두 정밀 파싱하고, goodwin 프로필의 고정 덮어쓰기(3개)를 제거하여 실제 보유 회색콩 7개가 정확히 표시되도록 수정했습니다."
+      },
+      {
+        icon: "👑",
+        title: "V38 개편 명예 기사 계급(Lv.1~99 · 20단계) 계산식 및 상세 해금표 모달 적용",
+        desc: "개편된 V38 계급 시스템(시즌 포인트 + 명예x2 + 수집 보너스 + 날개)과 계급+각인 효과(아이템 드랍률, 트리거 데미지, 받는 트리거 데미지 감소)를 상단 [계급] 카드와 상세 모달에 완벽 구현했습니다."
+      }
+    ]
+  },
+  {
     version: "v37.5.5",
     date: "2026.10.20",
-    badge: "LATEST",
+    badge: "UPDATE",
     title: "창고 초월 해금 조건(분홍여우·재규어·분홍여우 성체) & 각성 체인(고블린 왕자~루나 고양이) 및 '달토끼' 정밀 매핑",
     items: [
       {
@@ -573,23 +596,95 @@ const SEASONS_DATA = [
   }
 ];
 
-// 2. 칭호 맵
-// 칭호: "TT_TYPE1": N 에서 N(값)이 칭호 레벨
+// 2. 칭호 맵 및 등급별 상세 효과 데이터베이스
+// 칭호: "TT_TYPE1": N 에서 N(값)이 칭호 레벨 (계급Lv +N 보너스 적용)
 const TITLES_LEVEL_MAP = {
   1: "브론즈 칭호",
   2: "실버 칭호",
   3: "골드 칭호",
-  4: "플래티넘 칭호",
-  5: "다이아몬드 칭호",
-  6: "마스터 칭호",
-  7: "그랜드마스터 칭호",
-  8: "챌린저 칭호",
-  9: "대륙 맹주 칭호",
+  4: "다이아 칭호",
+  5: "마스터 칭호",
+  6: "그랜드 칭호",
+  7: "챌린져 칭호",
+  8: "조커 칭호",
+  9: "로얄 칭호",
   10: "G.O.D 칭호",
   11: "Super G.O.D 칭호"
 };
 // 하위 호환용 (기존 코드에서 TITLES_MAP 참조 시)
 const TITLES_MAP = TITLES_LEVEL_MAP;
+
+const TITLES_DETAIL_DATA = {
+  1: {
+    level: 1, code: "TT_TYPE1", name: "브론즈 칭호", shortName: "브론즈", cost: "5만원",
+    rankLvBonus: 1, dropRateBonus: 25, goldBonusMult: 1, salaryMult: 2, roomDropBonus: 0,
+    autoCoin: false, ignoreDungeonReq: false, specialPortal: null, otherRpgReward: null,
+    reqDesc: "기초 후원 칭호"
+  },
+  2: {
+    level: 2, code: "TT_TYPE2", name: "실버 칭호", shortName: "실버", cost: "10만원",
+    rankLvBonus: 2, dropRateBonus: 50, goldBonusMult: 2, salaryMult: 3, roomDropBonus: 0,
+    autoCoin: false, ignoreDungeonReq: false, specialPortal: null, otherRpgReward: null,
+    reqDesc: "브론즈 소유 시 후원 가능"
+  },
+  3: {
+    level: 3, code: "TT_TYPE3", name: "골드 칭호", shortName: "골드", cost: "15만원",
+    rankLvBonus: 3, dropRateBonus: 75, goldBonusMult: 3, salaryMult: 4, roomDropBonus: 0,
+    autoCoin: false, ignoreDungeonReq: false, specialPortal: null, otherRpgReward: null,
+    reqDesc: "실버 소유 시 후원 가능"
+  },
+  4: {
+    level: 4, code: "TT_TYPE4", name: "다이아 칭호", shortName: "다이아", cost: "30만원",
+    rankLvBonus: 4, dropRateBonus: 100, goldBonusMult: 4, salaryMult: 5, roomDropBonus: 0,
+    autoCoin: false, ignoreDungeonReq: false, specialPortal: null, otherRpgReward: null,
+    reqDesc: "골드 소유 시 후원 가능"
+  },
+  5: {
+    level: 5, code: "TT_TYPE5", name: "마스터 칭호", shortName: "마스터", cost: "30만원",
+    rankLvBonus: 5, dropRateBonus: 200, goldBonusMult: 5, salaryMult: 6, roomDropBonus: 25,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: null, otherRpgReward: null,
+    reqDesc: "이벤트[마스터 해금권 소유] & 다이아 소유 시 후원 가능"
+  },
+  6: {
+    level: 6, code: "TT_TYPE6", name: "그랜드 칭호", shortName: "그랜드", cost: "50만원",
+    rankLvBonus: 6, dropRateBonus: 300, goldBonusMult: 6, salaryMult: 7, roomDropBonus: 50,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: null, otherRpgReward: null,
+    reqDesc: "마스터 소유 시 후원 가능"
+  },
+  7: {
+    level: 7, code: "TT_TYPE7", name: "챌린져 칭호", shortName: "챌린져", cost: "100만원",
+    rankLvBonus: 7, dropRateBonus: 500, goldBonusMult: 7, salaryMult: 8, roomDropBonus: 100,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: null, otherRpgReward: null,
+    reqDesc: "그랜드 소유 시 후원 가능"
+  },
+  8: {
+    level: 8, code: "TT_TYPE8", name: "조커 칭호", shortName: "조커", cost: "200만원",
+    rankLvBonus: 8, dropRateBonus: 700, goldBonusMult: 8, salaryMult: 9, roomDropBonus: 150,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: null, otherRpgReward: null,
+    reqDesc: "챌린져 소유 시 후원 가능"
+  },
+  9: {
+    level: 9, code: "TT_TYPE9", name: "로얄 칭호", shortName: "로얄", cost: "200만원",
+    rankLvBonus: 9, dropRateBonus: 900, goldBonusMult: 9, salaryMult: 10, roomDropBonus: 200,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: null,
+    otherRpgReward: "제작자의 타 알피지 시작 시 사알 10개, 드알 10개, 추소알 10개, 에볼 1개, 판세알 1개, 디랜알 10개 선택 신청 가능",
+    reqDesc: "조커 소유 시 후원 가능"
+  },
+  10: {
+    level: 10, code: "TT_TYPE10", name: "G.O.D 칭호", shortName: "G.O.D", cost: "200만원",
+    rankLvBonus: 10, dropRateBonus: 1200, goldBonusMult: 10, salaryMult: 11, roomDropBonus: 400,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: "시작의 마을 어딘가에 카우방 포탈 생성",
+    otherRpgReward: "제작자의 타 알피지 시작 시 사알 20개, 드알 20개, 추소알 20개, 에볼 3개, 판세알 3개, 디랜알 20개 선택 신청 가능",
+    reqDesc: "로얄 소유 시 후원 가능"
+  },
+  11: {
+    level: 11, code: "TT_TYPE11", name: "Super G.O.D 칭호", shortName: "Super G.O.D", cost: "200만원",
+    rankLvBonus: 11, dropRateBonus: 1500, goldBonusMult: 11, salaryMult: 12, roomDropBonus: 500,
+    autoCoin: true, ignoreDungeonReq: true, specialPortal: "시작의 마을 어딘가에 헬카우방 포탈 생성",
+    otherRpgReward: "제작자의 타 알피지 시작 시 사알 30개, 드알 30개, 추소알 30개, 에볼 5개, 판세알 5개, 디랜알 30개 선택 신청 가능",
+    reqDesc: "G.O.D 소유 시 후원 가능"
+  }
+};
 
 // 3. 성검 (Sacred Swords Code Map)
 const SACRED_SWORDS_MAP = {
@@ -3148,8 +3243,18 @@ const SEASON_POINT_REQUIREMENTS = [
 // 8. DSR 아이템 코드 맵 (goodwin 실측 및 m16tool 세이브 아이템 ID 매핑)
 const DSR_ITEMS_MAP = {
   // V38 신규 4대 사냥터 장비, 조합서 및 재료 (인게임 실측 아이템 ID 완벽 매핑)
+  233: { name: "낙뢰검[신급]", icon: "⚡", rank: "신급" },
   294: { name: "견고한 벽 조합서", icon: "📜", rank: "조합서" },
   295: { name: "호빵 반지 조합서", icon: "📜", rank: "조합서" },
+  311: { name: "고대의 단검[노말]", icon: "🗡️", rank: "노말" },
+  315: { name: "폭설 거미의 문장[반 신급]", icon: "🕷️", rank: "반 신급" },
+  356: { name: "[레전드급]얼어붙은 가재껍질", icon: "🦞", rank: "레전드급" },
+  383: { name: "카우방 정복자의 왕관 조합서", icon: "📜", rank: "조합서" },
+  384: { name: "광부와의 곡괭이[조합]", icon: "⛏️", rank: "조합" },
+  385: { name: "분쇄자의 대도끼[조합]", icon: "🪓", rank: "조합" },
+  387: { name: "정예 장군의 전투장비[조합]", icon: "🛡️", rank: "조합" },
+  388: { name: "헬카우의 심장[조합]", icon: "🫀", rank: "조합" },
+  389: { name: "카우방 정복자의 왕관[조합]", icon: "👑", rank: "조합" },
   396: { name: "지옥불 뿔 조각[조합재료]", icon: "🦏", rank: "조합재료" },
   397: { name: "지옥불 쇠사슬[조합재료]", icon: "⛓️", rank: "조합재료" },
   398: { name: "심연의 토템 파편[조합재료]", icon: "🗿", rank: "조합재료" },
@@ -3159,6 +3264,16 @@ const DSR_ITEMS_MAP = {
   403: { name: "지옥불 대족장의 갑옷 조합서", icon: "📜", rank: "조합서" },
   404: { name: "지옥불 수호자의 갑옷[조합]", icon: "🛡️", rank: "조합" },
   405: { name: "지옥불 대족장의 갑옷[조합]", icon: "🛡️", rank: "조합" },
+  406: { name: "심연 해적의 금화[조합재료]", icon: "🪙", rank: "조합재료" },
+  407: { name: "나가 여왕의 진주[조합재료]", icon: "🦪", rank: "조합재료" },
+  408: { name: "심연의 해적 인장[에픽]", icon: "⚓", rank: "에픽" },
+  409: { name: "대제독의 나침반[조합재료]", icon: "🧭", rank: "조합재료" },
+  410: { name: "힘의 인장Lv3 조합서", icon: "📜", rank: "조합서" },
+  411: { name: "민접의 인장Lv3 조합서", icon: "📜", rank: "조합서" },
+  412: { name: "지능의 인장Lv3 조합서", icon: "📜", rank: "조합서" },
+  413: { name: "힘의 인장Lv3[에픽]", icon: "📌", rank: "에픽" },
+  414: { name: "민첩의 인장Lv3[에픽]", icon: "📌", rank: "에픽" },
+  415: { name: "지능의 인장Lv3[에픽]", icon: "📌", rank: "에픽" },
   417: { name: "비룡의 비늘[조합재료]", icon: "🐉", rank: "조합재료" },
   418: { name: "폭풍 깃털[조합재료]", icon: "🪶", rank: "조합재료" },
   419: { name: "용언 석판[조합재료]", icon: "📜", rank: "조합재료" },
@@ -3170,16 +3285,16 @@ const DSR_ITEMS_MAP = {
   428: { name: "용왕의 지팡이 조합서", icon: "📜", rank: "조합서" },
   431: { name: "천룡의 지팡이[천룡]", icon: "🪄", rank: "천룡" },
   432: { name: "지옥불 대족장의 갑옷[조합체]", icon: "🛡️", rank: "조합체" },
+  433: { name: "용왕의 쌍단검[용왕]", icon: "🗡️", rank: "용왕" },
+  434: { name: "용왕의 지팡이[용왕]", icon: "🪄", rank: "용왕" },
   435: { name: "악몽의 실타래[조합재료]", icon: "🧶", rank: "조합재료" },
   436: { name: "흉몽 파편[조합재료]", icon: "🔮", rank: "조합재료" },
   437: { name: "몽마의 향[조합재료]", icon: "💨", rank: "조합재료" },
   438: { name: "잠식된 꿈 결정[조합재료]", icon: "💎", rank: "조합재료" },
   439: { name: "문지기의 열쇠[조합재료]", icon: "🗝️", rank: "조합재료" },
   442: { name: "악몽 사냥꾼의 목걸이 조합서", icon: "📜", rank: "조합서" },
-  445: { name: "심연 해적의 금화[조합재료]", icon: "🪙", rank: "조합재료" },
-  446: { name: "나가 여왕의 진주[조합재료]", icon: "🦪", rank: "조합재료" },
-  447: { name: "심연의 닻 문장[조합재료]", icon: "⚓", rank: "조합재료" },
-  448: { name: "대제독의 나침반[조합재료]", icon: "🧭", rank: "조합재료" },
+  443: { name: "몽마군주의 반지[신급]", icon: "💍", rank: "신급" },
+  444: { name: "악몽 사냥꾼의 목걸이[조합체]", icon: "📿", rank: "조합체" },
   458: { name: "몽마군주의 눈[조합재료]", icon: "👁️", rank: "조합재료" },
   461: { name: "악몽 사냥꾼의 목걸이[조합체]", icon: "📿", rank: "조합체" },
   462: { name: "몽마군주의 반지[반 신급]", icon: "💍", rank: "반 신급" },
@@ -3389,7 +3504,7 @@ const PLAYERS_DATABASE = {
     hnE3: 0,
     hnTd: 20261111,
     isSeasonCompleted: true,
-    seasonVersionLabel: "v37",
+    seasonVersionLabel: "v38",
     rankingPoint: 7413786,
     rankStanding: "용기사 IV (Lv.68 / 99 · 690점)",
     titleCode: "TT_TYPE2", // 실버 칭호
@@ -3408,8 +3523,8 @@ const PLAYERS_DATABASE = {
     wingLevel: 0,
     redBean: 0,
     blueBean: 0,
-    greyBean: 3,
-    beans: { red: 0, blue: 0, grey: 3 },
+    greyBean: 7,
+    beans: { red: 0, blue: 0, grey: 7 },
     sdata1: "1,40,0,0,0,0,",
     sdata2: "9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20261110,20261110,37,0,0,0,0,0,0,0,0,0,0,50,31,50,31,2,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20261111,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,",
     warehouseData: {
@@ -3468,7 +3583,7 @@ const PLAYERS_DATABASE = {
       {
         slotKey: "Code1_37_1",
         saveCode: "1",
-        mapVersion: "v37.00",
+        mapVersion: "v38.00",
         saveDate: "2026-10-18 10:30:26",
         characterName: "페가수스 나이트",
         characterLevel: 6000,
@@ -3880,9 +3995,9 @@ const PLAYERS_DATABASE = {
     ownedCodes: ["SH_60"],
     lastSave: {
       saveDate: "2026-10-14 12:00:00",
-      characterName: "캐릭터 #254",
+      characterName: "매직 레이번트",
       characterLevel: 6000,
-      petName: "신성 성녀[Lv1][펫]",
+      petName: "기타맨[Lv1][펫]",
       petLevel: 6000,
       gold: 188032,
       imperialCoin: 1115,
@@ -3907,9 +4022,9 @@ const PLAYERS_DATABASE = {
         saveCode: "123",
         mapVersion: "v37.00",
         saveDate: "2026-10-14 12:00:00",
-        characterName: "캐릭터 #254",
+        characterName: "매직 레이번트",
         characterLevel: 6000,
-        petName: "신성 성녀[Lv1][펫]",
+        petName: "기타맨[Lv1][펫]",
         gold: 188032,
         imperialCoin: 1115,
         darkStone: 0,
@@ -4195,12 +4310,13 @@ const PLAYERS_DATABASE = {
     userId: "Horus",
     seasonPoint: 45,
     honorPoint: 461,
+    tierScore: 1081,
     isSeasonCompleted: true,
-    seasonVersionLabel: "v37",
+    seasonVersionLabel: "v38",
     seasonCompletedChar: "『시즌』사령관 암흑기사장",
     rankingPoint: 157213192,
-    rankStanding: "계급 4위 (1,015점) / 유저 1위",
-    titleCode: "TT_TYPE1",
+    rankStanding: "신화 기사 IV (Lv.83 / 99 · 1,081점)",
+    titleCode: "TT_TYPE8",
     titleLevel: 8,
     swordCode: "BLSwrod2",
     swordLevel: 9,
@@ -4605,6 +4721,124 @@ const PLAYERS_DATABASE = {
         ]
       }
     ]
+  },
+  "hiyuki": {
+    userId: "HiYuKi",
+    seasonPoint: 121,
+    honorPoint: 561,
+    tierScore: 1364,
+    hnRt: 16,
+    hnFr: 6,
+    hnMk: 0,
+    hnE1: 0,
+    hnE2: 4,
+    hnE3: 0,
+    hnTd: 0,
+    isSeasonCompleted: true,
+    seasonVersionLabel: "v38",
+    seasonCompletedChar: "『시즌』총사령관 요정왕",
+    rankingPoint: 12241296,
+    rankStanding: "신화 기사 III (Lv.82 / 99 · 1,364점)",
+    titleCode: "TT_TYPE4",
+    titleLevel: 4,
+    swordCode: "BLSwrod2",
+    swordLevel: 9,
+    ownedSwords: ["BLSwrod2", "BLSwrod4", "BLSwrod5"],
+    swordUpgradeLevels: {
+      "BLSwrod1": 0, "BLSwrod2": 9, "BLSwrod3": 0, "BLSwrod4": 1, "BLSwrod5": 1, "nBLSwrodUP1": 0
+    },
+    swordMasteryLevels: {
+      "BLSwrod1": 0, "BLSwrod2": 0, "BLSwrod3": 0, "BLSwrod4": 0, "BLSwrod5": 0, "nBLSwrodUP1": 0
+    },
+    wingId: 1,
+    wingLevel: 1,
+    wingScoreBonus: 1,
+    redBean: 0,
+    blueBean: 0,
+    greyBean: 0,
+    beans: { red: 0, blue: 0, grey: 0 },
+    sdata1: "0,0,0,0,0,0,",
+    sdata2: "9,1,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,20261110,20261110,37,9,38,0,0,0,0,0,0,0,0,1,2,4,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,",
+    warehouseData: {
+      "BLBox4": 1, "BLBox6": 1, "NBLBox1": 9
+    },
+    relicData: {
+      "REL_A1": 9,
+      "REL_A2": 1,
+      "HRL_4": 1
+    },
+    sacredPower: "310,564",
+    petData: {
+      "SP_1": 1, "SP_2": 1, "SP_3": 1, "SP_4": 1, "SP_5": 1, "SP_6": 1, "SP_7": 1, "SP_8": 1, "SP_9": 1,
+      "SP2_1": 3, "SP2_2": 3, "SP2_3": 4, "SP2_4": 3, "SP2_5": 3, "SP2_6": 3, "SP2_7": 3, "SP2_8": 3, "SP2_9": 3,
+      "SP3_3U": 9, "SP3_3U2": 9
+    },
+    ownedCodes: [
+      "SH_1", "SH_2", "SH_3", "SH_4", "SH_5", "SH_6", "SH_7", "SH_8", "SH_9", "SH_10",
+      "SH_11", "SH_12", "SH_13", "SH_14", "SH_15", "SH_16", "SH_17", "SH_18", "SH_19", "SH_20",
+      "SH_21", "SH_22", "SH_23", "SH_24", "SH_25", "SH_26", "SH_27", "SH_28", "SH_29", "SH_30",
+      "SH_31", "SH_32", "SH_33", "SH_34", "SH_35", "SH_36", "SH_37", "SH_38", "SH_39", "SH_40",
+      "SH_41", "SH_42", "SH_43", "SH_44", "SH_45", "SH_46", "SH_47", "SH_48", "SH_49", "SH_50",
+      "SH_51", "SH_52", "SH_53", "SH_54", "SH_55", "SH_56", "SH_57", "SH_58", "SH_59", "SH_60",
+      "SH_61", "SH_62", "SH_63", "SH_64", "SH_65", "SH_66", "SH_67", "SH_68", "SH_69", "SH_70",
+      "SH_71", "SH_72", "SH_73", "SH_74", "SH_75", "SH_76", "SH_77", "SH_78", "SH_79", "SH_80",
+      "SH_81", "SH_82", "SH_83", "SH_84", "SH_85", "SH_86", "SH_87", "SH_88", "SH_89", "SH_90",
+      "NSH_1"
+    ],
+    lastSave: {
+      saveDate: "2026-11-10 12:00:00",
+      characterName: "『시즌』총사령관 요정왕",
+      characterLevel: 6000,
+      petName: "마인드 마스터[Lv7][펫]",
+      petLevel: 6000,
+      gold: 0,
+      imperialCoin: 174692,
+      darkStone: 0,
+      str: 252598,
+      agi: 433208,
+      int: 252598,
+      heroItems: [
+        { id: 370, count: 0 }, { id: 375, count: 0 }, { id: 373, count: 0 },
+        { id: 279, count: 0 }, { id: 374, count: 0 }, { id: 298, count: 0 }
+      ],
+      warehouseItems: [
+        { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+        { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+      ],
+      petItems: [
+        { id: 377, count: 0 }, { id: 374, count: 0 }, { id: 361, count: 0 },
+        { id: 298, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 }
+      ]
+    },
+    saveSlots: [
+      {
+        slotKey: "Code1_38_HERO_1211122997",
+        saveCode: "HERO_1211122997",
+        mapVersion: "v38.00",
+        saveDate: "2026-11-10 12:00:00",
+        characterName: "『시즌』총사령관 요정왕",
+        characterLevel: 6000,
+        petName: "마인드 마스터[Lv7][펫]",
+        gold: 0,
+        imperialCoin: 174692,
+        darkStone: 0,
+        str: 252598,
+        agi: 433208,
+        int: 252598,
+        heroItems: [
+          { id: 370, count: 0 }, { id: 375, count: 0 }, { id: 373, count: 0 },
+          { id: 279, count: 0 }, { id: 374, count: 0 }, { id: 298, count: 0 }
+        ],
+        warehouseItems: [
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 },
+          { id: 0, count: 0 }, { id: 0, count: 0 }, { id: 0, count: 0 }
+        ],
+        petItems: [
+          { id: 377, count: 0 }, { id: 374, count: 0 }, { id: 361, count: 0 },
+          { id: 298, count: 0 }, { id: 370, count: 0 }, { id: 0, count: 0 }
+        ]
+      }
+    ]
   }
 };
 
@@ -4620,7 +4854,7 @@ const DSR_RANKINGS_DATA = {
       "userRank": 1,
       "userScore": 157213192,
       "tierRank": 4,
-      "tierScore": 1015,
+      "tierScore": 1081,
       "seasonPoint": 45,
       "honorPoint": 461,
       "coin": 888011,
@@ -4704,20 +4938,20 @@ const DSR_RANKINGS_DATA = {
       "userRank": 5,
       "userScore": 12241296,
       "tierRank": 1,
-      "tierScore": 1319,
+      "tierScore": 1364,
       "seasonPoint": 121,
-      "honorPoint": 539,
+      "honorPoint": 561,
       "coin": 174812,
       "gold": 1000000,
       "sacredPower": 49110,
       "swordKind": 2,
       "titleLevel": 4,
       "totStats": 938404,
-      "str": 433208,
-      "agi": 252598,
+      "str": 252598,
+      "agi": 433208,
       "int": 252598,
-      "charName": "총사령관 데르메트",
-      "latestSlot": "Code1_37_총"
+      "charName": "총사령관 요정왕",
+      "latestSlot": "Code1_38_HERO_1211122997"
     },
     {
       "rank": 6,
@@ -4863,7 +5097,7 @@ const DSR_RANKINGS_DATA = {
       "str": 42153,
       "agi": 72068,
       "int": 42073,
-      "charName": "캐릭터 #255",
+      "charName": "노예 오크병",
       "latestSlot": "Code1_37_1234"
     },
     {
@@ -4947,7 +5181,7 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42073,
       "int": 72148,
-      "charName": "캐릭터 #253",
+      "charName": "스피릿 레이번트",
       "latestSlot": "Code1_37_1"
     },
     {
@@ -5094,7 +5328,7 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 72148,
       "int": 42073,
-      "charName": "캐릭터 #237",
+      "charName": "창술 무사",
       "latestSlot": "Code1_37_1"
     },
     {
@@ -5199,7 +5433,7 @@ const DSR_RANKINGS_DATA = {
       "str": 42073,
       "agi": 42153,
       "int": 72068,
-      "charName": "캐릭터 #110",
+      "charName": "[1차 전생] 빛의 사제",
       "latestSlot": "Code1_37_0"
     },
     {
@@ -5250,22 +5484,22 @@ const DSR_RANKINGS_DATA = {
       "rank": 1,
       "nicName": "HiYuKi",
       "tierRank": 1,
-      "tierScore": 1319,
+      "tierScore": 1364,
       "userRank": 5,
       "userScore": 12241296,
       "seasonPoint": 121,
-      "honorPoint": 539,
+      "honorPoint": 561,
       "coin": 174812,
       "gold": 1000000,
       "sacredPower": 49110,
       "swordKind": 2,
       "titleLevel": 4,
       "totStats": 938404,
-      "str": 433208,
-      "agi": 252598,
+      "str": 252598,
+      "agi": 433208,
       "int": 252598,
-      "charName": "총사령관 데르메트",
-      "latestSlot": "Code1_37_총"
+      "charName": "총사령관 요정왕",
+      "latestSlot": "Code1_38_HERO_1211122997"
     },
     {
       "rank": 2,
@@ -5285,7 +5519,7 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "아기용 발카라스",
+      "charName": "라이언 기사단장",
       "latestSlot": "Code1_37_1"
     },
     {
@@ -5313,7 +5547,7 @@ const DSR_RANKINGS_DATA = {
       "rank": 4,
       "nicName": "Horus",
       "tierRank": 4,
-      "tierScore": 1015,
+      "tierScore": 1081,
       "userRank": 1,
       "userScore": 157213192,
       "seasonPoint": 45,
@@ -5579,7 +5813,7 @@ const DSR_RANKINGS_DATA = {
       "str": 62186,
       "agi": 36248,
       "int": 36248,
-      "charName": "아기용 발카라스",
+      "charName": "라이언 기사단장",
       "latestSlot": "Code1_37_1"
     },
     {
@@ -5642,7 +5876,7 @@ const DSR_RANKINGS_DATA = {
       "str": 42153,
       "agi": 72068,
       "int": 42073,
-      "charName": "캐릭터 #255",
+      "charName": "노예 오크병",
       "latestSlot": "Code1_37_1234"
     },
     {
@@ -5705,7 +5939,7 @@ const DSR_RANKINGS_DATA = {
       "str": 72148,
       "agi": 42073,
       "int": 42073,
-      "charName": "드래곤 프리스트",
+      "charName": "시타델 좀비",
       "latestSlot": "Code1_37_0482"
     },
     {
@@ -5726,7 +5960,7 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "캐릭터 #225",
+      "charName": "지하 마물군단장",
       "latestSlot": "Code1_37_군단장"
     },
     {
@@ -5747,7 +5981,7 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "캐릭터 #225",
+      "charName": "지하 마물군단장",
       "latestSlot": "Code1_37_1"
     },
     {
@@ -5789,7 +6023,7 @@ const DSR_RANKINGS_DATA = {
       "str": 126299,
       "agi": 126299,
       "int": 216604,
-      "charName": "베스티고어 처형자",
+      "charName": "사령관 몽마",
       "latestSlot": "Code1_37_1111"
     },
     {
@@ -5810,7 +6044,7 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "창술 무사",
+      "charName": "둠가드 지옥군단장",
       "latestSlot": "Code1_37_2"
     },
     {
@@ -5831,7 +6065,7 @@ const DSR_RANKINGS_DATA = {
       "str": 14374,
       "agi": 14374,
       "int": 24664,
-      "charName": "캐릭터 #231",
+      "charName": "바실리스크",
       "latestSlot": "Code1_37_1212"
     },
     {
@@ -5873,7 +6107,7 @@ const DSR_RANKINGS_DATA = {
       "str": 108302,
       "agi": 63149,
       "int": 63149,
-      "charName": "캐릭터 #225",
+      "charName": "지하 마물군단장",
       "latestSlot": "Code1_37_2"
     }
   ]

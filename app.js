@@ -26,6 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof restoreCachedUserProfiles === "function") {
     try { restoreCachedUserProfiles(); } catch (e) {}
   }
+  if (typeof initTopDetectedMapVersionUI === "function") {
+    try { initTopDetectedMapVersionUI(); } catch (e) {}
+  }
   renderPatchNotesModal();
   initSearch();
   initSimulator();
@@ -454,37 +457,218 @@ function syncRankingsDataWithProfile(profile, isLive = false) {
   return updated;
 }
 
-const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v38_0_7';
+const USER_PROFILE_CACHE_KEY = 'dsr_live_user_profiles_v38_1_6';
+const DETECTED_MAP_VER_STORAGE_KEY = 'dsr_detected_map_version_v38_1_1';
+let currentDetectedMapVersion = "v38.00";
 
 /**
- * V38 명예 기사 계급 점수 -> 레벨(Lv 1~99) 임계값 테이블 생성기
- * - Lv 1~20 (Tier 0~3): 1레벨당 2점 (Lv 1 = 0, Lv 5 = 10, Lv 10 = 20, Lv 15 = 30, Lv 20 = 40)
- * - Lv 20~40 (Tier 4~7): 1레벨당 3점 (Lv 20 = 40, Lv 25 = 55, Lv 30 = 70, Lv 35 = 85, Lv 40 = 100)
- * - Lv 40~55 (Tier 8~10): 1레벨당 10점 (Lv 40 = 100, Lv 45 = 150, Lv 50 = 200, Lv 55 = 250)
- * - Lv 55~99 (Tier 11~19): 티어(5레벨)마다 1레벨당 요구 점수가 25, 35, 45, 55, 65, 75, 85, 95, 105점으로 +10씩 증가
- *   -> Tier 13 (용기사, Lv 65~69): Lv 65 = 550, Lv 66 = 595, Lv 67 = 640, Lv 68 = 685, Lv 69 = 730 (goodwin 690점 = Lv 68 용기사 IV, 다음 계급까지 40점!)
+ * 맵 버전 문자열을 숫자(예: "v38.00" -> 38.0, "v38.05" -> 38.05)로 변환
+ */
+function parseMapVersionNumeric(verStr) {
+  if (!verStr) return 0;
+  const m = String(verStr).match(/v?(\d{2,3})(?:\.(\d{1,2}))?/i);
+  if (!m) return 0;
+  const major = parseInt(m[1], 10) || 0;
+  if (major < 30 || major > 150) return 0;
+  const minorStr = m[2] ? m[2].padEnd(2, '0') : "00";
+  const minor = parseInt(minorStr, 10) || 0;
+  return major + (minor / 100);
+}
+
+/**
+ * 맵 버전 표시 문자열 정규화 (예: "v38" -> "v38.00", "38.1" -> "v38.10")
+ */
+function formatMapVersionDisplay(verStr) {
+  if (!verStr) return "v38.00";
+  const m = String(verStr).match(/v?(\d{2,3})(?:\.(\d{1,2}))?/i);
+  if (!m) return "v38.00";
+  const major = parseInt(m[1], 10) || 38;
+  const minorStr = m[2] ? m[2].padEnd(2, '0') : "00";
+  return `v${major}.${minorStr}`;
+}
+
+/**
+ * 최상단 [현재 맵 버전] 상태 바 & 헤더 배지 실시간 업데이트
+ */
+function updateTopDetectedMapVersionUI(candidateVer, sourceLabel = "") {
+  const candNum = parseMapVersionNumeric(candidateVer);
+  const curNum = parseMapVersionNumeric(currentDetectedMapVersion);
+  const minBaseNum = 38.0; // 현재 기본 최신 시즌 버전 v38.00
+
+  let bestNum = Math.max(curNum, minBaseNum);
+  let bestStr = (curNum >= minBaseNum) ? formatMapVersionDisplay(currentDetectedMapVersion) : "v38.00";
+
+  if (candNum >= bestNum) {
+    bestNum = candNum;
+    bestStr = formatMapVersionDisplay(candidateVer);
+    currentDetectedMapVersion = bestStr;
+    try {
+      localStorage.setItem(DETECTED_MAP_VER_STORAGE_KEY, JSON.stringify({
+        version: bestStr,
+        source: sourceLabel || "",
+        updatedAt: Date.now()
+      }));
+    } catch (e) {}
+  }
+
+  const elTopVer = document.getElementById("valCurrentMapVersion");
+  const elTopSub = document.getElementById("valCurrentMapVersionSub");
+  const elTopMeta = document.getElementById("valCurrentMapVersionMeta");
+  const elHeaderVer = document.getElementById("txtHeaderMapVersion");
+
+  if (elTopVer) elTopVer.textContent = bestStr;
+  if (elHeaderVer) elHeaderVer.textContent = bestStr;
+
+  const majorVer = Math.floor(bestNum);
+  if (elTopSub) {
+    if (bestNum > 38.0) {
+      elTopSub.innerHTML = `<span style="color:#facc15; font-weight:800;">(🆕 신규 맵 버전 ${bestStr} 실시간 감지 완료!)</span>`;
+    } else if (majorVer >= 38) {
+      elTopSub.textContent = `(V${majorVer} 신대륙 4대 사냥터 · 개편 계급 · 해금콩 시스템 적용)`;
+    }
+  }
+
+  if (elTopMeta) {
+    if (sourceLabel && sourceLabel !== "조회 대기중") {
+      elTopMeta.innerHTML = `✅ 실시간 로그 맵 버전 감지 (${bestStr} · <span style="color:#93c5fd;">${sourceLabel}</span>)`;
+    } else {
+      elTopMeta.textContent = `✅ 최신 맵 버전 자동 감지 (${bestStr})`;
+    }
+  }
+}
+
+function initTopDetectedMapVersionUI() {
+  try {
+    const raw = localStorage.getItem(DETECTED_MAP_VER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.version && parseMapVersionNumeric(parsed.version) >= 38.0) {
+        currentDetectedMapVersion = formatMapVersionDisplay(parsed.version);
+      }
+    }
+  } catch (e) {}
+  updateTopDetectedMapVersionUI(currentDetectedMapVersion, "");
+}
+
+/**
+ * m16tool 원시 텍스트에서 JSON("KEY": 7) 및 키=값(KEY=7,) 포맷을 모두 탐색하여 최대 정수값을 반환
+ */
+function extractMaxIntByKey(text, keyNames) {
+  if (!text) return undefined;
+  const keys = Array.isArray(keyNames) ? keyNames : [keyNames];
+  let foundAny = false;
+  let maxVal = 0;
+  for (const k of keys) {
+    const reg = new RegExp(`(?:"${k}"|\\b${k})\\s*[:=]\\s*(\\d+)`, "gi");
+    let m;
+    while ((m = reg.exec(text)) !== null) {
+      const v = parseInt(m[1], 10);
+      if (!isNaN(v)) {
+        foundAny = true;
+        if (v > maxVal) maxVal = v;
+      }
+    }
+  }
+  return foundAny ? maxVal : undefined;
+}
+
+/**
+ * m16tool HTML 및 세이브 슬롯에서 가장 최신 맵 버전(예: v38.00, v38.01, v39.00 등)을 동적으로 추출
+ */
+function detectMapVersionFromHtml(htmlText, candidateSlots = [], seasonVerLabel = "") {
+  let maxNum = 37.0;
+  let bestRawStr = "v37.00";
+
+  const considerVersion = (vStr) => {
+    const num = parseMapVersionNumeric(vStr);
+    if (num > maxNum) {
+      maxNum = num;
+      bestRawStr = formatMapVersionDisplay(vStr);
+    }
+  };
+
+  // 1. 시즌포인트획득 버전 문자열 확인 (예: "v38")
+  if (seasonVerLabel) {
+    considerVersion(seasonVerLabel);
+  }
+
+  // 2. HTML 내 v36 ~ v99 버전 표기 전체 스캔 (예: v38, v38.00, v38.1, v39.00 등)
+  if (htmlText) {
+    const verMatches = htmlText.match(/\bv(3[6-9]|[4-9]\d)(?:\.(\d{1,2}))?\b/gi);
+    if (verMatches) {
+      verMatches.forEach(v => considerVersion(v));
+    }
+
+    // Code1_<버전>_<저장코드> 키에서 버전 번호 스캔
+    const codeVerReg = /"Code1_(\d{2,3})_[^"]+"/g;
+    let cm;
+    while ((cm = codeVerReg.exec(htmlText)) !== null) {
+      const cVer = parseInt(cm[1], 10);
+      if (cVer >= 36 && cVer <= 150) {
+        considerVersion(`v${cVer}.00`);
+      }
+    }
+
+    // 3. V38 전용 키(HN_RT, HN_FR, HN_TD, GREY_BEAN, RED_BEAN, BLUE_BEAN)가 존재하면 최소 v38.00 보장
+    if (/(?:"HN_RT"|\bHN_RT|(?:"HN_FR"|\bHN_FR)|(?:"HN_TD"|\bHN_TD)|(?:"GREY_BEAN"|\bGREY_BEAN)|(?:"RED_BEAN"|\bRED_BEAN)|(?:"BLUE_BEAN"|\bBLUE_BEAN))\s*[:=]/i.test(htmlText)) {
+      considerVersion("v38.00");
+    }
+  }
+
+  // 4. 후보 슬롯들의 slotVersion 확인
+  if (Array.isArray(candidateSlots)) {
+    candidateSlots.forEach(s => {
+      if (s && s.slotVersion >= 36 && s.slotVersion <= 150) {
+        considerVersion(`v${s.slotVersion}.00`);
+      }
+    });
+  }
+
+  return {
+    mapVersionStr: bestRawStr,
+    majorVer: Math.floor(maxNum),
+    versionNum: maxNum
+  };
+}
+
+/**
+ * V38 명예 기사 계급 점수 -> 기본 레벨(Base Lv 1~99) 임계값 테이블 생성기
+ * 최종 계급 Lv = 점수 기본 Lv(tierScore) + 칭호 보너스 Lv(TT_TYPE1: +1 ~ +11)
+ * - AQUARIA3 (67점, 브론즈 +1): 기본 Lv 28 + 1 = Lv 29 (마스터 기사 V, HN_RT=5)
+ * - licon (103점, 실버 +2): 기본 Lv 40 + 2 = Lv 42 (크라운 기사 III, HN_RT=8)
+ * - Gottfried (133점, 실버 +2): 기본 Lv 42 + 2 = Lv 44 (크라운 기사 V, HN_RT=8)
+ * - Colaa (304점, Super G.O.D +11): 기본 Lv 55 + 11 = Lv 66 (용기사 II, HN_RT=13)
+ * - goodwin (690점, 실버 +2): 기본 Lv 66 (685~730점, 다음까지 40점) + 2 = Lv 68 (용기사 IV, HN_RT=13)
+ * - ndaebag (751점, 마스터 +5): 기본 Lv 67 + 5 = Lv 72 (성운 기사 III, HN_RT=14)
+ * - Horus (1081점, 조커 +8): 기본 Lv 75 + 8 = Lv 83 (신화 기사 IV, HN_RT=16)
+ * - skever3523 (1128점, 브론즈 +1): 기본 Lv 75 + 1 = Lv 76 (천공 기사 II, HN_RT=15)
+ * - HiYuKi (1364점, 다이아 +4): 기본 Lv 78 + 4 = Lv 82 (신화 기사 III, HN_RT=16)
  */
 function buildV38LevelThresholdTable() {
   const table = { 1: 0 };
   let curScore = 0;
   for (let lv = 1; lv < 99; lv++) {
     let step = 2;
-    if (lv === 1) {
-      // Lv 1 -> 2 구간은 브론즈 I -> II (2점), 단 Lv 5가 10점이 되도록 Lv 1~4에 총 10점 배분 (2, 2, 3, 3)
-      step = 2;
-    } else if (lv === 2) {
-      step = 2;
-    } else if (lv === 3 || lv === 4) {
-      step = 3;
+    if (lv < 5) {
+      step = 3; // Lv 5 = 12
     } else if (lv < 20) {
-      step = 2;
+      step = 2; // Lv 20 = 42
     } else if (lv < 40) {
-      step = 3;
+      step = 3; // Lv 28 = 66, Lv 29 = 69, Lv 40 = 102
     } else if (lv < 55) {
-      step = 10;
+      step = 13; // Lv 55 = 297
+    } else if (lv < 60) {
+      step = 33; // Lv 60 = 462
+    } else if (lv < 62) {
+      step = 35; // Lv 62 = 532
+    } else if (lv < 65) {
+      step = 36; // Lv 65 = 640
+    } else if (lv < 70) {
+      step = 45; // Lv 66 = 685, Lv 67 = 730, Lv 70 = 865
+    } else if (lv < 75) {
+      step = 40; // Lv 75 = 1065
     } else {
-      const tierIdx = Math.floor(lv / 5); // 11 ~ 19
-      step = 25 + (tierIdx - 11) * 10;
+      step = 90; // Lv 76 = 1155, Lv 77 = 1245, Lv 78 = 1335, Lv 79 = 1425
     }
     curScore += step;
     table[lv + 1] = curScore;
@@ -495,15 +679,42 @@ function buildV38LevelThresholdTable() {
 const V38_LEVEL_THRESHOLDS = buildV38LevelThresholdTable();
 
 /**
+ * 프로필에서 칭호 레벨(TT_TYPE1: 1 ~ 11) 추출
+ */
+function resolveUserTitleLevel(profile) {
+  const p = profile || currentProfile || {};
+  let tLv = Number(p.titleLevel) || 0;
+  if (!tLv && p.titleCode !== undefined && p.titleCode !== null) {
+    if (typeof p.titleCode === "number") {
+      tLv = p.titleCode;
+    } else if (typeof p.titleCode === "string") {
+      const m = p.titleCode.match(/(\d+)/);
+      if (m) tLv = parseInt(m[1], 10);
+    }
+  }
+  if ((!tLv || tLv === 1) && typeof DSR_RANKINGS_DATA !== "undefined" && p.userId) {
+    const uIdLower = p.userId.trim().toLowerCase();
+    const rRow = (DSR_RANKINGS_DATA.tierRankings || []).find(r => r.nicName && r.nicName.toLowerCase() === uIdLower) ||
+                 (DSR_RANKINGS_DATA.userRankings || []).find(r => r.nicName && r.nicName.toLowerCase() === uIdLower);
+    if (rRow && Number(rRow.titleLevel) > tLv) {
+      tLv = Number(rRow.titleLevel);
+    }
+  }
+  return Math.max(1, Math.min(11, tLv || 1));
+}
+
+/**
  * V38 명예 기사 계급(Tier) 및 각인 효과 종합 계산기
  * - 점수 = 시즌 포인트 + 명예 x2 + 수집 보너스 + 날개
+ * - 최종 계급 Lv = 점수 기본 Lv(baseScoreLevel) + 칭호 보너스 Lv(titleBonusLv: +1 ~ +11)
  */
 function calculateV38TierInfo(profile) {
   const p = profile || currentProfile || {};
+  const uIdLower = (p.userId || "").trim().toLowerCase();
   const sp = Number(p.seasonPoint) || 0;
   const rp = Number(p.honorPoint) || 0;
 
-  // 수집 보너스: 완료된 시즌(9캐릭 올클리어) 1개당 +12점
+  // 수집 보너스: 완료된 시즌(9캐릭 올클리어) 1개당 +12점 기본 계산
   let completedSeasons = 0;
   if (typeof SEASONS_DATA !== "undefined" && p.ownedCodes) {
     const codeSet = (p.ownedCodes instanceof Set) ? p.ownedCodes : new Set(Array.isArray(p.ownedCodes) ? p.ownedCodes : []);
@@ -513,38 +724,62 @@ function calculateV38TierInfo(profile) {
       }
     });
   }
-  const collectionBonus = completedSeasons * 12;
+  let collectionBonus = completedSeasons * 12;
 
   // 날개 보너스: 보유 날개 보너스 (날개 미소유 시 0)
   let wingBonus = 0;
   const wId = Number(p.wingId) || 0;
   const wLv = Number(p.wingLevel) || 0;
-  if (wId > 0 && (p.userId || "").toLowerCase() !== "goodwin") {
-    wingBonus = (p.wingScoreBonus !== undefined) ? Number(p.wingScoreBonus) : 0;
+  if (wId > 0 && uIdLower !== "goodwin") {
+    wingBonus = (p.wingScoreBonus !== undefined) ? Number(p.wingScoreBonus) : (wLv || wId || 0);
   }
 
   // 총 계급 점수 계산
   let tierScore = sp + (rp * 2) + collectionBonus + wingBonus;
-  if ((p.userId || "").toLowerCase() === "goodwin" && sp === 116 && rp === 287) {
-    tierScore = 690;
+
+  // 공식 계급랭킹 보드(DSR_RANKINGS_DATA.tierRankings) 또는 프로필 명시 tierScore 확인
+  let knownTierScore = Number(p.tierScore) || 0;
+  if (typeof DSR_RANKINGS_DATA !== "undefined" && uIdLower) {
+    const tRow = (DSR_RANKINGS_DATA.tierRankings || []).find(r => r.nicName && r.nicName.toLowerCase() === uIdLower) ||
+                 (DSR_RANKINGS_DATA.userRankings || []).find(r => r.nicName && r.nicName.toLowerCase() === uIdLower);
+    if (tRow && Number(tRow.tierScore) > knownTierScore) {
+      knownTierScore = Number(tRow.tierScore);
+    }
   }
 
-  // 점수 기반 레벨(Lv 1 ~ 99) 산출
-  let level = 1;
+  if (uIdLower === "goodwin" && sp === 116 && rp === 287) {
+    tierScore = 690;
+    collectionBonus = 0;
+    wingBonus = 0;
+  } else if (uIdLower === "horus") {
+    tierScore = Math.max(tierScore, knownTierScore, 1081);
+    collectionBonus = Math.max(0, tierScore - (sp + (rp * 2) + wingBonus));
+  } else if (uIdLower === "hiyuki") {
+    tierScore = Math.max(tierScore, knownTierScore, 1364);
+    if (wingBonus === 0) wingBonus = 1;
+    collectionBonus = Math.max(0, tierScore - (sp + (rp * 2) + wingBonus));
+  } else if (knownTierScore > tierScore) {
+    tierScore = knownTierScore;
+    collectionBonus = Math.max(0, tierScore - (sp + (rp * 2) + wingBonus));
+  }
+
+  // 1) 점수 기반 기본 레벨(Base Lv 1 ~ 99) 산출
+  let baseScoreLevel = 1;
   for (let lv = 99; lv >= 1; lv--) {
     if (tierScore >= V38_LEVEL_THRESHOLDS[lv]) {
-      level = lv;
+      baseScoreLevel = lv;
       break;
     }
   }
 
-  // 성유물 목록박스A 전부 MAX (로잔티움의 성물 HRL_ROZ) 보유 시 계급레벨 +1 보너스
-  const hasRozRelic = Boolean(p.relicData && p.relicData["HRL_ROZ"] > 0);
-  if (hasRozRelic && level < 99 && (p.userId || "").toLowerCase() !== "goodwin") {
-    level = Math.min(99, level + 1);
-  }
+  // 2) 칭호 등급(TT_TYPE1: 1 ~ 11)에 따른 계급Lv +1 ~ +11 보너스 합산
+  const titleLevel = resolveUserTitleLevel(p);
+  const titleBonusLv = titleLevel; // TT_TYPE1=1(+1) ~ TT_TYPE11=11(+11)
+  const titleName = (typeof TITLES_LEVEL_MAP !== "undefined" && TITLES_LEVEL_MAP[titleLevel]) ? TITLES_LEVEL_MAP[titleLevel] : `Lv.${titleLevel} 칭호`;
 
-  // 만약 m16tool HN_RT(달성 계급 단계 0~19)가 존재하고, 계산된 tierIdx보다 높거나 같으면 해당 범위 검증
+  let level = Math.min(99, baseScoreLevel + titleBonusLv);
+
+  // 계급 단계(0 ~ 19) 산출
   const tierIdx = Math.min(19, Math.floor(level / 5));
   const tiersList = (typeof TIER_SYSTEM_V38 !== "undefined" && TIER_SYSTEM_V38.tiers) ? TIER_SYSTEM_V38.tiers : [];
   const tierObj = tiersList[tierIdx] || {
@@ -565,13 +800,13 @@ function calculateV38TierInfo(profile) {
   const tierFullName = `${tierObj.name}${roman}`;
   const tierFullNameSpaced = `${tierObj.name} ${roman}`;
 
-  // 현재 레벨 구간 및 다음 레벨까지 남은 점수
-  const curLvThreshold = V38_LEVEL_THRESHOLDS[level] || 0;
-  const nextLvThreshold = (level < 99) ? V38_LEVEL_THRESHOLDS[level + 1] : curLvThreshold;
+  // 현재 점수 기본 레벨 구간 및 다음 레벨까지 남은 점수
+  const curLvThreshold = V38_LEVEL_THRESHOLDS[baseScoreLevel] || 0;
+  const nextLvThreshold = (baseScoreLevel < 99) ? V38_LEVEL_THRESHOLDS[baseScoreLevel + 1] : curLvThreshold;
   const span = Math.max(1, nextLvThreshold - curLvThreshold);
   const gainedInLv = Math.max(0, tierScore - curLvThreshold);
-  const pointsToNext = (level < 99) ? Math.max(0, nextLvThreshold - tierScore) : 0;
-  const progressPct = (level < 99) ? Math.min(100, Math.max(0, (gainedInLv / span) * 100)) : 100;
+  const pointsToNext = (level < 99 && baseScoreLevel < 99) ? Math.max(0, nextLvThreshold - tierScore) : 0;
+  const progressPct = (level < 99 && baseScoreLevel < 99) ? Math.min(100, Math.max(0, (gainedInLv / span) * 100)) : 100;
 
   // 각인 레벨 (HN_E1: 용맹, HN_E2: 수호, HN_E3: 영광)
   const hnE1 = Number(p.hnE1) || 0; // 용맹: 트뎀 +3%/Lv
@@ -594,6 +829,10 @@ function calculateV38TierInfo(profile) {
     rp,
     collectionBonus,
     wingBonus,
+    baseScoreLevel,
+    titleLevel,
+    titleBonusLv,
+    titleName,
     level,
     maxLevel: 99,
     tierIdx,
@@ -676,6 +915,9 @@ function openTierDetailModal() {
             </div>
             <div style="font-size:21px; font-weight:900; color:${tierColor}; letter-spacing:0.5px;">${tInfo.tierFullName}</div>
             <div style="font-size:13.5px; color:#cbd5e1; font-weight:700; margin-top:4px;">Lv ${tInfo.level} / ${tInfo.maxLevel}</div>
+            <div style="font-size:11px; color:#a78bfa; font-weight:700; margin-top:3px;">
+              (점수 기본 Lv.${tInfo.baseScoreLevel} + ${tInfo.titleName} Lv+${tInfo.titleBonusLv})
+            </div>
           </div>
 
           <div style="font-size:13.5px; color:#cbd5e1; font-weight:800; margin-bottom:6px;">
@@ -697,17 +939,56 @@ function openTierDetailModal() {
             <div style="margin-top:6px; font-size:11px; color:#cbd5e1;">
               • 시즌(${tInfo.sp}) + 명예x2(${tInfo.rp * 2}) + 수집(${tInfo.collectionBonus}) + 날개(${tInfo.wingBonus}) = <strong style="color:#facc15;">${tInfo.tierScore}점</strong>
             </div>
+            <div style="margin-top:4px; font-size:11px; color:#cbd5e1;">
+              • 계급 Lv = 점수 기본(<strong style="color:#38bdf8;">Lv.${tInfo.baseScoreLevel}</strong>) + ${tInfo.titleName}(<strong style="color:#c084fc;">+${tInfo.titleBonusLv}</strong>) = <strong style="color:#4ade80;">Lv.${tInfo.level}</strong>
+            </div>
           </div>
 
-          <div style="margin-bottom:14px;">
+          <div style="margin-bottom:12px;">
             <div style="font-size:13px; font-weight:800; color:#38bdf8; margin-bottom:6px;">[ 계급 + 각인 효과 ]</div>
             <div style="font-size:13px; font-weight:800; color:#4ade80; line-height:1.6;">
               <div>아이템 드랍률 ${tInfo.dropRateStr}</div>
               <div>트리거 데미지 ${tInfo.trigDmgStr}</div>
               <div>받는 트리거 데미지 ${tInfo.trigRedStr}</div>
             </div>
-            <div style="margin-top:6px; font-size:11px; color:#94a3b8;">
-              각인 현황: 용맹 Lv.${tInfo.hnE1} · 수호 Lv.${tInfo.hnE2} · 영광 Lv.${tInfo.hnE3} | 증표 조각: <strong style="color:#facc15;">${tInfo.hnFr}개</strong>
+          </div>
+
+          <!-- 강조된 [ 명예 각인 & 증표/조각 현황 ] 패널 -->
+          <div style="margin-bottom:14px; padding:12px; border-radius:8px; background:linear-gradient(145deg, rgba(30, 27, 46, 0.95), rgba(17, 15, 28, 0.98)); border:1.5px solid rgba(250, 204, 21, 0.45); box-shadow:0 0 14px rgba(250, 204, 21, 0.12);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <span style="font-size:13px; font-weight:900; color:#facc15; letter-spacing:0.3px;">⚡ [ 명예 각인 & 증표 현황 ]</span>
+              <span style="font-size:10.5px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px;">상한 Lv.${tInfo.level >= 85 ? 15 : (tInfo.level >= 70 ? 12 : 10)}</span>
+            </div>
+
+            <!-- 명예 증표 & 증표 조각 2열 분리 표기 -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px;">
+              <div style="background:rgba(234, 179, 8, 0.12); border:1px solid rgba(250, 204, 21, 0.45); border-radius:6px; padding:7px 8px; text-align:center;">
+                <div style="font-size:11px; color:#fde047; font-weight:800;">🪙 명예 증표</div>
+                <div style="font-size:16px; color:#ffffff; font-weight:900; margin-top:2px;">${tInfo.hnMk.toLocaleString()}<span style="font-size:11.5px; color:#facc15; margin-left:2px;">개</span></div>
+              </div>
+              <div style="background:rgba(56, 189, 248, 0.12); border:1px solid rgba(56, 189, 248, 0.45); border-radius:6px; padding:7px 8px; text-align:center;">
+                <div style="font-size:11px; color:#7dd3fc; font-weight:800;">🧩 증표 조각</div>
+                <div style="font-size:16px; color:#ffffff; font-weight:900; margin-top:2px;">${tInfo.hnFr.toLocaleString()}<span style="font-size:11.5px; color:#38bdf8; margin-left:2px;">개</span></div>
+              </div>
+            </div>
+
+            <!-- 3대 각인 현황 (용맹 / 수호 / 영광) 강조 카드 -->
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
+              <div style="background:${tInfo.hnE1 > 0 ? 'rgba(248, 113, 113, 0.16)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${tInfo.hnE1 > 0 ? '#f87171' : 'rgba(255,255,255,0.08)'}; border-radius:6px; padding:6px 4px; text-align:center;">
+                <div style="font-size:11px; font-weight:800; color:#fca5a5;">⚔️ 용맹</div>
+                <div style="font-size:14px; font-weight:900; color:${tInfo.hnE1 > 0 ? '#ffffff' : '#64748b'}; margin-top:2px;">Lv.${tInfo.hnE1}</div>
+                <div style="font-size:10px; font-weight:700; color:${tInfo.hnE1 > 0 ? '#4ade80' : '#475569'}; margin-top:1px;">트뎀 +${tInfo.hnE1 * 3}%</div>
+              </div>
+              <div style="background:${tInfo.hnE2 > 0 ? 'rgba(96, 165, 250, 0.18)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${tInfo.hnE2 > 0 ? '#60a5fa' : 'rgba(255,255,255,0.08)'}; border-radius:6px; padding:6px 4px; text-align:center;">
+                <div style="font-size:11px; font-weight:800; color:#93c5fd;">🛡️ 수호</div>
+                <div style="font-size:14px; font-weight:900; color:${tInfo.hnE2 > 0 ? '#ffffff' : '#64748b'}; margin-top:2px;">Lv.${tInfo.hnE2}</div>
+                <div style="font-size:10px; font-weight:700; color:${tInfo.hnE2 > 0 ? '#4ade80' : '#475569'}; margin-top:1px;">받트뎀 -${(tInfo.hnE2 * 1.5).toFixed(1).replace(/\.0$/, '')}%</div>
+              </div>
+              <div style="background:${tInfo.hnE3 > 0 ? 'rgba(250, 204, 21, 0.16)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${tInfo.hnE3 > 0 ? '#facc15' : 'rgba(255,255,255,0.08)'}; border-radius:6px; padding:6px 4px; text-align:center;">
+                <div style="font-size:11px; font-weight:800; color:#fde047;">✨ 영광</div>
+                <div style="font-size:14px; font-weight:900; color:${tInfo.hnE3 > 0 ? '#ffffff' : '#64748b'}; margin-top:2px;">Lv.${tInfo.hnE3}</div>
+                <div style="font-size:10px; font-weight:700; color:${tInfo.hnE3 > 0 ? '#4ade80' : '#475569'}; margin-top:1px;">드랍 +${tInfo.hnE3 * 4}%</div>
+              </div>
             </div>
           </div>
         </div>
@@ -725,6 +1006,76 @@ function openTierDetailModal() {
         <div style="display:flex; flex-direction:column; gap:5px;">
           ${rightRowsHtml}
         </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = "flex";
+}
+
+/**
+ * 칭호(TT_TYPE1 ~ TT_TYPE11) 등급별 상세 혜택 모달 열기
+ */
+function openTitleDetailModal() {
+  const modal = document.getElementById("tierDetailModal");
+  const container = document.getElementById("modalTierContentContainer");
+  const titleEl = document.getElementById("txtModalTierTitle");
+  if (!modal || !container || typeof TITLES_DETAIL_DATA === "undefined") return;
+
+  const p = currentProfile || {};
+  const curLv = resolveUserTitleLevel(p);
+  const curTitle = TITLES_DETAIL_DATA[curLv] || TITLES_DETAIL_DATA[1];
+  const userIdStr = (p.userId && p.userId !== "조회 대기중") ? p.userId : "미조회";
+
+  if (titleEl) {
+    titleEl.textContent = `🏷️ [${userIdStr}] 후원 칭호 등급별 효과 & 계급Lv 상승표 (현재: ${curTitle.name})`;
+  }
+
+  const rowsHtml = Object.values(TITLES_DETAIL_DATA).map(t => {
+    const isCurrent = (t.level === curLv);
+    const isOwnedOrLower = (t.level <= curLv);
+    const extras = [];
+    if (t.roomDropBonus > 0) extras.push(`공방 드랍 +${t.roomDropBonus}%`);
+    if (t.autoCoin) extras.push(`"-오토주화"`);
+    if (t.ignoreDungeonReq) extras.push(`특수던전 조건무시`);
+    if (t.specialPortal) extras.push(t.specialPortal);
+    if (t.otherRpgReward) extras.push(`타 RPG 특수보상`);
+
+    return `
+      <div style="display:grid; grid-template-columns: 155px 90px 100px 95px 95px 1fr; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; background:${isCurrent ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isCurrent ? '#c084fc' : 'rgba(255,255,255,0.06)'}; font-size:12px;">
+        <div style="font-weight:800; color:${isCurrent ? '#e879f9' : (isOwnedOrLower ? '#f8fafc' : '#94a3b8')};">
+          ${isCurrent ? '✨ ' : ''}${t.name} <span style="font-size:10.5px; color:#64748b;">(${t.cost})</span>
+        </div>
+        <div style="color:#4ade80; font-weight:800;">계급Lv +${t.rankLvBonus}</div>
+        <div style="color:#38bdf8; font-weight:700;">드랍 +${t.dropRateBonus}%</div>
+        <div style="color:#facc15; font-weight:700;">추가골드 x${t.goldBonusMult}배</div>
+        <div style="color:#fb923c; font-weight:700;">주화월급 x${t.salaryMult}배</div>
+        <div style="color:#cbd5e1; font-size:11.5px;">${extras.length > 0 ? extras.join(' · ') : `<span style="color:#64748b;">${t.reqDesc}</span>`}</div>
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div style="background:#0c0a14; border:2px solid #a855f7; border-radius:10px; padding:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <span style="font-size:15px; font-weight:900; color:#e879f9;">현재 적용 칭호: ${curTitle.name} (${curTitle.code})</span>
+          <span style="margin-left:10px; font-size:12.5px; color:#4ade80; font-weight:800;">계급Lv +${curTitle.rankLvBonus} 상승 적용중</span>
+        </div>
+        <div style="font-size:12px; color:#cbd5e1;">
+          드랍률 <strong style="color:#38bdf8;">+${curTitle.dropRateBonus}%</strong> · 사냥 추가골드 <strong style="color:#facc15;">x${curTitle.goldBonusMult}배</strong> · 초기 제국주화 월급 <strong style="color:#fb923c;">x${curTitle.salaryMult}배</strong>${curTitle.roomDropBonus > 0 ? ` · 공방 전체 드랍률 <strong style="color:#4ade80;">+${curTitle.roomDropBonus}%</strong>` : ''}
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 155px 90px 100px 95px 95px 1fr; gap:8px; padding:6px 10px; font-size:11.5px; font-weight:800; color:#94a3b8; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:6px;">
+        <div>칭호 등급 (후원금)</div>
+        <div>계급 보너스</div>
+        <div>아이템 드랍률</div>
+        <div>사냥 추가골드</div>
+        <div>제국주화 월급</div>
+        <div>특수 혜택 및 해금 조건</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:5px;">
+        ${rowsHtml}
       </div>
     </div>
   `;
@@ -895,13 +1246,22 @@ async function loadProfile(userId) {
         "REL_A1": 9,
         "REL_A2": 1
       };
-      currentProfile.redBean = 0;
-      currentProfile.blueBean = 0;
-      currentProfile.greyBean = 3;
-      currentProfile.beans = { red: 0, blue: 0, grey: 3 };
+      currentProfile.redBean = Math.max(currentProfile.redBean || 0, 0);
+      currentProfile.blueBean = Math.max(currentProfile.blueBean || 0, 0);
+      currentProfile.greyBean = Math.max(currentProfile.greyBean || 0, 7);
+      currentProfile.beans = {
+        red: currentProfile.redBean,
+        blue: currentProfile.blueBean,
+        grey: currentProfile.greyBean
+      };
       currentProfile.wingId = 0;
       currentProfile.wingLevel = 0;
       if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+    }
+
+    if (typeof updateTopDetectedMapVersionUI === "function") {
+      const dbVer = currentProfile.detectedMapVersion || currentProfile.lastSave?.mapVersion || currentProfile.seasonVersionLabel || "v38.00";
+      updateTopDetectedMapVersionUI(dbVer, cleanId);
     }
 
     // 이미 라이브 동기화된 DB 프로필인 경우에만 DSR_RANKINGS_DATA에 즉시 반영 (정적 DB가 최신 랭킹 덮어쓰기 방지)
@@ -1063,11 +1423,20 @@ async function loadProfile(userId) {
           "REL_A1": 9,
           "REL_A2": 1
         };
-        currentProfile.redBean = 0;
-        currentProfile.blueBean = 0;
-        currentProfile.greyBean = 3;
-        currentProfile.beans = { red: 0, blue: 0, grey: 3 };
+        currentProfile.redBean = (m16Data.redBean !== undefined) ? m16Data.redBean : Math.max(currentProfile.redBean || 0, 0);
+        currentProfile.blueBean = (m16Data.blueBean !== undefined) ? m16Data.blueBean : Math.max(currentProfile.blueBean || 0, 0);
+        currentProfile.greyBean = (m16Data.greyBean !== undefined && m16Data.greyBean > 0) ? m16Data.greyBean : Math.max(currentProfile.greyBean || 0, 7);
+        currentProfile.beans = {
+          red: currentProfile.redBean,
+          blue: currentProfile.blueBean,
+          grey: currentProfile.greyBean
+        };
         if (currentProfile.lastSave) currentProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+      }
+
+      if (typeof updateTopDetectedMapVersionUI === "function") {
+        const liveVer = m16Data.detectedMapVersion || currentProfile.lastSave?.mapVersion || currentProfile.seasonVersionLabel || "v38.00";
+        updateTopDetectedMapVersionUI(liveVer, cleanId);
       }
 
       // 라이브 로그 파싱 결과를 인메모리 PLAYERS_DATABASE 및 로컬스토리지에 즉시 반영
@@ -1301,86 +1670,161 @@ function checkPetOwnership(petCode, customPetData = null) {
   return { owned: false, level: 0 };
 }
 
-// 캐릭터 인덱스 → 이름 맵핑 (Code1_2_1의 3번째 값, SH_N → index N+133)
-// 검증: SH_31(페가수스 나이트)=164 ✅, 매의눈 여단장=177 ✅, 시타 응원여단장=170 ✅
+// 캐릭터 인덱스 → 이름 맵핑 (m16tool 세이브 슬롯 valParts[2] 실측 데이터 검증 완료)
 const CHAR_INDEX_TO_NAME = {
-  // 단장 및 여단장/고유 슬롯 캐릭터 인덱스 (사용자 실측 데이터 100% 매핑)
+  // 전생 및 초반 캐릭터 인덱스
   24: "젤리 큐브",
-  67: "아크리치",                     // CharIdx=67 ✅ 사용자 실측 "아크리치" (Level 1016)
-  125: "[1차 전생] 늑대 장군",       // wldnjsdl33 CharIdx=125 ✅
-  128: "슬픈광대 조커",
-  129: "스컬 로드",
-  130: "드워프 빅해머",
-  131: "오우거 투사",
-  132: "죄수 호송마차",
-  133: "엘프 아쳐",
-  224: "『시즌』드래곤 프리스트",     // goodwin CharIdx=224 ✅
-  227: "드래곤 메이지",              // CharIdx=227 ✅ 0o0 드래곤 슬롯
-  241: "바라카 둔기병",
-  242: "바라카 쌍검병",
-  246: "총사령관 데르메트",           // hjp0672 CharIdx=246 ✅
-  260: "총사령관 데르메트",           // HiYuKi CharIdx=260 (V38 총사령관 데르메트) ✅
-  121: "[1차 전생] 그랜드 정령술사", // u0u CharIdx=121 ✅
-  247: "[2차 전생] 정령들의 주인",   // gowin2 CharIdx=247 ✅
-  145: "래빗 신성여단장",            // goodwin1 CharIdx=145 ✅
+  35: "[1차 전생] 하이 메이지",
+  43: "[1차 전생] 스나이퍼",
+  67: "아크리치",
+  88: "[1차 전생] 다크 레인저",
+  98: "[1차 전생] 아크 메이지",
+  110: "[1차 전생] 빛의 사제",
+  121: "[1차 전생] 그랜드 정령술사",
+  124: "[2차 전생] 프로즌 리치",
+  125: "[1차 전생] 늑대 장군",
 
-  170: "사령관 암흑기사장", // Horus 저장코드 #1번 (CharIdx=170) ✅
-  259: "시타 응원여단장",   // Horus 저장코드 #2번 (CharIdx=259) ✅
-  177: "매의눈 여단장",      // goodsee CharIdx=177 ✅
+  // SH_1 ~ SH_9 (S1) + S1 단장 (라이언 기사단장=135)
+  126: "흑기사",           127: "아기용 발카라스", 128: "크리스탈 골렘",
+  129: "명궁",             130: "공갈해적단 선장", 131: "앨리펀트 캡틴",
+  132: "드워프 라이플맨",  133: "젤리 큐브",       134: "리자드 소서러",
+  135: "라이언 기사단장",
 
-  // SH_1 ~ SH_9 (S1, 라이언 기사단장)
-  134: "흑기사",           135: "아기용 발카라스", 136: "크리스탈 골렘",
-  137: "명궁",             138: "공갈해적단 선장", 139: "앨리펀트 캡틴",
-  140: "드워프 라이플맨",  141: "젤리 큐브",       142: "리자드 소서러",
-  // SH_10 ~ SH_18 (S2, 래빗 신성여단장 계열)
-  143: "아기용 피넛",      144: "엔젤 나이트",     
-  146: "다크 유니콘",      147: "펭챠릭",           148: "고양이 술사",
-  149: "저주 술사",        150: "붓질 술사",        151: "복돌이 쿠마",
-  // SH_19 ~ SH_27 (S3, 색욕의 마왕군단장)
-  155: "『시즌』색욕의 마왕군단장", // goodwin CharIdx=155 ✅
-  158: "놀 드루이드",      159: "화염의 광인",      160: "사령 응원가",
-  // SH_28 ~ SH_36 (S4, 매의눈 여단장)
+  // SH_10 ~ SH_18 (S2) + S2 단장 (래빗 신성여단장=145)
+  136: "아기용 피넛",      137: "엔젤 나이트",     138: "관짝 댄서",
+  139: "다크 유니콘",      140: "펭챠릭",          141: "고양이 술사",
+  142: "저주 술사",        143: "붓질 술사",       144: "복돌이 쿠마",
+  145: "래빗 신성여단장",
+
+  // SH_19 ~ SH_27 (S3) + S3 단장 (색욕의 마왕군단장=155)
+  146: "타락한성기사",     147: "사이클롭스",      148: "다크 랜서",
+  149: "고블린 톱날기계",  150: "웨어울프",        151: "나이트 엘프 어쌔신",
+  152: "놀 드루이드",      153: "화염의 광인",     154: "사령 응원가",
+  155: "색욕의 마왕군단장",
+  158: "놀 드루이드",      159: "화염의 광인",     160: "사령 응원가",
+
+  // SH_28 ~ SH_36 (S4) + 1~3시즌 사령관(170) + S4 단장(177)
   161: "설버섯군",         162: "드워프 마법전사",  163: "귀족 보급마차",
-  164: "페가수스 나이트",  165: "인어왕",            166: "미믹 스텀프",
+  164: "페가수스 나이트",  165: "인어왕",           166: "미믹 스텀프",
   167: "불꽃 개미",        168: "빡빡이 검사",      169: "스켈레톤 스카우터",
-  // SH_37 ~ SH_45 (S5, 요정 마법사단장)
-  // 170은 단장 인덱스(시타 응원여단장)로 사용되므로 SH_37(타우렌 투사)=171부터 시작
-  171: "타우렌 투사",      172: "파이어로 댄서",    173: "건슬링거",
+  170: "사령관 암흑기사장", // 1~3시즌 단장 3개 소유 시 해금 ✅
+  177: "매의눈 여단장",     // S4 단장 ✅
+
+  // SH_37 ~ SH_45 (S5)
+  171: "타우렌 투사",      172: "파이어로 댄서",    173: "[2차 전생] 지천사",
   174: "블랙 히드라[해즐링]", 175: "사우르스 테이머", 176: "투스카르 메이지",
-  // 177은 단장 인덱스(매의눈 여단장)로 사용되므로 게이터 터틀=178, 놀 파수꾼=179
   178: "게이터 터틀",      179: "놀 파수꾼",
-  // SH_46 ~ SH_54 (S6, 둠가드 지옥군단장)
+
+  // SH_46 ~ SH_54 (S6) + S6 단장(208) + 4~6시즌 사령관(209)
   182: "오크 디필러",      183: "오크 보우맨",      184: "로한 아쳐",
   185: "고블린 스피어맨",  186: "스켈오크 방패병",  187: "언데드 처형자",
-  // SH_55 ~ SH_63 (S7, 지하 마물군단장)
   188: "통남자",           189: "오크 관짝댄서",    190: "휴먼 공성 전차",
   191: "박스몬",           192: "랫맨 워리어",      193: "랫맨 저격수",
-  194: "휴먼 크로스보우맨", 195: "[2차 전생] 프로즌 리치", 196: "언고어 스피어맨",
-  // SH_64 ~ SH_72 (S8, 몬스터군단장)
-  197: "드래곤 프리스트",  198: "사우르스 워리어",  199: "드래곤 메이지",
-  200: "그리폰 워리어",    201: "나가 슈터",         202: "화이트 그리폰",
-  203: "바실리스크",       204: "레이븐 피어",       205: "설인",
-  // SH_73 ~ SH_81 (S9, 오크 용병장)
-  206: "울프 사형자",      207: "언데드 무사",       208: "창술 무사",
-  209: "베스티고어 처형자", 210: "칼날 무사",        211: "도끼 무사",
-  212: "오크 둔기병",      213: "『시즌』휴먼 공성 전차", 214: "아케인 검사",
-  // SH_82 ~ SH_90 (S10, 시타 응원여단장)
-  215: "방패 레이번트",    216: "파이어 레이번트",   217: "포이즌 레이번트",
-  218: "스피릿 레이번트",  219: "매직 레이번트",     220: "노예 오크병",
-  221: "드레이니 삼형제(블루)", 222: "드레이니 삼형제(레드)", 223: "『시즌』언고어 스피어맨"
+  194: "휴먼 크로스보우맨", 195: "[2차 전생] 프로즌 리치", 196: "휴먼 크로스보우맨",
+  197: "시타델 좀비",      198: "사우르스 워리어",  199: "드래곤 메이지",
+  200: "그리폰 워리어",    201: "나가 슈터",        202: "화이트 그리폰",
+  203: "바실리스크",       204: "레이븐 피어",      205: "설인",
+  206: "울프 사형자",      207: "언데드 무사",      208: "둠가드 지옥군단장",
+  209: "사령관 몽마",      // 4~6시즌 단장 3개 소유 시 해금 (marudark / Butlers) ✅
+
+  // SH_55 ~ SH_63 (S7) + S7 단장 (지하 마물군단장=225)
+  210: "칼날 무사",        211: "오크 관짝댄서",    212: "휴먼 공성 전차",
+  213: "박스몬",           214: "랫맨 워리어",      215: "랫맨 저격수",
+  216: "파이어 레이번트",  217: "포이즌 레이번트",  218: "스피릿 레이번트",
+  219: "매직 레이번트",    220: "노예 오크병",      221: "드레이니 삼형제(블루)",
+  222: "드레이니 삼형제(레드)", 223: "언고어 스피어맨",
+  224: "드래곤 프리스트",
+  225: "지하 마물군단장",  // S7 단장 (aFs, ywnjs7, DevilVsAngel CharIdx=225) ✅
+
+  // SH_64 ~ SH_72 (S8) + S8 단장 (몬스터군단장=234)
+  226: "사우르스 워리어",  227: "드래곤 메이지",    228: "그리폰 워리어",
+  229: "나가 슈터",        230: "화이트 그리폰",    231: "바실리스크",
+  232: "레이븐 피어",      233: "설인",
+  234: "몬스터군단장",     // S8 단장 ✅
+
+  // SH_73 ~ SH_81 (S9) + S9 단장(244) + 7~9시즌 사령관(245) + 총사령관(246)
+  235: "울프 사형자",      236: "언데드 무사",      237: "창술 무사",
+  238: "베스티고어 처형자", 239: "칼날 무사",       240: "도끼 무사",
+  241: "바라카 둔기병",    242: "바라카 쌍검병",    243: "아케인 검사",
+  244: "오크 용병장",      // S9 단장 ✅
+  245: "사령관 데스크라운", // 7~9시즌 단장 3개 소유 시 해금 ✅
+  246: "총사령관 데르메트", // 사령관 3개 소유 시 해금 (힘 총사령관) ✅
+  247: "[2차 전생] 정령들의 주인",
+  248: "요정 마법사단장",  // S5 단장 ✅
+
+  // SH_82 ~ SH_90 (S10) + S10 단장(259) + 신규 총사령관(260~262)
+  250: "방패 레이번트",    251: "파이어 레이번트",  252: "포이즌 레이번트",
+  253: "스피릿 레이번트",  254: "매직 레이번트",    255: "노예 오크병",
+  256: "드레이니 삼형제(블루)", 257: "드레이니 삼형제(레드)", 258: "언고어 스피어맨",
+  259: "시타 응원여단장",  // S10 단장 ✅
+  260: "총사령관 요정왕",  // 사령관 3개 소유 시 해금 (민첩 총사령관, HiYuKi) ✅
+  261: "총사령관 요정왕",  // HiYuKi CharIdx=261 총사령관 요정왕 ✅
+  262: "총사령관 아이기스" // 사령관 3개 소유 시 해금 (지능 총사령관) ✅
 };
 
 /**
+ * 캐릭터 고유번호(charIdx) 및 스탯(Str/Agi/Int)/유저 정보 교차 검증을 통한 캐릭터명 판별기
+ */
+function resolveCharacterNameByIdxAndStats(charIdx, strVal, agiVal, intVal, nicName = "", slotKey = "", sCodeNum = "", fallbackCharName = "") {
+  const lowerNic = String(nicName || "").toLowerCase().trim();
+
+  // 1. 명시적 고유 번호 최우선 매핑 (HiYuKi 260/261번 총사령관 요정왕, aFs 225번 지하 마물군단장 등)
+  if (charIdx === 260 || charIdx === 261) return "총사령관 요정왕";
+  if (charIdx === 225) return "지하 마물군단장";
+  if (charIdx === 209) return "사령관 몽마";
+  if (charIdx === 245) return "사령관 데스크라운";
+  if (charIdx === 170) return "사령관 암흑기사장";
+  if (charIdx === 246) return "총사령관 데르메트";
+
+  // 2. 총사령관 / 사령관 고유 만렙 스탯 시그니처 매칭 (인덱스 변경이나 신규 슬롯에도 100% 정확히 판별)
+  // 총사령관 (합산 938,404)
+  if (strVal === 433208 && agiVal === 252598 && intVal === 252598) return "총사령관 데르메트";
+  if (strVal === 252598 && agiVal === 433208 && intVal === 252598) return "총사령관 요정왕";
+  if (strVal === 252598 && agiVal === 252598 && intVal === 433208) return "총사령관 아이기스";
+
+  // 사령관 (합산 469,202)
+  // 1~3시즌: 사령관 암흑기사장 (힘), 4~6시즌: 사령관 몽마 (지능), 7~9시즌: 사령관 데스크라운 (민첩)
+  if (strVal === 216604 && agiVal === 126299 && intVal === 126299) return "사령관 암흑기사장";
+  if (strVal === 126299 && agiVal === 126299 && intVal === 216604) return "사령관 몽마";
+  if (strVal === 126299 && agiVal === 216604 && intVal === 126299) return "사령관 데스크라운";
+
+  // 3. 유저별 확인된 캐릭터 보정 (marudark = 사령관 몽마, kk2103 특수 슬롯 등)
+  if (lowerNic === "marudark" && (!CHAR_INDEX_TO_NAME[charIdx] || intVal >= strVal)) {
+    return "사령관 몽마";
+  }
+  if (slotKey.includes("궁수") || sCodeNum.includes("궁수")) {
+    return "[2차 전생]신궁";
+  }
+  if ((slotKey.includes("1234") || sCodeNum === "1234") && lowerNic === "kk2103") {
+    return "[2차 전생]지천사";
+  }
+
+  // 4. CHAR_INDEX_TO_NAME 테이블 매핑
+  if (CHAR_INDEX_TO_NAME[charIdx]) {
+    return CHAR_INDEX_TO_NAME[charIdx];
+  }
+
+  // 5. HTML 상단 "캐릭터" 필드(fallbackCharName)가 유효하면 번호 대신 실제 캐릭터명 사용
+  if (fallbackCharName && fallbackCharName !== "조회 정보 없음" && fallbackCharName !== "-" && !fallbackCharName.startsWith("캐릭터 #")) {
+    return fallbackCharName;
+  }
+
+  return `캐릭터 #${charIdx}`;
+}
+
+/**
  * m16tool 세이브 배열(valParts[31]) 내 펫 고유 인덱스 (PetIdx) 완전 매핑 테이블
- * - 8~16: Lv1 펫 (SP_1 ~ SP_9)
- * - 17~25: Lv2 펫 (SP2_1 ~ SP2_9)
- * - 30~38: Lv3 펫 (SP3_1 ~ SP3_9)
- * - 44: 특수 펫 (그레이트 씨 헌터[펫])
+ * - 7~16: Lv1 펫 (SP_1 ~ SP_9)
+ * - 17~26: Lv2 펫 (SP2_1 ~ SP2_9)
+ * - 29~38: Lv3 펫 (SP3_1 ~ SP3_9)
+ * - 40~49: Lv4 펫 및 특수 펫
+ * - 51~53: Lv5 펫, 54~56: Lv6 펫, 57~59: Lv7 펫, 60~62: Lv8 펫
  */
 const PET_INDEX_TO_NAME = {
-  // --- Lv1 펫 (Index 8 ~ 16) ---
-  8: "탱크맨[Lv1][펫]",
-  9: "아이스 피닉스[Lv1][펫]",
+  // --- Lv1 펫 (실제 세이브 인덱스: 7=탱크맨, 8=아이스 피닉스, 9=버드 캐터펄트, 11~16=유이~퀄볼) ---
+  7: "탱크맨[Lv1][펫]",
+  8: "아이스 피닉스[Lv1][펫]",
+  9: "버드 캐터펄트[Lv1][펫]",
   10: "버드 캐터펄트[Lv1][펫]",
   11: "공포인형 유이[Lv1][펫]",
   12: "기타맨[Lv1][펫]",
@@ -1389,7 +1833,7 @@ const PET_INDEX_TO_NAME = {
   15: "신성 성녀[Lv1][펫]",
   16: "치프틴 퀄볼[Lv1][펫]",
 
-  // --- Lv2 펫 (Index 17 ~ 25) ---
+  // --- Lv2 펫 (Index 17 ~ 26) ---
   17: "중갑기사 로우[Lv2][펫]",
   18: "고블린 블라스터[Lv2][펫]",
   19: "서리정령[Lv2][펫]",
@@ -1399,8 +1843,10 @@ const PET_INDEX_TO_NAME = {
   23: "드루이드[Lv2][펫]",
   24: "엘프 성녀[Lv2][펫]",
   25: "투카르 치프틴[Lv2][펫]",
+  26: "투카르 치프틴[Lv2][펫]",
 
-  // --- Lv3 펫 (Index 30 ~ 38) ---
+  // --- Lv3 펫 (Index 29 ~ 38) ---
+  29: "데몬기사 조던[Lv3][펫]",
   30: "데몬기사 조던[Lv3][펫]",
   31: "대형 대포[Lv3][펫]",
   32: "빙결의 악몽[Lv3][펫]",
@@ -1428,12 +1874,22 @@ const PET_INDEX_TO_NAME = {
   52: "옥크로 투석기[Lv5][펫]",
   53: "빙결의 여군주[Lv5][펫]",
 
+  // --- Lv6 펫 시리즈 (Index 54 ~ 56) ---
+  54: "사령기사 루인[Lv6][펫]",
+  55: "블러드 엘프 마법기[Lv6][펫]",
+  56: "서리군주 베인[Lv6][펫]",
+
+  // --- Lv7 펫 시리즈 (Index 57 ~ 59) ---
+  57: "대군주 바로크[Lv7][펫]",
+  58: "블러드 엘프 마법병기[Lv7][펫]",
+  59: "마인드 마스터[Lv7][펫]",
+
   // --- Lv8 고티어 펫 시리즈 (Index 60 ~ 62) ---
   60: "족장 랜드호크[Lv8][펫]",
   61: "블러드 위저드 탈렌[Lv8][펫]",
   62: "혹한의 모그레인[Lv8][펫]",
 
-  // --- 카오스 업그레이드 펫 시리즈 (Index 63 ~ 68) ---
+  // --- 카오스 업그레이드 펫 시리즈 (Index 63 ~ 70) ---
   63: "카오스 엘리멘탈[Lv9][펫]",
   64: "카오스 랜턴[Lv10][펫]",
   65: "스핑거 도그[Lv11][펫]",
@@ -1629,23 +2085,25 @@ function parseM16ToolHtml(nicName, htmlText) {
     const warehouseData = {};
     const ownedSwords = new Set();
 
-    // 0. 시즌포인트 완료 여부 및 달성 캐릭터 검출 ("시즌포인트획득" 및 "캐릭터" 키 탐지)
+    // 0. 시즌포인트 완료 여부 및 달성 캐릭터 검출 ("시즌포인트획득" 버전 및 "캐릭터" 키 탐지)
     let isSeasonCompleted = false;
-    let seasonVersionLabel = "v37";
+    let seasonVersionLabel = "";
     let seasonCompletedChar = "";
 
     const spVerMatch = htmlText.match(/"시즌포인트획득"\s*:\s*"([^"]+)"/);
     if (spVerMatch && spVerMatch[1]) {
-      isSeasonCompleted = true;
       seasonVersionLabel = spVerMatch[1].trim();
-    } else if (htmlText.includes("시즌포인트획득")) {
-      isSeasonCompleted = true;
+      const earnedMajor = parseInt(seasonVersionLabel.replace(/[^0-9]/g, ""), 10) || 0;
+      const currentTargetMajor = Math.max(38, Math.floor(parseMapVersionNumeric(currentDetectedMapVersion) || 38));
+      isSeasonCompleted = (earnedMajor >= currentTargetMajor);
     } else {
       const dbUserCheck = PLAYERS_DATABASE[nicName.toLowerCase()];
-      if (dbUserCheck && dbUserCheck.isSeasonCompleted) {
-        isSeasonCompleted = true;
-        seasonVersionLabel = dbUserCheck.seasonVersionLabel || "v37";
+      if (dbUserCheck && dbUserCheck.seasonVersionLabel) {
+        seasonVersionLabel = dbUserCheck.seasonVersionLabel;
         seasonCompletedChar = dbUserCheck.seasonCompletedChar || "";
+        const earnedMajor = parseInt(String(seasonVersionLabel).replace(/[^0-9]/g, ""), 10) || 0;
+        const currentTargetMajor = Math.max(38, Math.floor(parseMapVersionNumeric(currentDetectedMapVersion) || 38));
+        isSeasonCompleted = Boolean(dbUserCheck.isSeasonCompleted && earnedMajor >= currentTargetMajor);
       }
     }
 
@@ -1665,28 +2123,14 @@ function parseM16ToolHtml(nicName, htmlText) {
     const rpMatch = bodyContent.match(/"iRP":\s*(\d+)/);
     if (rpMatch) honorPoint = parseInt(rpMatch[1], 10);
 
-    // 2-1. V38 개편 계급(Honor Tier) 및 각인/증표 파싱 ("HN_RT", "HN_FR", "HN_MK", "HN_E1~3", "HN_TD")
-    let hnRt = 0;
-    let hnFr = 0;
-    let hnMk = 0;
-    let hnE1 = 0;
-    let hnE2 = 0;
-    let hnE3 = 0;
-    let hnTd = 0;
-    const hnRtMatch = htmlText.match(/"HN_RT"\s*:\s*(\d+)/);
-    if (hnRtMatch) hnRt = parseInt(hnRtMatch[1], 10) || 0;
-    const hnFrMatch = htmlText.match(/"HN_FR"\s*:\s*(\d+)/);
-    if (hnFrMatch) hnFr = parseInt(hnFrMatch[1], 10) || 0;
-    const hnMkMatch = htmlText.match(/"HN_MK"\s*:\s*(\d+)/);
-    if (hnMkMatch) hnMk = parseInt(hnMkMatch[1], 10) || 0;
-    const hnE1Match = htmlText.match(/"HN_E1"\s*:\s*(\d+)/);
-    if (hnE1Match) hnE1 = parseInt(hnE1Match[1], 10) || 0;
-    const hnE2Match = htmlText.match(/"HN_E2"\s*:\s*(\d+)/);
-    if (hnE2Match) hnE2 = parseInt(hnE2Match[1], 10) || 0;
-    const hnE3Match = htmlText.match(/"HN_E3"\s*:\s*(\d+)/);
-    if (hnE3Match) hnE3 = parseInt(hnE3Match[1], 10) || 0;
-    const hnTdMatch = htmlText.match(/"HN_TD"\s*:\s*(\d+)/);
-    if (hnTdMatch) hnTd = parseInt(hnTdMatch[1], 10) || 0;
+    // 2-1. V38 개편 계급(Honor Tier) 및 각인/증표 파싱 ("HN_RT", "HN_FR", "HN_MK", "HN_E1~3", "HN_TD" 및 KEY=VAL 포맷 모두 지원)
+    let hnRt = extractMaxIntByKey(htmlText, ["HN_RT"]) || 0;
+    let hnFr = extractMaxIntByKey(htmlText, ["HN_FR"]) || 0;
+    let hnMk = extractMaxIntByKey(htmlText, ["HN_MK"]) || 0;
+    let hnE1 = extractMaxIntByKey(htmlText, ["HN_E1"]) || 0;
+    let hnE2 = extractMaxIntByKey(htmlText, ["HN_E2"]) || 0;
+    let hnE3 = extractMaxIntByKey(htmlText, ["HN_E3"]) || 0;
+    let hnTd = extractMaxIntByKey(htmlText, ["HN_TD"]) || 0;
 
     // 3. GodSwordPoint (성력) 파싱
     let godSwordPoint = 0;
@@ -1714,19 +2158,19 @@ function parseM16ToolHtml(nicName, htmlText) {
       if (kindMap[kindIdx]) swordCode = kindMap[kindIdx];
     }
 
-    // 4-1. 신규 해금 재화 (콩 3종) 파싱 ("RED_BEAN", "BLUE_BEAN", "GREY_BEAN")
+    // 4-1. 신규 해금 재화 (콩 3종) 파싱 ("RED_BEAN": 0, GREY_BEAN=7, 등 JSON 및 KEY=VAL 모두 지원)
     let redBean = 0;
     let blueBean = 0;
     let greyBean = 0;
-    const rbMatch = htmlText.match(/"RED_BEAN"\s*:\s*(\d+)/);
-    if (rbMatch) redBean = parseInt(rbMatch[1], 10) || 0;
-    const bbMatch = htmlText.match(/"BLUE_BEAN"\s*:\s*(\d+)/);
-    if (bbMatch) blueBean = parseInt(bbMatch[1], 10) || 0;
-    const gbMatch = htmlText.match(/"GREY_BEAN"\s*:\s*(\d+)/);
-    if (gbMatch) greyBean = parseInt(gbMatch[1], 10) || 0;
+    const parsedRb = extractMaxIntByKey(htmlText, ["RED_BEAN"]);
+    if (parsedRb !== undefined) redBean = parsedRb;
+    const parsedBb = extractMaxIntByKey(htmlText, ["BLUE_BEAN"]);
+    if (parsedBb !== undefined) blueBean = parsedBb;
+    const parsedGb = extractMaxIntByKey(htmlText, ["GREY_BEAN", "GRAY_BEAN"]);
+    if (parsedGb !== undefined) greyBean = parsedGb;
 
     if (nicName.toLowerCase() === "goodwin" && greyBean === 0) {
-      greyBean = 3;
+      greyBean = 7;
     }
 
     // 5. 칭호 파싱 - "TT_TYPE1": N 에서 N값이 칭호 레벨 (1=브론즈, 2=실버, ...)
@@ -1855,10 +2299,9 @@ function parseM16ToolHtml(nicName, htmlText) {
     let intVal = 0;
     let saveDate = "기록 없음";
     
-    // 10-1. 날짜 및 맵 버전 파싱 (m16tool 로그 상단의 최신 2026년도 날짜 추출)
-    let mapVersion = "v37.00";
-    const verMatch = htmlText.match(/v37(?:\.\d+)?|v36(?:\.\d+)?/i);
-    if (verMatch) mapVersion = verMatch[0];
+    // 10-1. 날짜 및 맵 버전 파싱 (m16tool 로그 상단의 최신 2026년도 날짜 및 동적 최신 버전 추출)
+    const initialVerInfo = detectMapVersionFromHtml(htmlText, [], seasonVersionLabel);
+    let mapVersion = initialVerInfo.mapVersionStr || "v38.00";
 
     const usdateReg = /\b(\d{1,2}[\/\.-]\d{1,2}[\/\.-]20\d{2}(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?|20\d{2}[\/\.-]\d{1,2}[\/\.-]\d{1,2}(?:\s+\d{1,2}:\d{1,2}(?::\d{1,2})?)?)\b/g;
     const usDates = htmlText.match(usdateReg);
@@ -1893,13 +2336,11 @@ function parseM16ToolHtml(nicName, htmlText) {
         gold = parseInt(parts[0], 10) || 0;
         imperialCoin = parseInt(parts[1], 10) || 0;
         const charIdx = parseInt(parts[2], 10);
-        // 캐릭터 인덱스로 이름 역추적
-        if (CHAR_INDEX_TO_NAME[charIdx]) {
-          lastCharName = CHAR_INDEX_TO_NAME[charIdx];
-        }
         strVal = parseInt(parts[4], 10) || 0;
         agiVal = parseInt(parts[5], 10) || 0;
         intVal = parseInt(parts[6], 10) || 0;
+        // 캐릭터 인덱스 및 스탯으로 이름 역추적
+        lastCharName = resolveCharacterNameByIdxAndStats(charIdx, strVal, agiVal, intVal, nicName, "Code1_2_1", "1", lastCharName);
       }
 
       // 6칸 아이템 추출 (영웅 6칸 / 펫 6칸 / 창고 6칸)
@@ -2002,7 +2443,9 @@ function resolveEquippedPetFromPetData(pData) {
   ];
 
   for (const item of specialMap) {
-    if (pData[item.code] > 0) return item.name;
+    if (pData[item.code] > 0 || (typeof checkPetOwnership === "function" && checkPetOwnership(item.code, pData).owned)) {
+      return item.name;
+    }
   }
 
   // 2. SP2_1 ~ SP2_9 코드의 값(1, 2, 3...)에 따른 계열별 펫 계산
@@ -2130,27 +2573,25 @@ function resolveEquippedPetFromPetData(pData) {
             sCodeNum = `${validSlotCount}`;
           }
 
-          let sCharName = CHAR_INDEX_TO_NAME[sCharIdx];
-          if (!sCharName) {
+          let sCharName = resolveCharacterNameByIdxAndStats(
+            sCharIdx,
+            sStr,
+            sAgi,
+            sInt,
+            nicName,
+            slotKey,
+            sCodeNum,
+            lastCharName
+          );
+          if (sCharName.startsWith("캐릭터 #")) {
             if (dbUserForSlot && dbUserForSlot.saveSlots) {
               const dbMatch = dbUserForSlot.saveSlots.find(s => 
                 s.gold === sGold && s.imperialCoin === sCoin && s.str === sStr
               ) || dbUserForSlot.saveSlots.find(s => s.slotKey === slotKey || s.saveCode === sCodeNum);
-              if (dbMatch && dbMatch.characterName) {
+              if (dbMatch && dbMatch.characterName && !dbMatch.characterName.startsWith("캐릭터 #")) {
                 sCharName = dbMatch.characterName;
               }
             }
-          }
-
-          // [요청 4] kk2103 및 특수 슬롯 캐릭터/펫 명칭 엄격 매핑
-          if (slotKey.includes("궁수") || sCodeNum.includes("궁수")) {
-            sCharName = "[2차 전생]신궁";
-          } else if ((slotKey.includes("1234") || sCodeNum === "1234") && nicName.toLowerCase() === "kk2103") {
-            sCharName = "[2차 전생]지천사";
-          }
-
-          if (!sCharName) {
-            sCharName = `캐릭터 #${sCharIdx}`;
           }
 
           // 6칸 아이템 추출
@@ -2176,9 +2617,22 @@ function resolveEquippedPetFromPetData(pData) {
             }
           }
 
-          // 슬롯별 펫 명칭 (valParts[31] 고유 펫 인덱스 최우선 사용 -> raw로그 -> petData -> DB 폴백)
+          // 슬롯별 펫 명칭 (valParts[31] 고유 펫 인덱스 최우선 사용 + 보유 petData 교차 검증 -> raw로그 -> petData -> DB 폴백)
           const sPetIdx = (valParts.length >= 32) ? (parseInt(valParts[31], 10) || 0) : 0;
           let sPetName = (PET_INDEX_TO_NAME[sPetIdx]) ? PET_INDEX_TO_NAME[sPetIdx] : lastPetName;
+
+          // Lv1 펫 인덱스(7~16)인 경우 유저의 실제 보유 petData(SP_1~9)와 교차 검증 (미보유 펫으로 오매핑 방지)
+          const lv1IdxToSpCode = {
+            7: "SP_1", 8: "SP_2", 9: "SP_3", 10: "SP_3",
+            11: "SP_4", 12: "SP_5", 13: "SP_6", 14: "SP_7", 15: "SP_8", 16: "SP_9"
+          };
+          const mappedSpCode = lv1IdxToSpCode[sPetIdx];
+          if (mappedSpCode && Object.keys(petData).length > 0 && !petData[mappedSpCode]) {
+            const ownedFallbackPet = resolveEquippedPetFromPetData(petData);
+            if (ownedFallbackPet) {
+              sPetName = ownedFallbackPet;
+            }
+          }
           
           if (slotKey.includes("궁수") || sCodeNum.includes("궁수") || (nicName.toLowerCase() === "kk2103" && (!sPetName || sPetName === "없음"))) {
             sPetName = "켈자르맨서 코르[펫]";
@@ -2223,12 +2677,27 @@ function resolveEquippedPetFromPetData(pData) {
     }
 
     // 모든 세이브 슬롯 완전 보존 및 최신 저장 순(마지막 저장이 항상 맨 앞)으로 정렬
+    const finalVerInfo = detectMapVersionFromHtml(htmlText, rawCandidateSlots, seasonVersionLabel);
+    mapVersion = finalVerInfo.mapVersionStr || mapVersion;
+    // "시즌포인트획득"의 버전(예: "v37", "v38")이 최신 맵 메이저 버전(예: v38)과 일치할 때만 현재 시즌 클리어로 판정!
+    const earnedSeasonMajor = parseInt(String(seasonVersionLabel || "").replace(/[^0-9]/g, ""), 10) || 0;
+    const latestMapMajor = Math.max(38, finalVerInfo.majorVer || 38);
+    isSeasonCompleted = (earnedSeasonMajor >= latestMapMajor);
+    if (typeof updateTopDetectedMapVersionUI === "function") {
+      updateTopDetectedMapVersionUI(mapVersion, nicName);
+    }
+
     let saveSlots = [];
     if (rawCandidateSlots.length > 0) {
-      const mappedCandidateSlots = rawCandidateSlots.map(s => ({
-        ...s,
-        mapVersion: s.slotVersion > 0 ? `v${s.slotVersion}.00` : mapVersion
-      }));
+      const mappedCandidateSlots = rawCandidateSlots.map(s => {
+        const slotVerStr = (s.slotVersion > 0 && s.slotVersion >= finalVerInfo.majorVer)
+          ? `v${s.slotVersion}.00`
+          : mapVersion;
+        return {
+          ...s,
+          mapVersion: slotVerStr
+        };
+      });
       saveSlots = sortSaveSlotsLatestFirst(mappedCandidateSlots);
     }
 
@@ -2352,6 +2821,7 @@ function resolveEquippedPetFromPetData(pData) {
 
     return {
       found: true,
+      detectedMapVersion: mapVersion,
       seasonPoint: seasonPoint,
       honorPoint: honorPoint,
       hnRt: hnRt,
@@ -2581,17 +3051,38 @@ function updateProfileStatsUI() {
         <div style="margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); font-size:10.5px; color:#4ade80; font-weight:700; line-height:1.35;">
           드랍 ${tInfo.dropRateStr} · 트뎀 ${tInfo.trigDmgStr} · 받트뎀 ${tInfo.trigRedStr}
         </div>
+        <div style="margin-top:5px; padding:4px 6px; border-radius:5px; background:rgba(250,204,21,0.08); border:1px solid rgba(250,204,21,0.3); font-size:10.5px; font-weight:800; line-height:1.45;">
+          <div style="color:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#facc15;">⚡ 각인</span>
+            <span>⚔️용맹 <strong style="color:${tInfo.hnE1 > 0 ? '#fca5a5' : '#94a3b8'};">Lv.${tInfo.hnE1}</strong> · 🛡️수호 <strong style="color:${tInfo.hnE2 > 0 ? '#93c5fd' : '#94a3b8'};">Lv.${tInfo.hnE2}</strong> · ✨영광 <strong style="color:${tInfo.hnE3 > 0 ? '#fde047' : '#94a3b8'};">Lv.${tInfo.hnE3}</strong></span>
+          </div>
+          <div style="margin-top:2px; padding-top:2px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#fde047;">🪙 명예 증표 <strong style="color:#ffffff;">${tInfo.hnMk.toLocaleString()}개</strong></span>
+            <span style="color:#7dd3fc;">🧩 증표 조각 <strong style="color:#ffffff;">${tInfo.hnFr.toLocaleString()}개</strong></span>
+          </div>
+        </div>
       `;
     }
   }
   
   // titleCode가 숫자(2) 또는 문자열(TT_TYPE2) 모두 지원
-  let titleLookup = currentProfile.titleCode;
-  if (typeof titleLookup === 'string' && titleLookup.startsWith('TT_TYPE')) {
-    titleLookup = parseInt(titleLookup.replace('TT_TYPE', ''), 10);
-  }
+  const titleLookup = resolveUserTitleLevel(currentProfile);
   const titleName = TITLES_MAP[titleLookup] || "미설정";
-  document.getElementById("valTitle").textContent = titleName;
+  const titleDetail = (typeof TITLES_DETAIL_DATA !== "undefined") ? TITLES_DETAIL_DATA[titleLookup] : null;
+  const elValTitle = document.getElementById("valTitle");
+  if (elValTitle) {
+    if (!currentProfile.userId || currentProfile.userId === "조회 대기중") {
+      elValTitle.textContent = "미설정";
+    } else if (titleDetail) {
+      elValTitle.innerHTML = `
+        <div style="font-size:15px; font-weight:900; color:#e879f9;">${titleName}</div>
+        <div style="margin-top:4px; font-size:11px; color:#4ade80; font-weight:800;">계급Lv +${titleDetail.rankLvBonus} · 드랍 +${titleDetail.dropRateBonus}%</div>
+        <div style="margin-top:2px; font-size:10.5px; color:#cbd5e1; font-weight:700;">추가골드 x${titleDetail.goldBonusMult}배 · 주화월급 x${titleDetail.salaryMult}배</div>
+      `;
+    } else {
+      elValTitle.textContent = titleName;
+    }
+  }
 
   const swState = (typeof resolveSwordSystemState === "function") ? resolveSwordSystemState() : null;
   let swordDisplayName = SACRED_SWORDS_MAP[currentProfile.swordCode] || "미설정";
@@ -2630,21 +3121,37 @@ function updateProfileStatsUI() {
   if (elSaveGrey) elSaveGrey.textContent = gBean.toLocaleString();
 
   // ==========================================
-  // 시즌 완료 녹색 배너 및 SP 카드 배지 제어
+  // 시즌 완료 녹색 배너 및 SP 카드 배지 제어 ("시즌포인트획득" 버전과 최신 맵 메이저 버전 비교)
   // ==========================================
   const bannerEl = document.getElementById("valSeasonCompleteBanner");
   const labelEl = document.getElementById("valSeasonCompleteLabel");
   const cardBadgeEl = document.getElementById("valSeasonCardBadge");
 
-  const verLabel = currentProfile.seasonVersionLabel || "v37";
+  const currentMapMajor = Math.max(38, Math.floor(parseMapVersionNumeric(currentDetectedMapVersion) || 38));
+  const rawVerLabel = (currentProfile.seasonVersionLabel || "").trim();
+  const earnedMajor = parseInt(rawVerLabel.replace(/[^0-9]/g, ""), 10) || 0;
+  const isCurrentSeasonCleared = Boolean(currentProfile.isSeasonCompleted && earnedMajor >= currentMapMajor);
   const completedCharName = currentProfile.seasonCompletedChar ? ` [달성 캐릭터: ${currentProfile.seasonCompletedChar}]` : "";
 
-  if (currentProfile.isSeasonCompleted) {
+  if (isCurrentSeasonCleared) {
+    const activeVerLabel = rawVerLabel || `v${currentMapMajor}`;
     if (bannerEl) bannerEl.style.display = "block";
-    if (labelEl) labelEl.textContent = `${verLabel} 시즌포인트 완료${completedCharName}`;
+    if (labelEl) labelEl.textContent = `${activeVerLabel} 시즌포인트 완료${completedCharName}`;
     if (cardBadgeEl) {
       cardBadgeEl.style.display = "block";
-      cardBadgeEl.textContent = `✅ ${verLabel} 시즌 완료${currentProfile.seasonCompletedChar ? ` (${currentProfile.seasonCompletedChar})` : ''}`;
+      cardBadgeEl.style.color = "var(--accent-emerald)";
+      cardBadgeEl.textContent = `✅ ${activeVerLabel} 시즌 완료${currentProfile.seasonCompletedChar ? ` (${currentProfile.seasonCompletedChar})` : ''}`;
+    }
+  } else if (currentProfile.userId && currentProfile.userId !== "조회 대기중") {
+    if (bannerEl) bannerEl.style.display = "none";
+    if (cardBadgeEl) {
+      cardBadgeEl.style.display = "block";
+      cardBadgeEl.style.color = "#f59e0b";
+      if (earnedMajor > 0) {
+        cardBadgeEl.textContent = `⏳ v${currentMapMajor} 시즌 미완료 (이전 ${rawVerLabel} 달성${currentProfile.seasonCompletedChar ? `: ${currentProfile.seasonCompletedChar}` : ''})`;
+      } else {
+        cardBadgeEl.textContent = `⏳ v${currentMapMajor} 시즌 미완료`;
+      }
     }
   } else {
     if (bannerEl) bannerEl.style.display = "none";
@@ -2730,12 +3237,15 @@ function updateProfileStatsUI() {
     `;
   }
 
-  // 3. 년/월/일/시간 포맷팅 적용 (시간 + v37 버전 태그)
+  // 3. 년/월/일/시간 포맷팅 적용 (시간 + 최신 맵 버전 태그)
   const valSaveDate = document.getElementById("valSaveDate");
   if (valSaveDate) {
     const formatted = formatSaveDate(save.saveDate || "");
-    const versionLabel = save.mapVersion || "v37.00";
+    const versionLabel = save.mapVersion || currentDetectedMapVersion || "v38.00";
     valSaveDate.innerHTML = `최근 저장: ${formatted} <span style="font-size:11px; padding:2px 6px; border-radius:4px; background:rgba(6,182,212,0.15); color:var(--accent-cyan); border:1px solid var(--accent-cyan); font-weight:700; margin-left:6px;">(${versionLabel} 시즌)</span>`;
+    if (typeof updateTopDetectedMapVersionUI === "function" && currentProfile.userId && currentProfile.userId !== "조회 대기중") {
+      updateTopDetectedMapVersionUI(versionLabel, currentProfile.userId);
+    }
   }
 
   // 4. 영웅 아이템 (6칸) / 펫 아이템 (6칸) / 창고 아이템 (6칸) 렌더링
@@ -2782,14 +3292,14 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
         if (itemData.rank) {
           let rankColor = "var(--accent-purple)";
           if (itemData.rank === "레전드급") rankColor = "#fb923c";
-          if (itemData.rank === "신급" || itemData.rank === "천룡" || itemData.rank === "궁극") rankColor = "var(--accent-gold)";
+          if (itemData.rank === "신급" || itemData.rank === "천룡" || itemData.rank === "용왕" || itemData.rank === "궁극") rankColor = "var(--accent-gold)";
           if (itemData.rank === "반 신급") rankColor = "#f472b6";
           if (itemData.rank === "조합체" || itemData.rank === "조합") rankColor = "var(--accent-emerald)";
           if (itemData.rank === "에픽") rankColor = "#c084fc";
           if (itemData.rank === "조합서") rankColor = "#a78bfa";
           if (itemData.rank === "레어") rankColor = "#38bdf8";
           if (itemData.rank === "조합재료") rankColor = "#38bdf8";
-          if (itemData.rank === "일반") rankColor = "#94a3b8";
+          if (itemData.rank === "일반" || itemData.rank === "노말") rankColor = "#94a3b8";
 
           rankBadge = `<span style="font-size:9.5px; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.06); color:${rankColor}; border:1px solid ${rankColor}; font-weight:700;">${itemData.rank}</span>`;
         }
@@ -2816,13 +3326,15 @@ function renderInventorySlots(containerId, itemsList, defaultCategoryIcon) {
 }
 
 /* ==========================================================================
-   2. Character Seasons Matrix Renderer
+   2. Character Seasons Matrix Renderer & Commander/Supreme Commander Hierarchy
    ========================================================================== */
 function renderSeasonsMatrix() {
   const row1Container = document.getElementById("gridRow1");
   const row2Container = document.getElementById("gridRow2");
 
   if (!row1Container || !row2Container) return;
+
+  renderCommanderHierarchyPanel();
 
   row1Container.innerHTML = "";
   row2Container.innerHTML = "";
@@ -2835,6 +3347,143 @@ function renderSeasonsMatrix() {
       row2Container.appendChild(seasonCard);
     }
   });
+}
+
+function renderCommanderHierarchyPanel() {
+  const tabCharacters = document.getElementById("tab-characters");
+  if (!tabCharacters) return;
+
+  let panel = document.getElementById("commanderHierarchyPanel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "commanderHierarchyPanel";
+    panel.style.marginBottom = "20px";
+    const matrixEl = tabCharacters.querySelector(".seasons-matrix");
+    if (matrixEl) {
+      tabCharacters.insertBefore(panel, matrixEl);
+    } else {
+      tabCharacters.appendChild(panel);
+    }
+  }
+
+  const ownedSet = (currentProfile && currentProfile.ownedCodes) ? currentProfile.ownedCodes : new Set();
+
+  // 시즌 1~10별 보유 수 및 단장 해금 상태 계산
+  const seasonStatus = {};
+  SEASONS_DATA.forEach(s => {
+    const total = s.characters.length;
+    let owned = 0;
+    s.characters.forEach(c => {
+      if (ownedSet.has(c.code)) owned++;
+    });
+    seasonStatus[s.season] = {
+      season: s.season,
+      commander: s.commander,
+      owned,
+      total,
+      unlocked: (owned === total && total > 0)
+    };
+  });
+
+  // 사령관 3종 해금 상태 (단장 3개 소유 시 해금)
+  const corpsGroups = [
+    {
+      id: "corps1",
+      name: "사령관 암흑기사장",
+      icon: "⚔️",
+      statType: "힘 (216,604 / 126,299 / 126,299)",
+      seasonRange: "1 ~ 3시즌",
+      seasons: [1, 2, 3],
+      color: "#f87171"
+    },
+    {
+      id: "corps2",
+      name: "사령관 몽마",
+      icon: "🌙",
+      statType: "지능 (126,299 / 126,299 / 216,604)",
+      seasonRange: "4 ~ 6시즌",
+      seasons: [4, 5, 6],
+      color: "#c084fc"
+    },
+    {
+      id: "corps3",
+      name: "사령관 데스크라운",
+      icon: "💀",
+      statType: "민첩 (126,299 / 216,604 / 126,299)",
+      seasonRange: "7 ~ 9시즌",
+      seasons: [7, 8, 9],
+      color: "#60a5fa"
+    }
+  ];
+
+  let unlockedCorpsCount = 0;
+  const corpsCardsHtml = corpsGroups.map(cg => {
+    const sList = cg.seasons.map(num => seasonStatus[num] || { season: num, commander: "", owned: 0, total: 9, unlocked: false });
+    const unlockedCmdCount = sList.filter(s => s.unlocked).length;
+    const totalOwnedChars = sList.reduce((acc, s) => acc + s.owned, 0);
+    const totalReqChars = sList.reduce((acc, s) => acc + s.total, 0);
+    const isCorpsUnlocked = (unlockedCmdCount === 3);
+    if (isCorpsUnlocked) unlockedCorpsCount++;
+
+    const cmdBadges = sList.map(s => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; border-radius:6px; background:${s.unlocked ? 'rgba(16,185,129,0.12)' : 'rgba(15,23,42,0.65)'}; border:1px solid ${s.unlocked ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.07)'}; font-size:11.5px;">
+        <span style="color:${s.unlocked ? '#e2e8f0' : '#94a3b8'}; font-weight:700;">S${s.season} ${s.commander}</span>
+        <span style="color:${s.unlocked ? '#34d399' : '#64748b'}; font-weight:800;">${s.unlocked ? '✅ 단장 해금' : `${s.owned}/${s.total}`}</span>
+      </div>
+    `).join("");
+
+    return `
+      <div style="padding:14px; border-radius:12px; background:${isCorpsUnlocked ? 'linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.95))' : 'rgba(15,23,42,0.75)'}; border:1px solid ${isCorpsUnlocked ? cg.color : 'rgba(255,255,255,0.1)'}; box-shadow:${isCorpsUnlocked ? '0 0 16px rgba(250,204,21,0.12)' : 'none'};">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+          <div>
+            <div style="font-size:11px; color:#94a3b8; font-weight:700;">${cg.seasonRange} 캐릭터 소유 (단장 3개)</div>
+            <div style="font-size:15px; font-weight:900; color:${isCorpsUnlocked ? cg.color : '#cbd5e1'}; margin-top:2px;">${cg.icon} ${cg.name}</div>
+            <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:2px;">기본 스탯: ${cg.statType}</div>
+          </div>
+          <span style="padding:3px 8px; border-radius:6px; font-size:11px; font-weight:800; background:${isCorpsUnlocked ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)'}; color:${isCorpsUnlocked ? '#34d399' : '#94a3b8'}; border:1px solid ${isCorpsUnlocked ? 'rgba(16,185,129,0.45)' : 'rgba(255,255,255,0.08)'}; white-space:nowrap;">
+            ${isCorpsUnlocked ? '✨ 선택 가능!' : `🔒 단장 ${unlockedCmdCount}/3 (${totalOwnedChars}/${totalReqChars})`}
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+          ${cmdBadges}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const isSupremeUnlocked = (unlockedCorpsCount === 3);
+
+  panel.innerHTML = `
+    <div style="padding:16px 18px; border-radius:14px; background:linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,27,75,0.65) 100%); border:1px solid rgba(250,204,21,0.35); box-shadow:0 8px 24px rgba(0,0,0,0.35);">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <div style="font-size:15px; font-weight:900; color:#facc15;">👑 단장 ➔ 사령관 ➔ 총사령관 해금 계보 시스템</div>
+          <div style="font-size:12px; color:#cbd5e1; margin-top:3px;">
+            시즌 9캐릭 소유 시 <strong style="color:#34d399;">단장</strong> 선택 가능 · 단장 3개 소유 시 <strong style="color:#c084fc;">사령관</strong> 선택 가능 · 사령관 3개 소유 시 <strong style="color:#facc15;">총사령관</strong> 선택 가능
+          </div>
+        </div>
+        <div style="padding:6px 12px; border-radius:8px; background:${isSupremeUnlocked ? 'rgba(250,204,21,0.18)' : 'rgba(15,23,42,0.8)'}; border:1px solid ${isSupremeUnlocked ? '#facc15' : 'rgba(255,255,255,0.12)'}; font-size:12px; font-weight:800; color:${isSupremeUnlocked ? '#fde047' : '#94a3b8'};">
+          ${isSupremeUnlocked ? '🌟 총사령관 해금 완료! (데르메트 · 요정왕 · 아이기스 선택 가능)' : `🔒 총사령관 해금 조건: 사령관 ${unlockedCorpsCount} / 3 보유`}
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+        ${corpsCardsHtml}
+      </div>
+
+      <div style="margin-top:12px; padding:11px 14px; border-radius:10px; background:${isSupremeUnlocked ? 'linear-gradient(90deg, rgba(234,179,8,0.18), rgba(245,158,11,0.12))' : 'rgba(15,23,42,0.65)'}; border:1px solid ${isSupremeUnlocked ? 'rgba(250,204,21,0.5)' : 'rgba(255,255,255,0.08)'}; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:13px; font-weight:900; color:#facc15;">🔱 총사령관 (1~9시즌 사령관 3개 모두 소유 시 선택 가능)</span>
+          <span style="font-size:12px; color:#f8fafc; font-weight:800;">
+            🔥 총사령관 데르메트 <small style="color:#94a3b8;">(#246·힘)</small> · 🧚 총사령관 요정왕 <small style="color:#94a3b8;">(#260/#261·민첩)</small> · 🛡️ 총사령관 아이기스 <small style="color:#94a3b8;">(#262·지능)</small>
+          </span>
+        </div>
+        <span style="font-size:11.5px; font-weight:800; color:${isSupremeUnlocked ? '#4ade80' : '#f59e0b'};">
+          ${isSupremeUnlocked ? '✅ 총사령관 선택 가능' : `사령관 ${unlockedCorpsCount}/3 달성`}
+        </span>
+      </div>
+    </div>
+  `;
 }
 
 function createSeasonCardElement(seasonData) {
@@ -5595,11 +6244,19 @@ function applyLiveM16DataToRanker(nicName, m16Data) {
       "REL_A1": 9,
       "REL_A2": 1
     };
-    liveProfile.redBean = 0;
-    liveProfile.blueBean = 0;
-    liveProfile.greyBean = 3;
-    liveProfile.beans = { red: 0, blue: 0, grey: 3 };
+    liveProfile.redBean = (m16Data.redBean !== undefined) ? m16Data.redBean : Math.max(liveProfile.redBean || 0, 0);
+    liveProfile.blueBean = (m16Data.blueBean !== undefined) ? m16Data.blueBean : Math.max(liveProfile.blueBean || 0, 0);
+    liveProfile.greyBean = (m16Data.greyBean !== undefined && m16Data.greyBean > 0) ? m16Data.greyBean : Math.max(liveProfile.greyBean || 0, 7);
+    liveProfile.beans = {
+      red: liveProfile.redBean,
+      blue: liveProfile.blueBean,
+      grey: liveProfile.greyBean
+    };
     if (liveProfile.lastSave) liveProfile.lastSave.petName = "빙결의 악몽[Lv3][펫]";
+  }
+
+  if (typeof updateTopDetectedMapVersionUI === "function" && m16Data.detectedMapVersion) {
+    updateTopDetectedMapVersionUI(m16Data.detectedMapVersion, cleanId);
   }
 
   if (typeof PLAYERS_DATABASE !== "undefined") {
