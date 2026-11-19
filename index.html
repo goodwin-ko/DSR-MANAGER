@@ -45,11 +45,8 @@
               🗺️ 현재 맵: <strong id="txtHeaderMapVersion" style="color: #ffffff; margin-left: 3px;">v38.00</strong>
             </span>
             <button type="button" class="btn-version-badge" id="btnHeaderVersionBadge" onclick="openPatchNotesModal()" title="클릭하여 시스템 패치노트 확인">
-              <span class="badge-dot"></span> <span id="txtHeaderVersion">v38.1.1 패치노트 📋</span>
+              <span class="badge-dot"></span> <span id="txtHeaderVersion">v38.2.4 패치노트 📋</span>
             </button>
-            <a href="rank_internal.html" class="btn-version-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; text-decoration: none;" title="내부 테스트용 TOP 100 랭킹 분석실">
-              <span>🔬 내부 랭킹 분석실</span>
-            </a>
           </div>
           <p>Continent RPG Season & Account Manager</p>
         </div>
@@ -284,13 +281,46 @@
           </div>
         </div>
 
-        <!-- 6. 능력치 (STR / AGI / INT) -->
+        <!-- 7. 능력치 (STR / AGI / INT) -->
         <div class="save-item stat-trio">
           <div class="save-icon">📊</div>
           <div class="save-content">
             <span class="save-label">캐릭터 능력치 (Str / Agi / Int)</span>
             <span class="save-value" id="valStatsTrio" style="font-size:13px; color:var(--text-muted);">
               힘 0 / 민 0 / 지 0
+            </span>
+          </div>
+        </div>
+
+        <!-- 8. 펫 스탯 (Pet Stats) -->
+        <div class="save-item stat-trio">
+          <div class="save-icon">🐾</div>
+          <div class="save-content">
+            <span class="save-label">펫 스탯 (Pet Stats · 랭킹 가산)</span>
+            <span class="save-value" id="valPetStats" style="font-size:13px; color:var(--text-muted);">
+              스탯 0
+            </span>
+          </div>
+        </div>
+
+        <!-- 9. 트뎀 계산 (계급·각인·유물·아이템 합산) -->
+        <div class="save-item stat-trio">
+          <div class="save-icon">⚔️</div>
+          <div class="save-content">
+            <span class="save-label">트뎀 계산 (트리거 데미지)</span>
+            <span class="save-value" id="valTriggerDmgStats" style="font-size:13px; color:var(--text-muted);">
+              트뎀 +0%
+            </span>
+          </div>
+        </div>
+
+        <!-- 10. 받트뎀 계산 (계급·각인·유물·아이템 합산) -->
+        <div class="save-item stat-trio">
+          <div class="save-icon">🛡️</div>
+          <div class="save-content">
+            <span class="save-label">받트뎀 계산 (받는 트뎀 감소)</span>
+            <span class="save-value" id="valTriggerRedStats" style="font-size:13px; color:var(--text-muted);">
+              받트뎀 -0% (실제 피격 100%)
             </span>
           </div>
         </div>
@@ -367,7 +397,7 @@
       </button>
       <button type="button" class="nav-tab" data-tab="rankings">
         <span>🏆 랭킹 분석실</span>
-        <span class="tab-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);">TOP 30</span>
+        <span class="tab-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);">TOP 50</span>
       </button>
     </nav>
 
@@ -563,25 +593,25 @@
     </section>
 
     <!-- ==========================================
-         8. TAB CONTENT 8: RANKINGS ANALYSIS (TOP 30)
+         8. TAB CONTENT 8: RANKINGS ANALYSIS (TOP 50)
          ========================================== -->
     <main id="tab-rankings" class="tab-view">
       <div class="rankings-header-panel">
         <div class="season-row-title">
           <span class="row-badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">실시간 연동</span>
-          <span>m16tool 공식 랭킹 분석실 & 스코어 산출 시스템</span>
+          <span>m16tool 공식 랭킹 분석실 & 스코어 산출 시스템 (TOP 50)</span>
         </div>
         <p class="rankings-desc-text">
-          m16tool.xyz 공식 <strong style="color:var(--accent-gold);">유저랭킹(TOP 30)</strong>과 <strong style="color:var(--accent-blue);">계급랭킹(TOP 30)</strong>을 실시간 동기화하여 다각도로 분석합니다. 아이디를 클릭하면 해당 유저의 프로필이 즉시 자동 조회됩니다.
+          m16tool.xyz 공식 <strong style="color:var(--accent-gold);">유저랭킹(TOP 50)</strong>과 <strong style="color:var(--accent-blue);">계급랭킹(TOP 50)</strong>을 실시간 동기화하여 다각도로 분석합니다. 아이디를 클릭하면 해당 유저의 프로필이 즉시 자동 조회됩니다.
         </p>
 
         <!-- 1차 서브 모드 탭 (유저랭킹 vs 계급랭킹 vs 스코어 계산 공식) -->
         <div class="rank-board-switch">
           <button type="button" class="rank-board-btn active" id="btnRankBoardUser" onclick="switchRankBoard('user')">
-            <span>🏆 유저랭킹 TOP 30 (일반)</span>
+            <span>🏆 유저랭킹 TOP 50 (일반)</span>
           </button>
           <button type="button" class="rank-board-btn" id="btnRankBoardTier" onclick="switchRankBoard('tier')">
-            <span>🎖️ 계급랭킹 TOP 30</span>
+            <span>🎖️ 계급랭킹 TOP 50</span>
           </button>
           <button type="button" class="rank-board-btn highlight-calc" id="btnRankBoardFormula" onclick="switchRankBoard('formula')">
             <span>📐 랭킹 스코어 계산 공식 & 종합 분석</span>
@@ -598,7 +628,7 @@
             <button type="button" class="rank-sort-btn" data-sort="coin" onclick="handleRankSort('coin')">🪙 주화 갯수순</button>
             <button type="button" class="rank-sort-btn" data-sort="sacredPower" onclick="handleRankSort('sacredPower')">⚡ 성력순</button>
             <button type="button" class="rank-sort-btn" data-sort="score" onclick="handleRankSort('score')">💯 스코어순</button>
-            <button type="button" class="rank-sort-btn" data-sort="gold" onclick="handleRankSort('gold')">💰 골드순</button>
+            <button type="button" class="rank-sort-btn" data-sort="petStats" onclick="handleRankSort('petStats')">🐾 펫 스탯순</button>
             <button type="button" class="rank-sort-btn" data-sort="totStats" onclick="handleRankSort('totStats')">📊 3대 스탯순</button>
           </div>
 
@@ -621,7 +651,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=38.1.7"></script>
-  <script src="app.js?v=38.1.7"></script>
+  <script src="data.js?v=38.2.4"></script>
+  <script src="app.js?v=38.2.4"></script>
 </body>
 </html>

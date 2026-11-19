@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>대륙 RPG 매니저 | 내부 테스트용 일반 랭킹 TOP 100 분석실</title>
-  <link rel="stylesheet" href="styles.css?v=37.5.5">
+  <title>대륙 RPG 매니저 | 내부 테스트용 일반 랭킹 TOP 50 분석실</title>
+  <link rel="stylesheet" href="styles.css?v=38.2.0">
   <style>
     /* Internal Rank Analyzer Dedicated Styles */
     .internal-badge-header {
@@ -214,14 +214,14 @@
           <div class="internal-badge-header">
             <span>🔒 내부 테스트 전용</span>
             <span style="opacity: 0.6;">•</span>
-            <span>일반 랭킹 1위~100위 시계열 증감 분석기</span>
+            <span>일반 랭킹 1위~50위 1시간 단위 자동 증감 분석기</span>
           </div>
           <div class="title-with-badge">
-            <h1 style="font-size: 24px;">일반 랭킹 TOP 100 시간별 증감 분석실</h1>
-            <span class="patch-badge" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);">INTERNAL v37.5.5</span>
+            <h1 style="font-size: 24px;">일반 랭킹 TOP 50 시간별 증감 분석실</h1>
+            <span class="patch-badge" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);">INTERNAL v38.2.0</span>
           </div>
           <p style="color: var(--text-sub); font-size: 13px; margin-top: 4px;">
-            m16tool 일반랭킹 100위 랭커의 <strong style="color: #fbbf24;">제국주화</strong>, <strong style="color: #38bdf8;">성력</strong>, <strong style="color: #c084fc;">스코어</strong>, <strong style="color: #34d399;">골드</strong>의 시간 단위 변동폭(Δ)을 실시간 추적합니다.
+            m16tool 일반랭킹 50위 랭커의 <strong style="color: #fbbf24;">제국주화</strong>, <strong style="color: #38bdf8;">성력</strong>, <strong style="color: #c084fc;">스코어</strong>를 <strong style="color: #34d399;">마지막 저장데이터 기준 1시간 단위로 자동 묶어 하루치(24시간) 누적 증감</strong>을 추적합니다.
           </p>
         </div>
       </div>
@@ -267,29 +267,18 @@
           <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
         </div>
       </div>
-
-      <!-- 4. 골드 변동 TOP 5 -->
-      <div class="insight-card gold">
-        <div class="insight-card-header">
-          <span>💰 최근 골드 변동 TOP 5</span>
-          <span id="txtInsightGoldTime" style="font-size: 11px; color: #94a3b8; font-weight: 500;">시간 대비</span>
-        </div>
-        <div class="insight-list" id="listTopGoldDelta">
-          <div style="color: #64748b; font-size: 12px; padding: 10px 0; text-align: center;">스냅샷 데이터 산출 중...</div>
-        </div>
-      </div>
     </div>
 
     <!-- Control & Filter Toolbar -->
     <div class="internal-control-panel">
       <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <button type="button" id="btnSyncTop100Live" onclick="triggerFullTop100Sync(true)" class="btn-search" style="padding: 10px 18px; font-size: 13px; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-            🔄 실시간 TOP 100 전수 갱신 & 새 스냅샷 기록
+          <button type="button" id="btnSyncTop100Live" onclick="triggerFullTop50Sync(true)" class="btn-search" style="padding: 10px 18px; font-size: 13px; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            🔄 실시간 TOP 50 전수 갱신 & 새 스냅샷 기록
           </button>
 
           <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #cbd5e1; cursor: pointer; background: rgba(255, 255, 255, 0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
-            <input type="checkbox" id="chkAutoHourlySync" onchange="toggleAutoHourlySync(this.checked)">
+            <input type="checkbox" id="chkAutoHourlySync" onchange="toggleAutoHourlySync(this.checked)" checked>
             <span>⏱️ 1시간마다 자동 스냅샷 수집</span>
           </label>
 
@@ -303,12 +292,12 @@
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 12.5px; color: #94a3b8; font-weight: 700;">증감 비교 기준:</span>
           <select id="selCompareTarget" onchange="handleCompareTargetChange(this.value)" style="background: #1e293b; color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; outline: none; cursor: pointer;">
-            <option value="prev">⚡ 직전 측정치 대비 (Latest Sync)</option>
-            <option value="1h" selected>⏱️ 1시간 전 대비</option>
-            <option value="3h">🕒 3시간 전 대비</option>
-            <option value="6h">🕕 6시간 전 대비</option>
-            <option value="24h">📅 24시간 전 (어제) 대비</option>
-            <option value="baseline">🏛️ 최초 기준치(Baseline) 대비</option>
+            <option value="24h" selected>📅 24시간 (하루치 누적)</option>
+            <option value="1h">⏱️ 최근 1시간 단위 증감</option>
+            <option value="3h">🕒 3시간 누적 대비</option>
+            <option value="6h">🕕 6시간 누적 대비</option>
+            <option value="12h">🕛 12시간 누적 대비</option>
+            <option value="prev">⚡ 직전 측정치 대비</option>
           </select>
         </div>
       </div>
@@ -317,10 +306,10 @@
       <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.1);">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
           <span style="font-size: 12px; color: #64748b; margin-right: 4px;">구간:</span>
-          <button type="button" class="cat-pill active" data-range="all" onclick="setRankRangeFilter('all', this)">전체 (1~100위)</button>
-          <button type="button" class="cat-pill" data-range="1-30" onclick="setRankRangeFilter('1-30', this)">1위 ~ 30위</button>
-          <button type="button" class="cat-pill" data-range="31-60" onclick="setRankRangeFilter('31-60', this)">31위 ~ 60위</button>
-          <button type="button" class="cat-pill" data-range="61-100" onclick="setRankRangeFilter('61-100', this)">61위 ~ 100위</button>
+          <button type="button" class="cat-pill active" data-range="all" onclick="setRankRangeFilter('all', this)">전체 (1~50위)</button>
+          <button type="button" class="cat-pill" data-range="1-20" onclick="setRankRangeFilter('1-20', this)">1위 ~ 20위</button>
+          <button type="button" class="cat-pill" data-range="21-35" onclick="setRankRangeFilter('21-35', this)">21위 ~ 35위</button>
+          <button type="button" class="cat-pill" data-range="36-50" onclick="setRankRangeFilter('36-50', this)">36위 ~ 50위</button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -349,32 +338,48 @@
     <!-- Active Summary Bar -->
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 12.5px; color: #94a3b8; flex-wrap: wrap; gap: 8px;">
       <div>
-        <span>📋 표시 유저: <strong id="txtDisplayCount" style="color: #f1f5f9;">100</strong>명</span>
+        <span>📋 표시 유저: <strong id="txtDisplayCount" style="color: #f1f5f9;">50</strong>명</span>
         <span style="margin: 0 8px; opacity: 0.4;">|</span>
         <span>최근 동기화: <strong id="txtLastSyncTime" style="color: #34d399;">기록 없음</strong></span>
         <span style="margin: 0 8px; opacity: 0.4;">|</span>
         <span>보유 스냅샷: <strong id="txtSnapshotCount" style="color: #60a5fa;">1</strong>개</span>
       </div>
       <div style="font-size: 11.5px; color: #64748b;">
-        💡 열 제목(헤더)을 클릭하면 해당 지표 증감(Δ) 순으로 즉시 정렬됩니다. 행을 클릭하면 시간대별 상세 이력을 확인합니다.
+        💡 순위 왼쪽 ☑️ 체크박스를 선택해 2명 이상 비교 분석할 수 있습니다. 행을 클릭하면 시간대별 상세 이력을 확인합니다.
       </div>
     </div>
 
-    <!-- Main TOP 100 Table -->
+    <!-- Compare Action Bar (체크된 랭커 비교 분석 바) -->
+    <div id="compareActionBar" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(88, 28, 135, 0.25)); border: 1px solid rgba(168, 85, 247, 0.5); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 12.5px; font-weight: 800; color: #e9d5ff;">⚖️ 비교 선택 (<span id="txtCompareCount">0</span>명):</span>
+        <div id="compareSelectedPills" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" id="btnOpenCompareModal" onclick="openCompareRankersModal()" style="padding: 8px 16px; border-radius: 8px; border: none; background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: #ffffff; font-size: 12.5px; font-weight: 800; cursor: pointer;">
+          🔍 선택 유저 차이 · 증감 비교 분석
+        </button>
+        <button type="button" onclick="clearCompareSelection()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #cbd5e1; font-size: 12px; font-weight: 700; cursor: pointer;">
+          ✕ 선택 해제
+        </button>
+      </div>
+    </div>
+
+    <!-- Main TOP 50 Table -->
     <div class="table-responsive">
       <table class="internal-table" id="internalTop100Table">
         <thead>
           <tr>
+            <th style="width: 44px; text-align: center; cursor: default;" title="비교할 유저를 체크하세요">☑️</th>
             <th data-sort="rank" onclick="handleSortColumn('rank')" class="active" style="width: 70px;">순위 👑</th>
             <th data-sort="nicName" onclick="handleSortColumn('nicName')">닉네임 (ID)</th>
+            <th data-sort="petStats" onclick="handleSortColumn('petStats')">🐾 장착 펫 (스탯)</th>
             <th data-sort="userScore" onclick="handleSortColumn('userScore')">스코어 (Score)</th>
             <th data-sort="deltaScore" onclick="handleSortColumn('deltaScore')" style="color: #c084fc;">스코어 증감(Δ)</th>
             <th data-sort="coin" onclick="handleSortColumn('coin')">제국주화 (Coin)</th>
             <th data-sort="deltaCoin" onclick="handleSortColumn('deltaCoin')" style="color: #fbbf24;">주화 증감(Δ)</th>
             <th data-sort="sacredPower" onclick="handleSortColumn('sacredPower')">성력 (Sacred)</th>
             <th data-sort="deltaSacred" onclick="handleSortColumn('deltaSacred')" style="color: #38bdf8;">성력 증감(Δ)</th>
-            <th data-sort="gold" onclick="handleSortColumn('gold')">골드 (Gold)</th>
-            <th data-sort="deltaGold" onclick="handleSortColumn('deltaGold')" style="color: #34d399;">골드 증감(Δ)</th>
             <th data-sort="seasonPoint" onclick="handleSortColumn('seasonPoint')">시즌P</th>
             <th data-sort="honorPoint" onclick="handleSortColumn('honorPoint')">명예P</th>
             <th data-sort="totStats" onclick="handleSortColumn('totStats')">3대 스탯</th>
@@ -409,8 +414,28 @@
     </div>
   </div>
 
+  <!-- Compare Rankers Modal (선택 유저 차이 & 증감 비교 분석) -->
+  <div id="compareRankersModal" class="detail-history-modal" style="display: none;" onclick="if(event.target.id==='compareRankersModal') closeCompareRankersModal();">
+    <div class="detail-history-dialog" style="max-width: 1050px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 22px;">⚖️</span>
+          <div>
+            <h3 id="modalCompareTitle" style="color: #e9d5ff; font-size: 17px; margin: 0;">선택 유저 랭킹 격차 · 증감 비교 분석</h3>
+            <span id="modalCompareSub" style="font-size: 12px; color: #94a3b8;">스코어 기여분 분해 & 선택 기간 증감(Δ) 원인 분석</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeCompareRankersModal()" class="btn-modal-close" style="background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer;">✕</button>
+      </div>
+
+      <div id="modalCompareContent">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script src="data_internal_100.js?v=37.5.5"></script>
-  <script src="rank_internal.js?v=37.5.5"></script>
+  <script src="data_internal_100.js?v=38.2.4"></script>
+  <script src="rank_internal.js?v=38.2.4"></script>
 </body>
 </html>

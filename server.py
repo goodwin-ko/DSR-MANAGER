@@ -43,22 +43,46 @@ def parse_ranking_board_html(html_text):
 class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == '/api/m16rankings_top100':
-            anchors = ['Horus', 'DallDall', 'Jonas', 'kk2103']
-            base_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9&nicname="
+        if parsed.path == '/api/m16internal_top50_24h':
+            try:
+                import sys
+                scripts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts")
+                if scripts_dir not in sys.path:
+                    sys.path.insert(0, scripts_dir)
+                import collect_internal_top50
+                top50, snapshots = collect_internal_top50.collect_top50_with_24h_history()
+                payload = json.dumps({"rankings": top50, "history": snapshots}, ensure_ascii=False).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(payload)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+
+        if parsed.path in ('/api/m16rankings_top100', '/api/m16rankings_top50'):
+            urls = [
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9",
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9&index=2"
+            ]
             all_rows = {}
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                futures = {executor.submit(fetch_url_html, f"{base_url}{urllib.parse.quote(nic)}"): nic for nic in anchors}
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = [executor.submit(fetch_url_html, u) for u in urls]
                 for fut in as_completed(futures):
                     try:
                         html = fut.result()
                         rows = parse_ranking_board_html(html)
                         for r in rows:
-                            if r["rank"] <= 100:
+                            if 1 <= r["rank"] <= 50:
                                 all_rows[r["rank"]] = r
                     except Exception:
                         pass
-            sorted_rows = [all_rows[k] for k in sorted(all_rows.keys())]
+            sorted_rows = [all_rows[k] for k in sorted(all_rows.keys())][:50]
             payload = json.dumps({"rankings": sorted_rows}, ensure_ascii=False).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -68,21 +92,36 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if parsed.path == '/api/m16rankings':
-            user_board_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9"
-            tier_board_url = "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9"
-            user_rows = []
-            tier_rows = []
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                f_user = executor.submit(fetch_url_html, user_board_url)
-                f_tier = executor.submit(fetch_url_html, tier_board_url)
-                try:
-                    user_rows = parse_ranking_board_html(f_user.result())
-                except Exception:
-                    user_rows = []
-                try:
-                    tier_rows = parse_ranking_board_html(f_tier.result())
-                except Exception:
-                    tier_rows = []
+            user_urls = [
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9",
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EC%9C%A0%EC%A0%80%EB%9E%AD%ED%82%B9&index=2"
+            ]
+            tier_urls = [
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9",
+                "https://m16tool.xyz/Game/DSR/Rank/Index?board=%EA%B3%84%EA%B8%89%EB%9E%AD%ED%82%B9&index=2"
+            ]
+            user_map = {}
+            tier_map = {}
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                f_users = [executor.submit(fetch_url_html, u) for u in user_urls]
+                f_tiers = [executor.submit(fetch_url_html, u) for u in tier_urls]
+                for fu in f_users:
+                    try:
+                        for r in parse_ranking_board_html(fu.result()):
+                            if r["rank"] <= 50:
+                                user_map[r["rank"]] = r
+                    except Exception:
+                        pass
+                for ft in f_tiers:
+                    try:
+                        for r in parse_ranking_board_html(ft.result()):
+                            if r["rank"] <= 50:
+                                tier_map[r["rank"]] = r
+                    except Exception:
+                        pass
+
+            user_rows = [user_map[k] for k in sorted(user_map.keys())][:50]
+            tier_rows = [tier_map[k] for k in sorted(tier_map.keys())][:50]
 
             payload = json.dumps({
                 "userBoard": user_rows,
