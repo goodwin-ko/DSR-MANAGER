@@ -2451,6 +2451,21 @@ function parseM16ToolHtml(nicName, htmlText) {
       });
     }
 
+    // SDATA2 내 진화 성검 마스터리(칼라드볼그[13], 솔라리스[15], 엑스칼리버[65]) 및 정령 레벨([71]) 파싱
+    let spiritLevel = 0;
+    const preSd2Match = htmlText.match(/"SDATA2"\s*:\s*"([^"]+)"/);
+    if (preSd2Match) {
+      const sd2Pre = preSd2Match[1].split(",");
+      const caladMas = parseInt(sd2Pre[13], 10) || 0;
+      const solarisMas = parseInt(sd2Pre[15], 10) || 0;
+      const excalMas = parseInt(sd2Pre[65], 10) || 0;
+      spiritLevel = parseInt(sd2Pre[71], 10) || 0;
+
+      if (caladMas > 0) swordMasteryLevels["nBLSwrodUP2"] = Math.max(swordMasteryLevels["nBLSwrodUP2"] || 0, Math.min(100, caladMas));
+      if (solarisMas > 0) swordMasteryLevels["nBLSwrodUP3"] = Math.max(swordMasteryLevels["nBLSwrodUP3"] || 0, Math.min(100, solarisMas));
+      if (excalMas > 0) swordMasteryLevels["nBLSwrodUP4"] = Math.max(swordMasteryLevels["nBLSwrodUP4"] || 0, Math.min(100, excalMas));
+    }
+
     // 개별 키 매핑 ("BLSwrod2": 9 등) -> 성검 강화 레벨(Lv.0~9) 및 보유 확인
     const swordKVMatches = htmlText.match(/"(BLSwrod\d+|nBLSwrodUP\d+)":\s*(\d+)/g);
     if (swordKVMatches) {
@@ -2463,6 +2478,25 @@ function parseM16ToolHtml(nicName, htmlText) {
           swordUpgradeLevels[sCode] = sLevel;
         }
       });
+    }
+
+    // Lv.100 달성 시 다음 단계 성검으로 진화 해금 및 최고 장착 성검 반영 (듀란달 -> 칼라드볼그 -> 솔라리스 -> 엑스칼리버)
+    if (swordMasteryLevels["nBLSwrodUP1"] >= 100 || swordMasteryLevels["nBLSwrodUP2"] > 0) {
+      ownedSwords.add("nBLSwrodUP2");
+    }
+    if (swordMasteryLevels["nBLSwrodUP2"] >= 100 || swordMasteryLevels["nBLSwrodUP3"] > 0) {
+      ownedSwords.add("nBLSwrodUP3");
+    }
+    if (swordMasteryLevels["nBLSwrodUP3"] >= 100 || swordMasteryLevels["nBLSwrodUP4"] > 0) {
+      ownedSwords.add("nBLSwrodUP4");
+    }
+
+    if (ownedSwords.has("nBLSwrodUP4")) {
+      swordCode = "nBLSwrodUP4";
+    } else if (ownedSwords.has("nBLSwrodUP3")) {
+      swordCode = "nBLSwrodUP3";
+    } else if (ownedSwords.has("nBLSwrodUP2")) {
+      swordCode = "nBLSwrodUP2";
     }
 
     // 현재 장착된 성검 레벨 결정 (마스터리 레벨 우선, 없으면 강화 레벨 표시)
@@ -3014,6 +3048,7 @@ function resolveEquippedPetFromPetData(pData) {
       GodSwordPoint: godSwordPoint,
       SDATA1: rawSdata1Str,
       SDATA2: rawSdata2Str,
+      spiritLevel: spiritLevel,
       ...swordUpgradeLevels
     };
 
@@ -3037,6 +3072,7 @@ function resolveEquippedPetFromPetData(pData) {
       titleCode: titleLevel,
       swordCode: swordCode,
       swordLevel: swordLevel,
+      spiritLevel: spiritLevel,
       swordUpgradeLevels: swordUpgradeLevels,
       swordMasteryLevels: swordMasteryLevels,
       rawSaveData: rawSaveData,
@@ -3293,7 +3329,10 @@ function updateProfileStatsUI() {
   } else if (currentProfile.swordCode === "nBLSwrodUP4") {
     swordDisplayName = "👑 엑스칼리버 [최종 궁극]";
   }
-  document.getElementById("valSacredSword").textContent = (currentProfile.swordLevel > 0) ? `${swordDisplayName} (Lv.${currentProfile.swordLevel})` : swordDisplayName;
+  const spiritLvVal = (swState && swState.spiritLevel) || currentProfile.spiritLevel || 0;
+  const swordLvPart = (currentProfile.swordLevel > 0) ? ` (Lv.${currentProfile.swordLevel})` : "";
+  const spiritLvPart = (spiritLvVal > 0) ? ` · 정령 Lv.${spiritLvVal}` : "";
+  document.getElementById("valSacredSword").textContent = `${swordDisplayName}${swordLvPart}${spiritLvPart}`;
 
   document.getElementById("valSacredPower").textContent = currentProfile.sacredPower;
 
@@ -4723,8 +4762,11 @@ function resolveSwordSystemState() {
     upgradeLevels["nBLSwrodUP1"] = 1;
   }
 
-  // 마스터리 레벨(Lv.0~100) 계산 (SDATA1 기반)
+  // 마스터리 레벨(Lv.0~100) 계산 (SDATA1 + SDATA2[13,15,65] 기반)
   const sdata1Parts = raw["SDATA1"] ? String(raw["SDATA1"]).split(",").map(v => parseInt(v, 10) || 0) : [];
+  const sdata2Parts = (raw["SDATA2"] || currentProfile.sdata2) ? String(raw["SDATA2"] || currentProfile.sdata2).split(",").map(v => parseInt(v, 10) || 0) : [];
+  const spiritLevel = sdata2Parts[71] || currentProfile.spiritLevel || raw["spiritLevel"] || 0;
+
   const swordOrder = ["BLSwrod1", "BLSwrod2", "BLSwrod3", "BLSwrod4", "BLSwrod5", "nBLSwrodUP1", "nBLSwrodUP2", "nBLSwrodUP3", "nBLSwrodUP4"];
   const masteryLevels = {};
   swordOrder.forEach((code, idx) => {
@@ -4737,14 +4779,34 @@ function resolveSwordSystemState() {
     }
   });
 
-  // 상위 진화 성검 해금 판정
-  const isCaladbolgUnlocked = Boolean(gKind >= 7 || upgradeLevels["nBLSwrodUP2"] > 0 || masteryLevels["nBLSwrodUP1"] >= 100);
-  const isSolarisUnlocked = Boolean(gKind >= 8 || upgradeLevels["nBLSwrodUP3"] > 0 || masteryLevels["nBLSwrodUP2"] >= 100);
-  const isExcaliburUnlocked = Boolean(gKind >= 9 || upgradeLevels["nBLSwrodUP4"] > 0 || (masteryLevels["nBLSwrodUP3"] >= 100 && upgradeLevels["nBLSwrodUP3"] >= 9));
+  // 듀란달 이후 진화 성검 마스터리 (SDATA2[13]: 칼라드볼그, SDATA2[15]: 솔라리스, SDATA2[65]: 엑스칼리버)
+  if (sdata2Parts[13] > 0) masteryLevels["nBLSwrodUP2"] = Math.max(masteryLevels["nBLSwrodUP2"], Math.min(100, sdata2Parts[13]));
+  if (sdata2Parts[15] > 0) masteryLevels["nBLSwrodUP3"] = Math.max(masteryLevels["nBLSwrodUP3"], Math.min(100, sdata2Parts[15]));
+  if (sdata2Parts[65] > 0) masteryLevels["nBLSwrodUP4"] = Math.max(masteryLevels["nBLSwrodUP4"], Math.min(100, sdata2Parts[65]));
+
+  // 상위 진화 성검 해금 판정 (Lv.100 달성 시 다음 성검으로 진화)
+  const isCaladbolgUnlocked = Boolean(gKind >= 7 || upgradeLevels["nBLSwrodUP2"] > 0 || masteryLevels["nBLSwrodUP1"] >= 100 || masteryLevels["nBLSwrodUP2"] > 0);
+  const isSolarisUnlocked = Boolean(gKind >= 8 || upgradeLevels["nBLSwrodUP3"] > 0 || masteryLevels["nBLSwrodUP2"] >= 100 || masteryLevels["nBLSwrodUP3"] > 0);
+  const isExcaliburUnlocked = Boolean(gKind >= 9 || upgradeLevels["nBLSwrodUP4"] > 0 || masteryLevels["nBLSwrodUP3"] >= 100 || masteryLevels["nBLSwrodUP4"] > 0);
+
+  if (isExcaliburUnlocked) {
+    gKind = Math.max(gKind, 9);
+    upgradeLevels["nBLSwrodUP4"] = Math.max(upgradeLevels["nBLSwrodUP4"], 1);
+    upgradeLevels["nBLSwrodUP3"] = Math.max(upgradeLevels["nBLSwrodUP3"], 9);
+    upgradeLevels["nBLSwrodUP2"] = Math.max(upgradeLevels["nBLSwrodUP2"], 1);
+  } else if (isSolarisUnlocked) {
+    gKind = Math.max(gKind, 8);
+    upgradeLevels["nBLSwrodUP3"] = Math.max(upgradeLevels["nBLSwrodUP3"], 1);
+    upgradeLevels["nBLSwrodUP2"] = Math.max(upgradeLevels["nBLSwrodUP2"], 1);
+  } else if (isCaladbolgUnlocked) {
+    gKind = Math.max(gKind, 7);
+    upgradeLevels["nBLSwrodUP2"] = Math.max(upgradeLevels["nBLSwrodUP2"], 1);
+  }
 
   return {
     gKind,
     gPoint,
+    spiritLevel,
     ownedSet,
     upgradeLevels,
     masteryLevels,
@@ -4821,6 +4883,10 @@ function renderSwordStatusSummary() {
         <div class="sword-stat-badge">
           <div class="sword-stat-label">보유 성력 (Sacred Power)</div>
           <div class="sword-stat-value" style="color: var(--accent-gold);">${gPoint.toLocaleString()} P</div>
+        </div>
+        <div class="sword-stat-badge">
+          <div class="sword-stat-label">정령 레벨 (SDATA2[71])</div>
+          <div class="sword-stat-value" style="color: #6ee7b7;">Lv.${state.spiritLevel || 0} <span style="font-size:11px; color:var(--text-muted); font-weight:600;">/ 25</span></div>
         </div>
         <div class="sword-stat-badge">
           <div class="sword-stat-label">성검 정령 상태</div>
@@ -5255,9 +5321,10 @@ function renderSwordSpiritView() {
   const container = document.getElementById("swordSpiritContainer");
   if (!container) return;
 
-  const raw = currentProfile.rawSaveData || {};
-  const gKind = parseInt(raw["GodSwordKind"], 10) || 1;
-  const gPoint = parseInt(raw["GodSwordPoint"] || String(currentProfile.sacredPower || "0").replace(/,/g, ''), 10) || 0;
+  const state = resolveSwordSystemState();
+  const gKind = state.gKind;
+  const gPoint = state.gPoint;
+  const spiritLevel = state.spiritLevel || 0;
 
   // 정령 4대 각성 단계
   const stages = [
@@ -5268,7 +5335,7 @@ function renderSwordSpiritView() {
       reqLv: 1,
       badge: "상시 동행",
       desc: "성검 소환 버프 중 성검 전용 모델의 수호 정령이 상시 동행 출현",
-      achieved: gPoint >= 10000
+      achieved: gPoint >= 10000 || spiritLevel >= 1
     },
     {
       step: 2,
@@ -5277,7 +5344,7 @@ function renderSwordSpiritView() {
       reqLv: 5,
       badge: "광역 폭딜 & 회복",
       desc: "주기적으로 광역 범위 피해 발동 및 체력/마나 회복 (피해 공식: 정령 계수 × 정령 Lv × 올스탯)",
-      achieved: gPoint >= 50000
+      achieved: gPoint >= 50000 || spiritLevel >= 5
     },
     {
       step: 3,
@@ -5286,7 +5353,7 @@ function renderSwordSpiritView() {
       reqLv: 10,
       badge: "대량 즉시 회복",
       desc: "정령 스킬 시전 시 생명력 & 마나 대량 회복 (칼라드볼그 5% / 솔라리스 6% / 엑스칼리버 8%)",
-      achieved: gPoint >= 100000
+      achieved: gPoint >= 100000 || spiritLevel >= 10
     },
     {
       step: 4,
@@ -5295,7 +5362,7 @@ function renderSwordSpiritView() {
       reqLv: 25,
       badge: "거대화 강림 (Ultimate)",
       desc: "크기 200% 거대화된 정령이 10초간 독립 전투 유닛으로 소환 (쿨타임 60초, 주변 지속 섬멸)",
-      achieved: gPoint >= 150000
+      achieved: gPoint >= 150000 && spiritLevel >= 25
     }
   ];
 
@@ -5312,10 +5379,15 @@ function renderSwordSpiritView() {
 
   container.innerHTML = `
     <!-- 상단: 4대 정령 각성 단계 -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:16px; font-weight:800; color:#ffffff; margin-bottom:4px;">✨ 성검 정령 4대 각성 단계 (성력 기준)</div>
-      <div style="font-size:12.5px; color:#94a3b8;">
-        성력 수치와 정령 레벨이 기준치를 돌파할 때마다 새로운 정령 스킬 권능이 자동 해금됩니다.
+    <div style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <div style="font-size:16px; font-weight:800; color:#ffffff; margin-bottom:4px;">✨ 성검 정령 4대 각성 단계 (성력 · 정령 레벨 기준)</div>
+        <div style="font-size:12.5px; color:#94a3b8;">
+          성력 수치와 정령 레벨이 기준치를 돌파할 때마다 새로운 정령 스킬 권능이 자동 해금됩니다.
+        </div>
+      </div>
+      <div style="padding:8px 14px; border-radius:10px; background:rgba(16, 185, 129, 0.14); border:1px solid rgba(16, 185, 129, 0.45); font-size:13px; font-weight:800; color:#6ee7b7;">
+        🐾 현재 정령 레벨: Lv.${spiritLevel} <span style="font-size:11px; color:#94a3b8; font-weight:600;">/ 25 (SDATA2[71])</span>
       </div>
     </div>
 
